@@ -35,6 +35,17 @@ class Settings(BaseSettings):
     grpc_enabled: bool = False
     grpc_port: int = 50051
 
+    # Kafka (Sprint 10 — APEP-083)
+    kafka_enabled: bool = False
+    kafka_bootstrap_servers: str = "localhost:9092"
+    kafka_decisions_topic: str = "agentpep.decisions"
+    kafka_producer_acks: str = "all"
+    kafka_producer_retries: int = 3
+
+    # Audit Engine (Sprint 10)
+    audit_capped_collection_size: int = 1_073_741_824  # 1 GB default
+    audit_capped_collection_max_docs: int = 10_000_000  # 10M docs max
+
     model_config = {"env_prefix": "AGENTPEP_"}
 
 

@@ -51,3 +51,11 @@ def mock_mongodb(monkeypatch):
         security_alert_emitter.clear()
     except ImportError:
         pass
+
+    # Clear Sprint 10 singletons
+    try:
+        from app.services.audit_logger import audit_logger
+
+        audit_logger.reset()
+    except ImportError:
+        pass

@@ -24,7 +24,9 @@ from app.models.policy import (
     TaintLevel,
     ToolCallRequest,
 )
+from app.services.audit_logger import audit_logger
 from app.services.confused_deputy import confused_deputy_detector
+from app.services.kafka_producer import kafka_producer
 from app.services.role_resolver import role_resolver
 from app.services.rule_cache import rule_cache
 from app.services.rule_matcher import rule_matcher
@@ -206,9 +208,7 @@ class PolicyEvaluator:
     async def _write_audit_log(
         request: ToolCallRequest, response: PolicyDecisionResponse
     ) -> None:
-        """Write an audit decision record to MongoDB."""
-        db = db_module.get_database()
-
+        """Write an audit decision record via AuditLogger (hash-chained) and publish to Kafka."""
         args_hash = hashlib.sha256(
             json.dumps(request.tool_args, sort_keys=True).encode()
         ).hexdigest()
@@ -228,12 +228,17 @@ class PolicyEvaluator:
         )
 
         try:
-            await db[db_module.AUDIT_DECISIONS].insert_one(
-                audit.model_dump(mode="json")
-            )
+            # APEP-081/082: Append with SHA-256 hash chain
+            audit = await audit_logger.append(audit)
         except Exception:
             # Audit write failure should not block the decision
-            pass
+            logger.exception("Audit append failed for request %s", request.request_id)
+
+        try:
+            # APEP-083: Publish to Kafka
+            await kafka_producer.publish_decision(audit)
+        except Exception:
+            logger.debug("Kafka publish skipped for request %s", request.request_id)
 
 
 # Module-level singleton
