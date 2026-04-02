@@ -42,6 +42,7 @@ API_KEYS = "api_keys"
 TAINT_GRAPHS = "taint_graphs"
 TAINT_AUDIT_EVENTS = "taint_audit_events"
 SECURITY_ALERTS = "security_alerts"
+MCP_PROXY_SESSIONS = "mcp_proxy_sessions"
 
 
 async def init_collections() -> None:
@@ -160,6 +161,20 @@ async def init_collections() -> None:
             IndexModel(
                 [("timestamp", ASCENDING)],
                 expireAfterSeconds=86400 * 90,  # 90-day TTL for security alerts
+            ),
+        ]
+    )
+
+    # MCP Proxy Sessions (APEP-101 — Sprint 12)
+    mcp_proxy_sessions = db[MCP_PROXY_SESSIONS]
+    await mcp_proxy_sessions.create_indexes(
+        [
+            IndexModel([("session_id", ASCENDING)], unique=True),
+            IndexModel([("agent_id", ASCENDING)]),
+            IndexModel([("status", ASCENDING)]),
+            IndexModel(
+                [("started_at", ASCENDING)],
+                expireAfterSeconds=86400 * 30,  # 30-day TTL
             ),
         ]
     )

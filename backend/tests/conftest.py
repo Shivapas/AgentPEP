@@ -51,3 +51,19 @@ def mock_mongodb(monkeypatch):
         security_alert_emitter.clear()
     except ImportError:
         pass
+
+    # Clear Sprint 12 MCP singletons
+    try:
+        from app.services.mcp_session_tracker import mcp_session_tracker
+
+        for sid in list(mcp_session_tracker._sessions.keys()):
+            mcp_session_tracker._sessions.pop(sid, None)
+    except ImportError:
+        pass
+
+    try:
+        from app.api.v1.mcp import clear_active_proxies
+
+        clear_active_proxies()
+    except ImportError:
+        pass

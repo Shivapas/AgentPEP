@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     grpc_enabled: bool = False
     grpc_port: int = 50051
 
+    # MCP Proxy (Sprint 12)
+    mcp_proxy_enabled: bool = False
+    mcp_proxy_default_timeout_s: float = 30.0
+
     model_config = {"env_prefix": "AGENTPEP_"}
 
 
