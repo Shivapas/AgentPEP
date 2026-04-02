@@ -4,6 +4,8 @@ Sprint 3 refactor: delegates to RoleResolver (APEP-021), RuleMatcher (APEP-022/0
 RuleCache (APEP-026), and uses JSON schema + regex validators (APEP-024/025).
 Sprint 5: integrates taint checking (APEP-043) — escalates if UNTRUSTED/QUARANTINE
 args are used on privileged tools with taint_check enabled.
+Sprint 7: integrates confused-deputy detector (APEP-060) — validates delegation
+chains, enforces depth limits, and detects implicit delegation.
 """
 
 import asyncio
@@ -22,6 +24,7 @@ from app.models.policy import (
     TaintLevel,
     ToolCallRequest,
 )
+from app.services.confused_deputy import confused_deputy_detector
 from app.services.role_resolver import role_resolver
 from app.services.rule_cache import rule_cache
 from app.services.rule_matcher import rule_matcher
@@ -70,6 +73,54 @@ class PolicyEvaluator:
         self, request: ToolCallRequest, start: float
     ) -> PolicyDecisionResponse:
         """Core evaluation logic: resolve roles, fetch cached rules, match, decide."""
+
+        # --- Confused-deputy check (APEP-060) ---
+        if request.delegation_hops:
+            deputy_ok, deputy_reason = await confused_deputy_detector.evaluate(
+                session_id=request.session_id,
+                agent_id=request.agent_id,
+                tool_name=request.tool_name,
+                delegation_hops=request.delegation_hops,
+            )
+            if not deputy_ok:
+                elapsed_ms = int((time.monotonic() - start) * 1000)
+                # ESCALATE for implicit delegation warnings, DENY for hard violations
+                if deputy_reason.startswith("ESCALATE:"):
+                    decision = Decision.ESCALATE
+                    reason = deputy_reason[len("ESCALATE: "):]
+                else:
+                    decision = Decision.DENY
+                    reason = deputy_reason
+
+                if request.dry_run:
+                    decision = Decision.DRY_RUN
+
+                return PolicyDecisionResponse(
+                    request_id=request.request_id,
+                    decision=decision,
+                    reason=f"Confused-deputy check: {reason}",
+                    latency_ms=elapsed_ms,
+                )
+        else:
+            # No explicit delegation — check for implicit delegation (APEP-058)
+            deputy_ok, deputy_reason = await confused_deputy_detector.evaluate(
+                session_id=request.session_id,
+                agent_id=request.agent_id,
+                tool_name=request.tool_name,
+                delegation_hops=[],
+            )
+            if not deputy_ok and deputy_reason.startswith("ESCALATE:"):
+                elapsed_ms = int((time.monotonic() - start) * 1000)
+                decision = Decision.ESCALATE
+                if request.dry_run:
+                    decision = Decision.DRY_RUN
+                return PolicyDecisionResponse(
+                    request_id=request.request_id,
+                    decision=decision,
+                    reason=f"Confused-deputy check: {deputy_reason[len('ESCALATE: '):]}",
+                    latency_ms=elapsed_ms,
+                )
+
         # Resolve all agent roles (direct + inherited via hierarchy)
         agent_roles = await role_resolver.resolve_roles(request.agent_id)
 

@@ -43,3 +43,11 @@ def mock_mongodb(monkeypatch):
             sanitisation_gate_registry.remove(gate.gate_id)
     except ImportError:
         pass
+
+    # Clear Sprint 7 singletons
+    try:
+        from app.services.confused_deputy import security_alert_emitter
+
+        security_alert_emitter.clear()
+    except ImportError:
+        pass

@@ -41,6 +41,7 @@ AGENT_ROLES = "agent_roles"
 API_KEYS = "api_keys"
 TAINT_GRAPHS = "taint_graphs"
 TAINT_AUDIT_EVENTS = "taint_audit_events"
+SECURITY_ALERTS = "security_alerts"
 
 
 async def init_collections() -> None:
@@ -143,6 +144,22 @@ async def init_collections() -> None:
             IndexModel(
                 [("timestamp", ASCENDING)],
                 expireAfterSeconds=86400 * 90,  # 90-day TTL for taint audit events
+            ),
+        ]
+    )
+
+    # Security Alerts (APEP-059 — Sprint 7)
+    security_alerts = db[SECURITY_ALERTS]
+    await security_alerts.create_indexes(
+        [
+            IndexModel([("alert_id", ASCENDING)], unique=True),
+            IndexModel([("session_id", ASCENDING)]),
+            IndexModel([("alert_type", ASCENDING)]),
+            IndexModel([("agent_id", ASCENDING)]),
+            IndexModel([("severity", ASCENDING)]),
+            IndexModel(
+                [("timestamp", ASCENDING)],
+                expireAfterSeconds=86400 * 90,  # 90-day TTL for security alerts
             ),
         ]
     )
