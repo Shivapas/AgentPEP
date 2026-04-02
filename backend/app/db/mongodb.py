@@ -37,6 +37,7 @@ POLICY_RULES = "policy_rules"
 TAINT_NODES = "taint_nodes"
 AUDIT_DECISIONS = "audit_decisions"
 AGENT_PROFILES = "agent_profiles"
+AGENT_ROLES = "agent_roles"
 API_KEYS = "api_keys"
 
 
@@ -92,6 +93,16 @@ async def init_collections() -> None:
         [
             IndexModel([("agent_id", ASCENDING)], unique=True),
             IndexModel([("roles", ASCENDING)]),
+            IndexModel([("enabled", ASCENDING)]),
+        ]
+    )
+
+    # Agent Roles (RBAC hierarchy)
+    agent_roles = db[AGENT_ROLES]
+    await agent_roles.create_indexes(
+        [
+            IndexModel([("role_id", ASCENDING)], unique=True),
+            IndexModel([("parent_roles", ASCENDING)]),
             IndexModel([("enabled", ASCENDING)]),
         ]
     )

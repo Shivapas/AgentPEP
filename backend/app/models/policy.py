@@ -34,6 +34,39 @@ class TaintSource(str, Enum):
     AGENT_MSG = "AGENT_MSG"
 
 
+# --- Agent Role (RBAC Hierarchy) ---
+
+
+class AgentRole(BaseModel):
+    """Role with multi-inheritance hierarchy for RBAC.
+
+    Roles form a DAG where each role can inherit from multiple parent roles.
+    Effective permissions are computed by merging the role's own permissions
+    with all inherited permissions from ancestor roles.
+    """
+
+    role_id: str = Field(..., description="Unique role identifier (e.g., 'admin', 'reader')")
+    name: str = Field(..., description="Human-readable role name")
+    parent_roles: list[str] = Field(
+        default_factory=list,
+        description="List of parent role_ids this role inherits from",
+    )
+    allowed_tools: list[str] = Field(
+        default_factory=list,
+        description="Glob patterns of tools this role can access directly",
+    )
+    denied_tools: list[str] = Field(
+        default_factory=list,
+        description="Glob patterns of tools explicitly denied to this role",
+    )
+    max_risk_threshold: float = Field(
+        default=1.0, ge=0.0, le=1.0, description="Max risk score this role can tolerate"
+    )
+    enabled: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 # --- Policy Rule ---
 
 
