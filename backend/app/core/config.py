@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     # Policy defaults
     default_fail_mode: str = "FAIL_CLOSED"  # FAIL_OPEN or FAIL_CLOSED
     audit_retention_days: int = 365
+    evaluation_timeout_s: float = 5.0  # Timeout for policy evaluation in seconds
+
+    # Authentication
+    auth_enabled: bool = False  # Enable API key authentication
+    mtls_enabled: bool = False  # Enable mTLS certificate validation
+
+    # gRPC
+    grpc_enabled: bool = False
+    grpc_port: int = 50051
 
     model_config = {"env_prefix": "AGENTPEP_"}
 
