@@ -6,6 +6,8 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
+from app.api.v1.console_auth import router as console_auth_router
+from app.api.v1.console_dashboard import router as console_dashboard_router
 from app.api.v1.health import router as health_router
 from app.api.v1.intercept import router as intercept_router
 from app.api.v1.taint import router as taint_router
@@ -62,6 +64,8 @@ app.add_middleware(MTLSMiddleware)
 app.include_router(health_router)
 app.include_router(intercept_router)
 app.include_router(taint_router)
+app.include_router(console_auth_router)
+app.include_router(console_dashboard_router)
 
 # Observability
 if settings.metrics_enabled:

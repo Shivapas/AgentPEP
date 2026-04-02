@@ -42,6 +42,7 @@ API_KEYS = "api_keys"
 TAINT_GRAPHS = "taint_graphs"
 TAINT_AUDIT_EVENTS = "taint_audit_events"
 SECURITY_ALERTS = "security_alerts"
+CONSOLE_USERS = "console_users"
 
 
 async def init_collections() -> None:
@@ -161,5 +162,16 @@ async def init_collections() -> None:
                 [("timestamp", ASCENDING)],
                 expireAfterSeconds=86400 * 90,  # 90-day TTL for security alerts
             ),
+        ]
+    )
+
+    # Console Users (APEP-105 — Sprint 13)
+    console_users = db[CONSOLE_USERS]
+    await console_users.create_indexes(
+        [
+            IndexModel([("username", ASCENDING)], unique=True),
+            IndexModel([("email", ASCENDING)], unique=True),
+            IndexModel([("tenant_id", ASCENDING)]),
+            IndexModel([("roles", ASCENDING)]),
         ]
     )

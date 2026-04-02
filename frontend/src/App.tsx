@@ -1,21 +1,53 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Dashboard } from "./components/Dashboard";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { ToastProvider } from "./contexts/ToastContext";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { AppShell } from "./components/layout/AppShell";
+import { DashboardPage } from "./components/dashboard/DashboardPage";
+import { Placeholder } from "./components/common/Placeholder";
 
 export function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-background">
-        <header className="border-b border-border px-6 py-4">
-          <h1 className="text-xl font-semibold text-foreground">
-            AgentPEP — Policy Console
-          </h1>
-        </header>
-        <main className="p-6">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-          </Routes>
-        </main>
-      </div>
+      <ThemeProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <Routes>
+              {/* All console routes require authentication */}
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <AppShell />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/" element={<DashboardPage />} />
+                <Route
+                  path="/policies"
+                  element={<Placeholder title="Policies" />}
+                />
+                <Route
+                  path="/agents"
+                  element={<Placeholder title="Agents" />}
+                />
+                <Route
+                  path="/audit"
+                  element={<Placeholder title="Audit Log" />}
+                />
+                <Route
+                  path="/escalations"
+                  element={<Placeholder title="Escalations" />}
+                />
+                <Route
+                  path="/risk"
+                  element={<Placeholder title="Risk Map" />}
+                />
+              </Route>
+            </Routes>
+          </ToastProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

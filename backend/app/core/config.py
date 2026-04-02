@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     auth_enabled: bool = False  # Enable API key authentication
     mtls_enabled: bool = False  # Enable mTLS certificate validation
 
+    # JWT (Console authentication)
+    jwt_secret: str = "change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 30
+    jwt_refresh_token_expire_days: int = 7
+
     # gRPC
     grpc_enabled: bool = False
     grpc_port: int = 50051

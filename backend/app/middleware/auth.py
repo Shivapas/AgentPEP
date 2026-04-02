@@ -11,7 +11,10 @@ from app.db import mongodb as db_module
 API_KEYS = "api_keys"
 
 # Paths that do not require authentication
-PUBLIC_PATHS = {"/health", "/ready", "/metrics", "/docs", "/openapi.json", "/redoc"}
+PUBLIC_PATHS = {
+    "/health", "/ready", "/metrics", "/docs", "/openapi.json", "/redoc",
+    "/v1/console/login", "/v1/console/refresh", "/v1/console/seed",
+}
 
 
 class APIKeyAuthMiddleware(BaseHTTPMiddleware):
