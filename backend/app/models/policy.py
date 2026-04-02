@@ -82,9 +82,20 @@ class AgentRole(BaseModel):
 # --- Policy Rule ---
 
 
+class RateLimitType(str, Enum):
+    """Rate limiting algorithm type (APEP-090/091)."""
+
+    SLIDING_WINDOW = "SLIDING_WINDOW"
+    FIXED_WINDOW = "FIXED_WINDOW"
+
+
 class RateLimit(BaseModel):
     count: int = Field(..., gt=0, description="Max invocations per window")
     window_s: int = Field(..., gt=0, description="Window duration in seconds")
+    limiter_type: RateLimitType = Field(
+        default=RateLimitType.SLIDING_WINDOW,
+        description="Rate limiting algorithm: SLIDING_WINDOW or FIXED_WINDOW",
+    )
 
 
 class ArgValidator(BaseModel):
@@ -256,6 +267,30 @@ class InjectionSignature(BaseModel):
     description: str = Field(default="", description="Human-readable description")
 
 
+# --- Validator Pipeline Result (APEP-096) ---
+
+
+class ValidationFailure(BaseModel):
+    """A single validation failure from the validator pipeline."""
+
+    validator_type: str = Field(..., description="Type: json_schema, regex, allowlist, blocklist")
+    arg_name: str
+    reason: str
+
+
+class ValidationResult(BaseModel):
+    """Result of running the full validator pipeline (APEP-096)."""
+
+    passed: bool = True
+    failures: list[ValidationFailure] = Field(default_factory=list)
+
+    @property
+    def reason(self) -> str:
+        if self.passed:
+            return ""
+        return "; ".join(f"[{f.validator_type}] {f.arg_name}: {f.reason}" for f in self.failures)
+
+
 # --- Audit Decision Log ---
 
 
@@ -301,6 +336,7 @@ class ToolCallRequest(BaseModel):
     request_id: UUID = Field(default_factory=uuid4)
     session_id: str
     agent_id: str
+    tenant_id: str = Field(default="default", description="Tenant identifier for global rate limits (APEP-092)")
     tool_name: str
     tool_args: dict[str, Any] = Field(default_factory=dict)
     delegation_chain: list[str] = Field(default_factory=list)

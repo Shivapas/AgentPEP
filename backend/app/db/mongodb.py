@@ -42,6 +42,7 @@ API_KEYS = "api_keys"
 TAINT_GRAPHS = "taint_graphs"
 TAINT_AUDIT_EVENTS = "taint_audit_events"
 SECURITY_ALERTS = "security_alerts"
+RATE_LIMIT_COUNTERS = "rate_limit_counters"
 
 
 async def init_collections() -> None:
@@ -160,6 +161,21 @@ async def init_collections() -> None:
             IndexModel(
                 [("timestamp", ASCENDING)],
                 expireAfterSeconds=86400 * 90,  # 90-day TTL for security alerts
+            ),
+        ]
+    )
+
+    # Rate Limit Counters (APEP-090/091/092 — Sprint 11)
+    rate_limit_counters = db[RATE_LIMIT_COUNTERS]
+    await rate_limit_counters.create_indexes(
+        [
+            IndexModel(
+                [("key", ASCENDING), ("window_start", ASCENDING)],
+                unique=True,
+            ),
+            IndexModel(
+                [("expires_at", ASCENDING)],
+                expireAfterSeconds=0,  # TTL: auto-delete when expires_at is reached
             ),
         ]
     )

@@ -51,3 +51,11 @@ def mock_mongodb(monkeypatch):
         security_alert_emitter.clear()
     except ImportError:
         pass
+
+    # Clear Sprint 11 global rate limit state by resetting config
+    try:
+        from app.core.config import settings
+
+        settings.global_rate_limit_enabled = False
+    except ImportError:
+        pass

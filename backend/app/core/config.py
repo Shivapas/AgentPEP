@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     audit_retention_days: int = 365
     evaluation_timeout_s: float = 5.0  # Timeout for policy evaluation in seconds
 
+    # Rate Limiting (APEP-092 — Sprint 11)
+    global_rate_limit_enabled: bool = False
+    global_rate_limit_per_second: int = 1000  # Per-tenant decisions/second ceiling
+
     # Authentication
     auth_enabled: bool = False  # Enable API key authentication
     mtls_enabled: bool = False  # Enable mTLS certificate validation
