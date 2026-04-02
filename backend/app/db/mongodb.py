@@ -39,6 +39,7 @@ AUDIT_DECISIONS = "audit_decisions"
 AGENT_PROFILES = "agent_profiles"
 AGENT_ROLES = "agent_roles"
 API_KEYS = "api_keys"
+TAINT_GRAPHS = "taint_graphs"
 
 
 async def init_collections() -> None:
@@ -114,5 +115,18 @@ async def init_collections() -> None:
             IndexModel([("key", ASCENDING)], unique=True),
             IndexModel([("tenant_id", ASCENDING)]),
             IndexModel([("enabled", ASCENDING)]),
+        ]
+    )
+
+    # Taint Graphs (APEP-045: forensic inspection)
+    taint_graphs = db[TAINT_GRAPHS]
+    await taint_graphs.create_indexes(
+        [
+            IndexModel([("session_id", ASCENDING)], unique=True),
+            IndexModel([("created_at", ASCENDING)]),
+            IndexModel(
+                [("persisted_at", ASCENDING)],
+                expireAfterSeconds=86400 * 30,  # 30-day TTL for persisted graphs
+            ),
         ]
     )

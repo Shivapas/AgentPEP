@@ -13,7 +13,14 @@ from agentpep.exceptions import (
     AgentPEPTimeoutError,
     PolicyDeniedError,
 )
-from agentpep.models import PolicyDecision, PolicyDecisionResponse, ToolCallRequest
+from agentpep.models import (
+    PolicyDecision,
+    PolicyDecisionResponse,
+    TaintLevel,
+    TaintNodeResponse,
+    TaintSource,
+    ToolCallRequest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +148,57 @@ class AgentPEPClient:
             )
         return response
 
+    # --- Taint labelling (APEP-041/042) ---
+
+    async def label_taint(
+        self,
+        *,
+        session_id: str = "default",
+        source: TaintSource,
+        value: str | None = None,
+        taint_level: TaintLevel | None = None,
+    ) -> TaintNodeResponse:
+        """Label external data with a taint source (APEP-041).
+
+        Sources WEB, EMAIL, TOOL_OUTPUT, and AGENT_MSG are automatically
+        classified as UNTRUSTED unless overridden (APEP-042).
+        """
+        payload: dict[str, Any] = {
+            "session_id": session_id,
+            "source": source.value,
+        }
+        if value is not None:
+            payload["value"] = value
+        if taint_level is not None:
+            payload["taint_level"] = taint_level.value
+
+        client = await self._get_async_client()
+        resp = await client.post("/v1/taint/label", json=payload)
+        resp.raise_for_status()
+        return TaintNodeResponse.model_validate(resp.json())
+
+    async def propagate_taint(
+        self,
+        *,
+        session_id: str = "default",
+        parent_node_ids: list[str],
+        source: TaintSource,
+        value: str | None = None,
+    ) -> TaintNodeResponse:
+        """Propagate taint from parent nodes to a new output node."""
+        payload: dict[str, Any] = {
+            "session_id": session_id,
+            "parent_node_ids": parent_node_ids,
+            "source": source.value,
+        }
+        if value is not None:
+            payload["value"] = value
+
+        client = await self._get_async_client()
+        resp = await client.post("/v1/taint/propagate", json=payload)
+        resp.raise_for_status()
+        return TaintNodeResponse.model_validate(resp.json())
+
     async def aclose(self) -> None:
         """Close the underlying async HTTP client."""
         if self._async_client and not self._async_client.is_closed:
@@ -231,6 +289,51 @@ class AgentPEPClient:
                 decision=response.decision.value,
             )
         return response
+
+    def label_taint_sync(
+        self,
+        *,
+        session_id: str = "default",
+        source: TaintSource,
+        value: str | None = None,
+        taint_level: TaintLevel | None = None,
+    ) -> TaintNodeResponse:
+        """Label external data with a taint source (sync)."""
+        payload: dict[str, Any] = {
+            "session_id": session_id,
+            "source": source.value,
+        }
+        if value is not None:
+            payload["value"] = value
+        if taint_level is not None:
+            payload["taint_level"] = taint_level.value
+
+        client = self._get_sync_client()
+        resp = client.post("/v1/taint/label", json=payload)
+        resp.raise_for_status()
+        return TaintNodeResponse.model_validate(resp.json())
+
+    def propagate_taint_sync(
+        self,
+        *,
+        session_id: str = "default",
+        parent_node_ids: list[str],
+        source: TaintSource,
+        value: str | None = None,
+    ) -> TaintNodeResponse:
+        """Propagate taint from parent nodes to a new output node (sync)."""
+        payload: dict[str, Any] = {
+            "session_id": session_id,
+            "parent_node_ids": parent_node_ids,
+            "source": source.value,
+        }
+        if value is not None:
+            payload["value"] = value
+
+        client = self._get_sync_client()
+        resp = client.post("/v1/taint/propagate", json=payload)
+        resp.raise_for_status()
+        return TaintNodeResponse.model_validate(resp.json())
 
     def close(self) -> None:
         """Close the underlying sync HTTP client."""
