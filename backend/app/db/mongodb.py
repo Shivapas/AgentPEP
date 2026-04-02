@@ -42,6 +42,9 @@ API_KEYS = "api_keys"
 TAINT_GRAPHS = "taint_graphs"
 TAINT_AUDIT_EVENTS = "taint_audit_events"
 SECURITY_ALERTS = "security_alerts"
+ESCALATION_TICKETS = "escalation_tickets"
+APPROVER_GROUPS = "approver_groups"
+APPROVAL_MEMORY = "approval_memory"
 
 
 async def init_collections() -> None:
@@ -160,6 +163,43 @@ async def init_collections() -> None:
             IndexModel(
                 [("timestamp", ASCENDING)],
                 expireAfterSeconds=86400 * 90,  # 90-day TTL for security alerts
+            ),
+        ]
+    )
+
+    # Escalation Tickets (Sprint 9 — APEP-072)
+    escalation_tickets = db[ESCALATION_TICKETS]
+    await escalation_tickets.create_indexes(
+        [
+            IndexModel([("ticket_id", ASCENDING)], unique=True),
+            IndexModel([("request_id", ASCENDING)]),
+            IndexModel([("session_id", ASCENDING)]),
+            IndexModel([("agent_id", ASCENDING)]),
+            IndexModel([("state", ASCENDING)]),
+            IndexModel([("assigned_to", ASCENDING)]),
+            IndexModel([("created_at", DESCENDING)]),
+        ]
+    )
+
+    # Approver Groups (Sprint 9 — APEP-076)
+    approver_groups = db[APPROVER_GROUPS]
+    await approver_groups.create_indexes(
+        [
+            IndexModel([("group_id", ASCENDING)], unique=True),
+            IndexModel([("enabled", ASCENDING)]),
+        ]
+    )
+
+    # Approval Memory (Sprint 9 — APEP-077)
+    approval_memory = db[APPROVAL_MEMORY]
+    await approval_memory.create_indexes(
+        [
+            IndexModel([("entry_id", ASCENDING)], unique=True),
+            IndexModel([("agent_id", ASCENDING), ("tool_name", ASCENDING),
+                        ("tool_args_hash", ASCENDING)]),
+            IndexModel(
+                [("created_at", ASCENDING)],
+                expireAfterSeconds=86400 * 7,  # 7-day TTL for approval memory
             ),
         ]
     )

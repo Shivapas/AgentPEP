@@ -35,6 +35,13 @@ class Settings(BaseSettings):
     grpc_enabled: bool = False
     grpc_port: int = 50051
 
+    # Escalation (Sprint 9)
+    escalation_timeout_seconds: int = 300  # Default timeout for escalation tickets
+    escalation_timeout_action: str = "DENIED"  # DENIED or APPROVED on timeout
+    escalation_email_webhook_url: str = ""
+    escalation_slack_webhook_url: str = ""
+    escalation_slack_channel: str = ""
+
     model_config = {"env_prefix": "AGENTPEP_"}
 
 

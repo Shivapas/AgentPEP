@@ -6,6 +6,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
+from app.api.v1.escalation import router as escalation_router
 from app.api.v1.health import router as health_router
 from app.api.v1.intercept import router as intercept_router
 from app.api.v1.taint import router as taint_router
@@ -25,6 +26,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     global _grpc_server
 
     await init_collections()
+
+    # Wire up escalation WebSocket broadcast callback (Sprint 9)
+    from app.services.escalation_manager import escalation_manager
+    from app.services.escalation_ws import escalation_ws_manager
+    from app.models.policy import EscalationState, NotificationConfig
+
+    escalation_manager.set_websocket_callback(escalation_ws_manager.broadcast_ticket)
+
+    # Configure escalation notifications from env
+    if settings.escalation_email_webhook_url or settings.escalation_slack_webhook_url:
+        escalation_manager.set_notification_config(
+            NotificationConfig(
+                email_webhook_url=settings.escalation_email_webhook_url or None,
+                slack_webhook_url=settings.escalation_slack_webhook_url or None,
+                slack_channel=settings.escalation_slack_channel or None,
+            )
+        )
 
     # Start gRPC server if enabled
     if settings.grpc_enabled:
@@ -62,6 +80,7 @@ app.add_middleware(MTLSMiddleware)
 app.include_router(health_router)
 app.include_router(intercept_router)
 app.include_router(taint_router)
+app.include_router(escalation_router)
 
 # Observability
 if settings.metrics_enabled:
