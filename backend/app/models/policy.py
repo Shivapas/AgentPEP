@@ -162,6 +162,10 @@ class ToolCallRequest(BaseModel):
     tool_name: str
     tool_args: dict[str, Any] = Field(default_factory=dict)
     delegation_chain: list[str] = Field(default_factory=list)
+    taint_node_ids: list[UUID] = Field(
+        default_factory=list,
+        description="IDs of taint nodes associated with tool arguments",
+    )
     dry_run: bool = False
 
 

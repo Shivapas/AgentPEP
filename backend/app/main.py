@@ -8,6 +8,7 @@ from fastapi import FastAPI
 
 from app.api.v1.health import router as health_router
 from app.api.v1.intercept import router as intercept_router
+from app.api.v1.taint import router as taint_router
 from app.core.config import settings
 from app.core.observability import get_metrics_app, setup_tracing
 from app.db.mongodb import close_client, init_collections
@@ -60,6 +61,7 @@ app.add_middleware(MTLSMiddleware)
 # Routers
 app.include_router(health_router)
 app.include_router(intercept_router)
+app.include_router(taint_router)
 
 # Observability
 if settings.metrics_enabled:

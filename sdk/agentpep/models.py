@@ -15,6 +15,25 @@ class PolicyDecision(str, Enum):
     TIMEOUT = "TIMEOUT"
 
 
+class TaintLevel(str, Enum):
+    """Taint classification levels."""
+
+    TRUSTED = "TRUSTED"
+    UNTRUSTED = "UNTRUSTED"
+    QUARANTINE = "QUARANTINE"
+
+
+class TaintSource(str, Enum):
+    """Source types for taint tracking."""
+
+    USER_PROMPT = "USER_PROMPT"
+    SYSTEM_PROMPT = "SYSTEM_PROMPT"
+    WEB = "WEB"
+    EMAIL = "EMAIL"
+    TOOL_OUTPUT = "TOOL_OUTPUT"
+    AGENT_MSG = "AGENT_MSG"
+
+
 class ToolCallRequest(BaseModel):
     """Request payload for the Intercept API."""
 
@@ -24,6 +43,7 @@ class ToolCallRequest(BaseModel):
     tool_name: str
     tool_args: dict[str, Any] = Field(default_factory=dict)
     delegation_chain: list[str] = Field(default_factory=list)
+    taint_node_ids: list[UUID] = Field(default_factory=list)
     dry_run: bool = False
 
 
@@ -38,3 +58,14 @@ class PolicyDecisionResponse(BaseModel):
     reason: str = ""
     escalation_id: UUID | None = None
     latency_ms: int = 0
+
+
+class TaintNodeResponse(BaseModel):
+    """Response from the taint labelling API."""
+
+    node_id: UUID
+    session_id: str
+    taint_level: TaintLevel
+    source: TaintSource
+    propagated_from: list[UUID] = Field(default_factory=list)
+    value_hash: str | None = None

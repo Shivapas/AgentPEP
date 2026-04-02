@@ -2,6 +2,8 @@
 
 Sprint 3 refactor: delegates to RoleResolver (APEP-021), RuleMatcher (APEP-022/023),
 RuleCache (APEP-026), and uses JSON schema + regex validators (APEP-024/025).
+Sprint 5: integrates taint checking (APEP-043) — escalates if UNTRUSTED/QUARANTINE
+args are used on privileged tools with taint_check enabled.
 """
 
 import asyncio
@@ -17,11 +19,13 @@ from app.models.policy import (
     AuditDecision,
     Decision,
     PolicyDecisionResponse,
+    TaintLevel,
     ToolCallRequest,
 )
 from app.services.role_resolver import role_resolver
 from app.services.rule_cache import rule_cache
 from app.services.rule_matcher import rule_matcher
+from app.services.taint_graph import session_graph_manager
 
 logger = logging.getLogger(__name__)
 
@@ -95,18 +99,57 @@ class PolicyEvaluator:
         assert matched_rule is not None
 
         decision = matched_rule.action
+        taint_flags: list[str] = []
+
+        # --- Taint check (APEP-043) ---
+        if matched_rule.taint_check and request.taint_node_ids:
+            taint_decision, taint_flags = self._check_taint(
+                request.session_id, request.taint_node_ids
+            )
+            if taint_decision is not None:
+                decision = taint_decision
 
         # DRY_RUN mode: evaluate fully but never enforce
         if request.dry_run:
             decision = Decision.DRY_RUN
 
+        reason = result.reason
+        if taint_flags:
+            reason += f" | Taint flags: {', '.join(taint_flags)}"
+
         return PolicyDecisionResponse(
             request_id=request.request_id,
             decision=decision,
             matched_rule_id=matched_rule.rule_id,
-            reason=result.reason,
+            reason=reason,
+            taint_flags=taint_flags,
             latency_ms=elapsed_ms,
         )
+
+    @staticmethod
+    def _check_taint(
+        session_id: str, taint_node_ids: list[UUID]
+    ) -> tuple[Decision | None, list[str]]:
+        """Check taint levels for the given node IDs.
+
+        Returns (escalation_decision, taint_flags).
+        - DENY if any node is QUARANTINE
+        - ESCALATE if any node is UNTRUSTED
+        - None (no override) if all TRUSTED
+        """
+        graph = session_graph_manager.get_session(session_id)
+        if graph is None:
+            return None, []
+
+        taint_flags = graph.get_taint_flags(taint_node_ids)
+
+        if graph.has_quarantined_nodes(taint_node_ids):
+            return Decision.DENY, taint_flags
+
+        if graph.has_untrusted_nodes(taint_node_ids):
+            return Decision.ESCALATE, taint_flags
+
+        return None, taint_flags
 
     @staticmethod
     async def _write_audit_log(

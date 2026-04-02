@@ -4,12 +4,22 @@ __version__ = "0.1.0"
 
 from agentpep.client import AgentPEPClient
 from agentpep.decorator import enforce
-from agentpep.models import PolicyDecision, ToolCallRequest, PolicyDecisionResponse
+from agentpep.models import (
+    PolicyDecision,
+    PolicyDecisionResponse,
+    TaintLevel,
+    TaintNodeResponse,
+    TaintSource,
+    ToolCallRequest,
+)
 
 __all__ = [
     "AgentPEPClient",
     "enforce",
     "PolicyDecision",
-    "ToolCallRequest",
     "PolicyDecisionResponse",
+    "TaintLevel",
+    "TaintNodeResponse",
+    "TaintSource",
+    "ToolCallRequest",
 ]
