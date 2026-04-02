@@ -51,3 +51,11 @@ def mock_mongodb(monkeypatch):
         security_alert_emitter.clear()
     except ImportError:
         pass
+
+    # Clear Sprint 8 singletons
+    try:
+        from app.services.risk_scoring import risk_engine
+
+        risk_engine.aggregator._cached_config = None
+    except ImportError:
+        pass
