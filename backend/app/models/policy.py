@@ -180,6 +180,72 @@ class TaintAuditEvent(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
+# --- Delegation Chain (Sprint 7 — Confused-Deputy Detector) ---
+
+
+class DelegationHop(BaseModel):
+    """A single hop in an agent-to-agent delegation chain (APEP-054).
+
+    Each hop records which agent delegated to which, the tools it granted,
+    and the authority source that justified the delegation.
+    """
+
+    agent_id: str = Field(..., description="Agent at this hop in the chain")
+    granted_tools: list[str] = Field(
+        default_factory=list,
+        description="Glob patterns of tools this agent was granted by its delegator",
+    )
+    authority_source: str = Field(
+        default="user",
+        description="Origin of authority: 'user', 'role:<role_id>', or 'agent:<agent_id>'",
+    )
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+class DelegationChain(BaseModel):
+    """Full delegation chain from originating user to current agent (APEP-054)."""
+
+    session_id: str
+    hops: list[DelegationHop] = Field(default_factory=list)
+    max_depth: int = Field(default=5, ge=1, description="Maximum allowed chain depth")
+
+    @property
+    def depth(self) -> int:
+        return len(self.hops)
+
+    @property
+    def current_agent(self) -> str | None:
+        return self.hops[-1].agent_id if self.hops else None
+
+    @property
+    def origin_agent(self) -> str | None:
+        return self.hops[0].agent_id if self.hops else None
+
+
+class SecurityAlertType(str, Enum):
+    """Types of security alert events (APEP-059)."""
+
+    PRIVILEGE_ESCALATION = "PRIVILEGE_ESCALATION"
+    CHAIN_DEPTH_EXCEEDED = "CHAIN_DEPTH_EXCEEDED"
+    UNAUTHORIZED_DELEGATION = "UNAUTHORIZED_DELEGATION"
+    IMPLICIT_DELEGATION = "IMPLICIT_DELEGATION"
+    AUTHORITY_VIOLATION = "AUTHORITY_VIOLATION"
+
+
+class SecurityAlertEvent(BaseModel):
+    """Security alert generated when delegation violations are detected (APEP-059)."""
+
+    alert_id: UUID = Field(default_factory=uuid4)
+    alert_type: SecurityAlertType
+    session_id: str
+    agent_id: str
+    delegation_chain: list[str] = Field(default_factory=list)
+    tool_name: str = ""
+    detail: str = ""
+    severity: str = Field(default="HIGH", description="LOW, MEDIUM, HIGH, CRITICAL")
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
 class InjectionSignature(BaseModel):
     """A categorised injection signature pattern (APEP-049)."""
 
@@ -238,6 +304,10 @@ class ToolCallRequest(BaseModel):
     tool_name: str
     tool_args: dict[str, Any] = Field(default_factory=dict)
     delegation_chain: list[str] = Field(default_factory=list)
+    delegation_hops: list[DelegationHop] = Field(
+        default_factory=list,
+        description="Structured delegation chain with per-hop authority (APEP-054)",
+    )
     taint_node_ids: list[UUID] = Field(
         default_factory=list,
         description="IDs of taint nodes associated with tool arguments",
