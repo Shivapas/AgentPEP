@@ -33,3 +33,13 @@ def mock_mongodb(monkeypatch):
         rule_cache.invalidate()
     except ImportError:
         pass
+
+    # Clear Sprint 6 singletons
+    try:
+        from app.services.taint_graph import taint_audit_logger, sanitisation_gate_registry
+
+        taint_audit_logger.clear()
+        for gate in list(sanitisation_gate_registry.list_gates()):
+            sanitisation_gate_registry.remove(gate.gate_id)
+    except ImportError:
+        pass

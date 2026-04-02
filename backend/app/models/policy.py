@@ -32,6 +32,18 @@ class TaintSource(str, Enum):
     EMAIL = "EMAIL"
     TOOL_OUTPUT = "TOOL_OUTPUT"
     AGENT_MSG = "AGENT_MSG"
+    CROSS_AGENT = "CROSS_AGENT"  # APEP-051: data crossing agent boundary
+    SANITISED = "SANITISED"  # APEP-048: output of a sanitisation gate
+
+
+class TaintEventType(str, Enum):
+    """Types of taint audit events (APEP-052)."""
+
+    TAINT_ASSIGNED = "TAINT_ASSIGNED"
+    TAINT_PROPAGATED = "TAINT_PROPAGATED"
+    TAINT_DOWNGRADED = "TAINT_DOWNGRADED"
+    TAINT_QUARANTINED = "TAINT_QUARANTINED"
+    CROSS_AGENT_PROPAGATED = "CROSS_AGENT_PROPAGATED"
 
 
 # --- Agent Role (RBAC Hierarchy) ---
@@ -111,7 +123,71 @@ class TaintNode(BaseModel):
     value_hash: str | None = Field(
         default=None, description="SHA-256 hash of the tracked value"
     )
+    agent_id: str | None = Field(
+        default=None, description="Agent that created this node (APEP-051)"
+    )
+    tool_call_id: str | None = Field(
+        default=None, description="Tool call that produced this node (APEP-047)"
+    )
+    hop_depth: int = Field(
+        default=0, description="Number of tool call hops from original source (APEP-047)"
+    )
+    sanitised_by: str | None = Field(
+        default=None, description="Sanitisation function that downgraded taint (APEP-048)"
+    )
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class SanitisationGate(BaseModel):
+    """Declaration of a sanitisation function that can downgrade taint (APEP-048)."""
+
+    gate_id: UUID = Field(default_factory=uuid4)
+    name: str = Field(..., description="Human-readable name for the sanitiser")
+    function_pattern: str = Field(
+        ..., description="Glob/regex pattern matching the sanitisation function name"
+    )
+    downgrades_from: TaintLevel = Field(
+        ..., description="Taint level this gate can downgrade FROM"
+    )
+    downgrades_to: TaintLevel = Field(
+        ..., description="Taint level this gate downgrades TO"
+    )
+    requires_approval: bool = Field(
+        default=False, description="If True, downgrade requires human approval"
+    )
+    enabled: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class TaintAuditEvent(BaseModel):
+    """Audit event for taint assignment and propagation (APEP-052)."""
+
+    event_id: UUID = Field(default_factory=uuid4)
+    event_type: TaintEventType
+    session_id: str
+    node_id: UUID
+    agent_id: str | None = None
+    taint_level: TaintLevel
+    previous_taint_level: TaintLevel | None = None
+    source: TaintSource
+    propagated_from: list[UUID] = Field(default_factory=list)
+    tool_call_id: str | None = None
+    hop_depth: int = 0
+    sanitised_by: str | None = None
+    matched_signature: str | None = Field(
+        default=None, description="Injection pattern that triggered QUARANTINE"
+    )
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+class InjectionSignature(BaseModel):
+    """A categorised injection signature pattern (APEP-049)."""
+
+    signature_id: str = Field(..., description="Unique identifier e.g. INJ-001")
+    category: str = Field(..., description="Category: prompt_override, role_hijack, system_escape, jailbreak, encoding_bypass")
+    pattern: str = Field(..., description="Regex pattern string")
+    severity: str = Field(default="HIGH", description="LOW, MEDIUM, HIGH, CRITICAL")
+    description: str = Field(default="", description="Human-readable description")
 
 
 # --- Audit Decision Log ---
