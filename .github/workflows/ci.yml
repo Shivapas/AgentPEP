@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend — Lint, Type-check, Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+      - name: Lint (ruff)
+        run: ruff check .
+      - name: Format check (ruff)
+        run: ruff format --check .
+      - name: Type check (mypy)
+        run: mypy app --ignore-missing-imports
+      - name: Test (pytest)
+        run: pytest -v
+
+  sdk:
+    name: SDK — Lint, Type-check, Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+      - name: Lint (ruff)
+        run: ruff check .
+      - name: Format check (ruff)
+        run: ruff format --check .
+      - name: Type check (mypy)
+        run: mypy agentpep --ignore-missing-imports
+      - name: Test (pytest)
+        run: pytest -v
+
+  frontend:
+    name: Frontend — Lint, Type-check, Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Type check
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
