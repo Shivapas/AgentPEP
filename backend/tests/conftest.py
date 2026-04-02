@@ -25,3 +25,11 @@ def mock_mongodb(monkeypatch):
         pass
 
     yield mock_db
+
+    # Clear rule cache to prevent cross-test pollution
+    try:
+        from app.services.rule_cache import rule_cache
+
+        rule_cache.invalidate()
+    except ImportError:
+        pass

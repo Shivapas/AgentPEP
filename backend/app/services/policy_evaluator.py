@@ -1,10 +1,13 @@
-"""PolicyEvaluator — reads rules from MongoDB and evaluates tool call requests."""
+"""PolicyEvaluator — reads rules from MongoDB and evaluates tool call requests.
+
+Sprint 3 refactor: delegates to RoleResolver (APEP-021), RuleMatcher (APEP-022/023),
+RuleCache (APEP-026), and uses JSON schema + regex validators (APEP-024/025).
+"""
 
 import asyncio
-import fnmatch
 import hashlib
 import json
-import re
+import logging
 import time
 from uuid import UUID
 
@@ -14,16 +17,21 @@ from app.models.policy import (
     AuditDecision,
     Decision,
     PolicyDecisionResponse,
-    PolicyRule,
     ToolCallRequest,
 )
+from app.services.role_resolver import role_resolver
+from app.services.rule_cache import rule_cache
+from app.services.rule_matcher import rule_matcher
+
+logger = logging.getLogger(__name__)
 
 
 class PolicyEvaluator:
     """Evaluates tool call requests against the policy rule stack.
 
-    Rules are fetched from MongoDB, sorted by priority (lower = higher priority),
-    and evaluated with first-match semantics. Default is deny-by-default.
+    Rules are fetched (with caching) from MongoDB, sorted by priority
+    (lower = higher priority), and evaluated with first-match semantics.
+    Default is deny-by-default.
     """
 
     async def evaluate(self, request: ToolCallRequest) -> PolicyDecisionResponse:
@@ -57,47 +65,34 @@ class PolicyEvaluator:
     async def _evaluate_internal(
         self, request: ToolCallRequest, start: float
     ) -> PolicyDecisionResponse:
-        """Core evaluation logic: fetch rules, match, decide."""
-        db = db_module.get_database()
+        """Core evaluation logic: resolve roles, fetch cached rules, match, decide."""
+        # Resolve all agent roles (direct + inherited via hierarchy)
+        agent_roles = await role_resolver.resolve_roles(request.agent_id)
 
-        # Resolve agent role from agent profile
-        agent_role = await self._resolve_agent_role(request.agent_id)
+        # Fetch enabled rules (cached with TTL)
+        rules = await rule_cache.get_rules()
 
-        # Fetch enabled rules sorted by priority (lower = higher priority)
-        cursor = db[db_module.POLICY_RULES].find({"enabled": True}).sort("priority", 1)
-        rules_docs = await cursor.to_list(length=1000)
-
-        matched_rule: PolicyRule | None = None
-
-        for doc in rules_docs:
-            rule = PolicyRule(**doc)
-
-            # Check if rule applies to this agent's role
-            if not self._role_matches(agent_role, rule.agent_role):
-                continue
-
-            # Check if tool name matches the rule's tool pattern
-            if not self._tool_matches(request.tool_name, rule.tool_pattern):
-                continue
-
-            # Check argument validators
-            if rule.arg_validators and not self._validate_args(request.tool_args, rule):
-                continue
-
-            # First match wins
-            matched_rule = rule
-            break
+        # First-match evaluation via RuleMatcher
+        result = rule_matcher.match(
+            tool_name=request.tool_name,
+            tool_args=request.tool_args,
+            agent_roles=agent_roles,
+            rules=rules,
+        )
 
         elapsed_ms = int((time.monotonic() - start) * 1000)
 
-        if matched_rule is None:
+        if not result.matched:
             # Deny-by-default when no rule matches
             return PolicyDecisionResponse(
                 request_id=request.request_id,
                 decision=Decision.DRY_RUN if request.dry_run else Decision.DENY,
-                reason="No matching policy rule — deny by default",
+                reason=result.reason,
                 latency_ms=elapsed_ms,
             )
+
+        matched_rule = result.rule
+        assert matched_rule is not None
 
         decision = matched_rule.action
 
@@ -109,72 +104,9 @@ class PolicyEvaluator:
             request_id=request.request_id,
             decision=decision,
             matched_rule_id=matched_rule.rule_id,
-            reason=f"Matched rule: {matched_rule.name} (priority {matched_rule.priority})",
+            reason=result.reason,
             latency_ms=elapsed_ms,
         )
-
-    async def _resolve_agent_role(self, agent_id: str) -> str:
-        """Look up the agent's primary role from agent profiles collection."""
-        db = db_module.get_database()
-        profile = await db[db_module.AGENT_PROFILES].find_one(
-            {"agent_id": agent_id, "enabled": True}
-        )
-        if profile and profile.get("roles"):
-            return profile["roles"][0]
-        return "default"
-
-    @staticmethod
-    def _role_matches(agent_role: str, rule_roles: list[str]) -> bool:
-        """Check if the agent's role is in the rule's target roles, or rule targets '*'."""
-        if "*" in rule_roles:
-            return True
-        return agent_role in rule_roles
-
-    @staticmethod
-    def _tool_matches(tool_name: str, tool_pattern: str) -> bool:
-        """Match tool name against a glob or regex pattern."""
-        # Try glob match first
-        if fnmatch.fnmatch(tool_name, tool_pattern):
-            return True
-        # Try regex match
-        try:
-            if re.fullmatch(tool_pattern, tool_name):
-                return True
-        except re.error:
-            pass
-        return False
-
-    @staticmethod
-    def _validate_args(tool_args: dict, rule: PolicyRule) -> bool:
-        """Validate tool arguments against rule's arg validators.
-
-        Returns True if all validators pass (or no validators apply).
-        Returns False if any validator rejects the arguments.
-        """
-        for validator in rule.arg_validators:
-            arg_value = tool_args.get(validator.arg_name)
-            if arg_value is None:
-                continue
-
-            arg_str = str(arg_value)
-
-            # Blocklist check
-            if validator.blocklist and arg_str in validator.blocklist:
-                return False
-
-            # Allowlist check
-            if validator.allowlist and arg_str not in validator.allowlist:
-                return False
-
-            # Regex pattern check
-            if validator.regex_pattern:
-                try:
-                    if not re.fullmatch(validator.regex_pattern, arg_str):
-                        return False
-                except re.error:
-                    return False
-
-        return True
 
     @staticmethod
     async def _write_audit_log(

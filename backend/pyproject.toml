@@ -17,6 +17,7 @@ dependencies = [
     "grpcio>=1.68.0",
     "grpcio-tools>=1.68.0",
     "grpcio-reflection>=1.68.0",
+    "jsonschema>=4.23.0",
 ]
 
 [project.optional-dependencies]
@@ -27,6 +28,7 @@ dev = [
     "ruff>=0.8.0",
     "mypy>=1.13.0",
     "mongomock-motor>=0.0.34",
+    "hypothesis>=6.112.0",
 ]
 
 [build-system]
