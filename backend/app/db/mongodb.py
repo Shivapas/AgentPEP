@@ -40,6 +40,7 @@ AGENT_PROFILES = "agent_profiles"
 AGENT_ROLES = "agent_roles"
 API_KEYS = "api_keys"
 TAINT_GRAPHS = "taint_graphs"
+TAINT_AUDIT_EVENTS = "taint_audit_events"
 
 
 async def init_collections() -> None:
@@ -127,6 +128,21 @@ async def init_collections() -> None:
             IndexModel(
                 [("persisted_at", ASCENDING)],
                 expireAfterSeconds=86400 * 30,  # 30-day TTL for persisted graphs
+            ),
+        ]
+    )
+
+    # Taint Audit Events (APEP-052)
+    taint_audit_events = db[TAINT_AUDIT_EVENTS]
+    await taint_audit_events.create_indexes(
+        [
+            IndexModel([("event_id", ASCENDING)], unique=True),
+            IndexModel([("session_id", ASCENDING)]),
+            IndexModel([("event_type", ASCENDING)]),
+            IndexModel([("agent_id", ASCENDING)]),
+            IndexModel(
+                [("timestamp", ASCENDING)],
+                expireAfterSeconds=86400 * 90,  # 90-day TTL for taint audit events
             ),
         ]
     )
