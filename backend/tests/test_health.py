@@ -29,7 +29,8 @@ async def test_health(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_intercept_allow(client: AsyncClient):
+async def test_intercept_deny_by_default(client: AsyncClient):
+    """Without any policy rules, intercept should deny by default."""
     payload = {
         "session_id": "test-session",
         "agent_id": "test-agent",
@@ -39,7 +40,7 @@ async def test_intercept_allow(client: AsyncClient):
     resp = await client.post("/v1/intercept", json=payload)
     assert resp.status_code == 200
     data = resp.json()
-    assert data["decision"] == "ALLOW"
+    assert data["decision"] == "DENY"
 
 
 @pytest.mark.asyncio

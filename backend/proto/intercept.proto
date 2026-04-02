@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package agentpep.v1;
+
+// Tool call interception request sent by agent orchestrators.
+message ToolCallRequest {
+  string request_id = 1;
+  string session_id = 2;
+  string agent_id = 3;
+  string tool_name = 4;
+  map<string, string> tool_args = 5;
+  repeated string delegation_chain = 6;
+  bool dry_run = 7;
+}
+
+// Policy evaluation decision returned by AgentPEP.
+message PolicyDecision {
+  string request_id = 1;
+  Decision decision = 2;
+  string matched_rule_id = 3;  // empty string if no rule matched
+  float risk_score = 4;
+  repeated string taint_flags = 5;
+  string reason = 6;
+  string escalation_id = 7;    // empty string if not applicable
+  int32 latency_ms = 8;
+}
+
+enum Decision {
+  DECISION_UNSPECIFIED = 0;
+  ALLOW = 1;
+  DENY = 2;
+  ESCALATE = 3;
+  DRY_RUN = 4;
+  TIMEOUT = 5;
+}
+
+// The AgentPEP Intercept service.
+service InterceptService {
+  // Evaluate a tool call request against the policy stack.
+  rpc Intercept (ToolCallRequest) returns (PolicyDecision);
+}

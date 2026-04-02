@@ -37,6 +37,7 @@ POLICY_RULES = "policy_rules"
 TAINT_NODES = "taint_nodes"
 AUDIT_DECISIONS = "audit_decisions"
 AGENT_PROFILES = "agent_profiles"
+API_KEYS = "api_keys"
 
 
 async def init_collections() -> None:
@@ -91,6 +92,16 @@ async def init_collections() -> None:
         [
             IndexModel([("agent_id", ASCENDING)], unique=True),
             IndexModel([("roles", ASCENDING)]),
+            IndexModel([("enabled", ASCENDING)]),
+        ]
+    )
+
+    # API Keys
+    api_keys = db[API_KEYS]
+    await api_keys.create_indexes(
+        [
+            IndexModel([("key", ASCENDING)], unique=True),
+            IndexModel([("tenant_id", ASCENDING)]),
             IndexModel([("enabled", ASCENDING)]),
         ]
     )
