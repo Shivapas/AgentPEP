@@ -1,6 +1,6 @@
 """Pydantic models for policy rules, taint nodes, audit decisions, and agent profiles."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 from uuid import UUID, uuid4
@@ -230,6 +230,109 @@ class SecurityAlertType(str, Enum):
     UNAUTHORIZED_DELEGATION = "UNAUTHORIZED_DELEGATION"
     IMPLICIT_DELEGATION = "IMPLICIT_DELEGATION"
     AUTHORITY_VIOLATION = "AUTHORITY_VIOLATION"
+
+
+# --- Escalation Ticket (Sprint 9 — Human Escalation Manager) ---
+
+
+class EscalationState(str, Enum):
+    """State machine for escalation tickets (APEP-072)."""
+
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    DENIED = "DENIED"
+    TIMEOUT = "TIMEOUT"
+
+
+class ApproverRoutingStrategy(str, Enum):
+    """Routing strategy for selecting approvers (APEP-076)."""
+
+    ROUND_ROBIN = "ROUND_ROBIN"
+    SPECIFIC_USER = "SPECIFIC_USER"
+    ON_CALL = "ON_CALL"
+
+
+class EscalationTicket(BaseModel):
+    """Human escalation ticket with full lifecycle (APEP-072).
+
+    State machine: PENDING -> APPROVED | DENIED | TIMEOUT
+    """
+
+    ticket_id: UUID = Field(default_factory=uuid4)
+    request_id: UUID = Field(..., description="Original ToolCallRequest.request_id")
+    session_id: str
+    agent_id: str
+    tool_name: str
+    tool_args_hash: str = Field(default="", description="SHA-256 of tool arguments")
+    risk_score: float = Field(default=0.0, ge=0.0, le=1.0)
+    reason: str = Field(default="", description="Why escalation was triggered")
+    state: EscalationState = EscalationState.PENDING
+    assigned_to: str | None = Field(
+        default=None, description="Approver user/group assigned to this ticket"
+    )
+    routing_strategy: ApproverRoutingStrategy = ApproverRoutingStrategy.ROUND_ROBIN
+    decided_by: str | None = Field(
+        default=None, description="User who approved/denied the ticket"
+    )
+    decision_reason: str = Field(default="", description="Approver's reason for decision")
+    timeout_seconds: int = Field(default=300, ge=1, description="Timeout before auto-resolution")
+    timeout_action: EscalationState = Field(
+        default=EscalationState.DENIED,
+        description="Action on timeout: APPROVED or DENIED",
+    )
+    taint_flags: list[str] = Field(default_factory=list)
+    delegation_chain: list[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    resolved_at: datetime | None = None
+
+
+class ApproverGroup(BaseModel):
+    """Group of approvers for escalation routing (APEP-076)."""
+
+    group_id: str = Field(..., description="Unique group identifier")
+    name: str
+    members: list[str] = Field(default_factory=list, description="User IDs in this group")
+    strategy: ApproverRoutingStrategy = ApproverRoutingStrategy.ROUND_ROBIN
+    on_call_user: str | None = Field(
+        default=None, description="Current on-call user (for ON_CALL strategy)"
+    )
+    last_assigned_index: int = Field(
+        default=0, description="Last assigned index for round-robin"
+    )
+    enabled: bool = True
+
+
+class ApprovalMemoryEntry(BaseModel):
+    """Cached approval pattern to skip re-escalation (APEP-077)."""
+
+    entry_id: UUID = Field(default_factory=uuid4)
+    agent_id: str
+    tool_name: str
+    tool_args_hash: str = Field(..., description="SHA-256 of tool arguments pattern")
+    approved_by: str
+    original_ticket_id: UUID
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
+class EscalationResolveRequest(BaseModel):
+    """Request to resolve (approve/deny) an escalation ticket."""
+
+    ticket_id: UUID
+    state: EscalationState = Field(
+        ..., description="Must be APPROVED or DENIED"
+    )
+    decided_by: str
+    decision_reason: str = ""
+
+
+class NotificationConfig(BaseModel):
+    """Configuration for escalation notifications (APEP-078/079)."""
+
+    email_webhook_url: str | None = None
+    email_recipients: list[str] = Field(default_factory=list)
+    slack_webhook_url: str | None = None
+    slack_channel: str | None = None
+    enabled: bool = True
 
 
 class SecurityAlertEvent(BaseModel):
