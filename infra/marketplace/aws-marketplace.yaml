@@ -1,0 +1,119 @@
+# AgentPEP — AWS Marketplace Listing Configuration
+# Reference: https://docs.aws.amazon.com/marketplace/latest/userguide/container-product-getting-started.html
+
+product:
+  name: "AgentPEP — Agent Policy Enforcement Point"
+  short_description: >
+    Deterministic runtime authorization engine for AI agent systems.
+    Intercepts every tool call and evaluates it against RBAC, taint tracking,
+    and confused-deputy detection policies.
+  long_description: >
+    AgentPEP is a deterministic authorization engine purpose-built for AI agent
+    systems. It sits at the execution boundary — after the LLM decides but
+    before any action is taken — and enforces hard policy limits that cannot be
+    bypassed by adversarial prompt engineering.
+
+    Key capabilities:
+    - Intercept API (REST + gRPC) for real-time policy decisions
+    - Role-based access control with risk-adaptive scoring
+    - Session-scoped taint tracking with sanitisation gates
+    - Confused-deputy detection across multi-agent delegation chains
+    - Python SDK with LangChain and LangGraph integrations
+    - Sub-5ms median decision latency at 10K+ decisions/second
+
+  product_category: "Security"
+  subcategory: "Application Security"
+  search_keywords:
+    - ai agent security
+    - llm authorization
+    - agent policy enforcement
+    - rbac for ai agents
+    - taint tracking
+    - confused deputy detection
+    - agentic ai guardrails
+
+  logo_url: "s3://agentpep-marketplace-assets/logo-256x256.png"
+  highlights:
+    - "Deterministic enforcement — not probabilistic prompt filtering"
+    - "Sub-5ms policy decisions at 10,000+ decisions/second"
+    - "Drop-in Python SDK for LangChain, LangGraph, and custom agents"
+
+publisher:
+  name: "TrustFabric"
+  contact_email: "aws-marketplace@trustfabric.example.com"
+  support_url: "https://support.trustfabric.example.com"
+  eula_url: "https://trustfabric.example.com/legal/eula"
+
+fulfillment:
+  type: "CONTAINER"
+  delivery:
+    ecr_repository: "709825985650.dkr.ecr.us-east-1.amazonaws.com/trustfabric/agentpep"
+    image_tags:
+      - "1.0.0"
+      - "latest"
+    helm_chart: "s3://agentpep-marketplace-assets/charts/agentpep-1.0.0.tgz"
+
+  architecture:
+    - "x86_64"
+    - "arm64"
+
+  deployment:
+    supported_services:
+      - "Amazon EKS"
+      - "Amazon ECS"
+      - "Self-managed Kubernetes"
+    requirements:
+      - "MongoDB 7.0+ (Amazon DocumentDB compatible)"
+      - "Kafka 3.x+ (Amazon MSK compatible)"
+      - "Kubernetes 1.28+ (for EKS deployments)"
+
+pricing:
+  model: "CONTRACT"
+  contract_dimensions:
+    - name: "DecisionVolume"
+      description: "Monthly policy decisions (intercept calls)"
+      unit: "Decisions"
+      tiers:
+        - name: "Team"
+          limit: 500000
+          price_monthly_usd: 499
+        - name: "Business"
+          limit: 5000000
+          price_monthly_usd: 2499
+        - name: "Enterprise"
+          limit: null  # unlimited
+          price_monthly_usd: null  # custom
+
+  free_trial:
+    enabled: true
+    duration_days: 30
+    tier: "Business"
+
+  refund_policy: "Full refund within 30 days of initial purchase."
+
+support:
+  tiers:
+    - name: "Standard"
+      included_in: ["Team", "Business"]
+      response_time: "48 hours (Team) / 8 hours (Business)"
+      channels: ["email", "support portal"]
+    - name: "Premium"
+      included_in: ["Enterprise"]
+      response_time: "1 hour (P0)"
+      channels: ["email", "support portal", "dedicated Slack", "phone"]
+
+regions:
+  initial_launch:
+    - "us-east-1"
+    - "us-west-2"
+    - "eu-west-1"
+  planned:
+    - "ap-southeast-1"
+    - "eu-central-1"
+    - "ap-northeast-1"
+
+compliance:
+  certifications:
+    - "SOC 2 Type II"
+  data_residency: "Tenant data remains in the deployment region."
+  gdpr: "Data Processing Addendum available."

@@ -1,6 +1,6 @@
 [project]
 name = "agentpep-backend"
-version = "0.1.0"
+version = "1.0.0"
 description = "AgentPEP — Deterministic Authorization Engine for AI Agent Systems"
 requires-python = ">=3.11"
 dependencies = [

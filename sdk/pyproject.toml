@@ -1,6 +1,6 @@
 [project]
 name = "agentpep-sdk"
-version = "0.1.0"
+version = "1.0.0"
 description = "AgentPEP Python SDK — Enforce decorator, LangChain integration, taint labelling"
 requires-python = ">=3.11"
 dependencies = [
