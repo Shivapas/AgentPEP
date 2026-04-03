@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     grpc_enabled: bool = False
     grpc_port: int = 50051
 
+    # Escalation (Sprint 18)
+    escalation_sla_seconds: int = 300  # Default SLA window for escalation tickets
+
     model_config = {"env_prefix": "AGENTPEP_"}
 
 
