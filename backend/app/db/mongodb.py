@@ -42,6 +42,8 @@ API_KEYS = "api_keys"
 TAINT_GRAPHS = "taint_graphs"
 TAINT_AUDIT_EVENTS = "taint_audit_events"
 SECURITY_ALERTS = "security_alerts"
+COMPLIANCE_REPORTS = "compliance_reports"
+REPORT_SCHEDULES = "report_schedules"
 
 
 async def init_collections() -> None:
@@ -161,5 +163,27 @@ async def init_collections() -> None:
                 [("timestamp", ASCENDING)],
                 expireAfterSeconds=86400 * 90,  # 90-day TTL for security alerts
             ),
+        ]
+    )
+
+    # Compliance Reports (Sprint 22 — APEP-172..174)
+    compliance_reports = db[COMPLIANCE_REPORTS]
+    await compliance_reports.create_indexes(
+        [
+            IndexModel([("report_id", ASCENDING)], unique=True),
+            IndexModel([("report_type", ASCENDING)]),
+            IndexModel([("status", ASCENDING)]),
+            IndexModel([("created_at", DESCENDING)]),
+        ]
+    )
+
+    # Report Schedules (Sprint 22 — APEP-177)
+    report_schedules = db[REPORT_SCHEDULES]
+    await report_schedules.create_indexes(
+        [
+            IndexModel([("schedule_id", ASCENDING)], unique=True),
+            IndexModel([("report_type", ASCENDING)]),
+            IndexModel([("enabled", ASCENDING)]),
+            IndexModel([("next_run_at", ASCENDING)]),
         ]
     )

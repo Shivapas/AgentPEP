@@ -35,6 +35,20 @@ class Settings(BaseSettings):
     grpc_enabled: bool = False
     grpc_port: int = 50051
 
+    # Splunk HEC (APEP-175)
+    splunk_hec_url: str = ""
+    splunk_hec_token: str = ""
+    splunk_hec_index: str = "agentpep"
+
+    # Elasticsearch (APEP-176)
+    elasticsearch_url: str = ""
+    elasticsearch_index: str = "agentpep-decisions"
+    elasticsearch_api_key: str = ""
+
+    # Report Scheduler (APEP-177)
+    report_scheduler_enabled: bool = False
+    report_scheduler_interval_s: float = 300.0
+
     model_config = {"env_prefix": "AGENTPEP_"}
 
 

@@ -6,6 +6,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
+from app.api.v1.compliance import router as compliance_router
 from app.api.v1.health import router as health_router
 from app.api.v1.intercept import router as intercept_router
 from app.api.v1.taint import router as taint_router
@@ -26,6 +27,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     await init_collections()
 
+    # Start report scheduler if enabled (APEP-177)
+    if settings.report_scheduler_enabled:
+        from app.services.compliance.report_scheduler import report_scheduler
+
+        await report_scheduler.start()
+
     # Start gRPC server if enabled
     if settings.grpc_enabled:
         try:
@@ -39,6 +46,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             )
 
     yield
+
+    # Shutdown report scheduler
+    if settings.report_scheduler_enabled:
+        from app.services.compliance.report_scheduler import report_scheduler
+
+        await report_scheduler.stop()
 
     # Shutdown gRPC server
     if _grpc_server is not None:
@@ -62,6 +75,7 @@ app.add_middleware(MTLSMiddleware)
 app.include_router(health_router)
 app.include_router(intercept_router)
 app.include_router(taint_router)
+app.include_router(compliance_router)
 
 # Observability
 if settings.metrics_enabled:
