@@ -74,7 +74,19 @@ async def init_collections() -> None:
         ]
     )
 
-    # Audit Decisions
+    # Audit Decisions (Sprint 10 — APEP-081: capped collection)
+    existing_collections = await db.list_collection_names()
+    if AUDIT_DECISIONS not in existing_collections:
+        try:
+            await db.create_collection(
+                AUDIT_DECISIONS,
+                capped=True,
+                size=settings.audit_capped_collection_size,
+                max=settings.audit_capped_collection_max_docs,
+            )
+        except Exception:
+            pass  # Collection may already exist in non-capped form
+
     audit_decisions = db[AUDIT_DECISIONS]
     await audit_decisions.create_indexes(
         [
@@ -84,6 +96,10 @@ async def init_collections() -> None:
             IndexModel([("tool_name", ASCENDING)]),
             IndexModel([("decision", ASCENDING)]),
             IndexModel([("timestamp", DESCENDING)]),
+            # Sprint 10 — APEP-082: hash chain ordering
+            IndexModel([("sequence_number", ASCENDING)], unique=True),
+            # Sprint 10 — APEP-085: risk score range queries
+            IndexModel([("risk_score", ASCENDING)]),
             IndexModel(
                 [("timestamp", ASCENDING)],
                 expireAfterSeconds=86400 * settings.audit_retention_days,

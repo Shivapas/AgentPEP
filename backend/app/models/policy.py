@@ -320,6 +320,51 @@ class AuditDecision(BaseModel):
     escalation_id: UUID | None = None
     latency_ms: int = 0
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+    # Sprint 10 — APEP-082: SHA-256 hash chain
+    previous_hash: str = Field(default="", description="SHA-256 hash of the previous audit record")
+    record_hash: str = Field(default="", description="SHA-256 hash of this record (chained)")
+    sequence_number: int = Field(default=0, description="Monotonic sequence number for ordering")
+
+
+class AuditIntegrityResult(BaseModel):
+    """Result of audit hash chain verification (APEP-088)."""
+
+    valid: bool
+    total_records: int = 0
+    verified_records: int = 0
+    first_tampered_sequence: int | None = None
+    first_tampered_decision_id: str | None = None
+    detail: str = ""
+
+
+class ComplianceExportRequest(BaseModel):
+    """Request parameters for compliance export (APEP-086)."""
+
+    template: str = Field(
+        ..., description="Compliance template: DPDPA, GDPR, or CERT_IN"
+    )
+    format: str = Field(default="json", description="Export format: json or csv")
+    agent_id: str | None = None
+    tool_name: str | None = None
+    decision: str | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    risk_score_min: float | None = Field(default=None, ge=0.0, le=1.0)
+    risk_score_max: float | None = Field(default=None, ge=0.0, le=1.0)
+
+
+class AuditQueryRequest(BaseModel):
+    """Query parameters for audit log search (APEP-085)."""
+
+    agent_id: str | None = None
+    tool_name: str | None = None
+    decision: str | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    risk_score_min: float | None = Field(default=None, ge=0.0, le=1.0)
+    risk_score_max: float | None = Field(default=None, ge=0.0, le=1.0)
+    limit: int = Field(default=100, ge=1, le=10000)
+    offset: int = Field(default=0, ge=0)
 
 
 # --- Agent Profile ---

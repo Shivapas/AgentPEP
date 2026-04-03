@@ -6,6 +6,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
+from app.api.v1.audit import router as audit_router
 from app.api.v1.health import router as health_router
 from app.api.v1.intercept import router as intercept_router
 from app.api.v1.taint import router as taint_router
@@ -13,6 +14,8 @@ from app.core.config import settings
 from app.core.observability import get_metrics_app, setup_tracing
 from app.db.mongodb import close_client, init_collections
 from app.middleware.auth import APIKeyAuthMiddleware, MTLSMiddleware
+from app.services.audit_logger import audit_logger
+from app.services.kafka_producer import kafka_producer
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +28,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     global _grpc_server
 
     await init_collections()
+
+    # Initialize audit logger (resume hash chain from DB)
+    await audit_logger.initialize()
+
+    # Start Kafka producer if enabled
+    await kafka_producer.start()
 
     # Start gRPC server if enabled
     if settings.grpc_enabled:
@@ -39,6 +48,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             )
 
     yield
+
+    # Shutdown Kafka producer
+    await kafka_producer.stop()
 
     # Shutdown gRPC server
     if _grpc_server is not None:
@@ -62,6 +74,7 @@ app.add_middleware(MTLSMiddleware)
 app.include_router(health_router)
 app.include_router(intercept_router)
 app.include_router(taint_router)
+app.include_router(audit_router)
 
 # Observability
 if settings.metrics_enabled:
