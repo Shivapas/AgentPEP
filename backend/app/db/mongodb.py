@@ -42,6 +42,7 @@ API_KEYS = "api_keys"
 TAINT_GRAPHS = "taint_graphs"
 TAINT_AUDIT_EVENTS = "taint_audit_events"
 SECURITY_ALERTS = "security_alerts"
+RISK_MODEL_CONFIGS = "risk_model_configs"
 
 
 async def init_collections() -> None:
@@ -177,5 +178,14 @@ async def init_collections() -> None:
                 [("timestamp", ASCENDING)],
                 expireAfterSeconds=86400 * 90,  # 90-day TTL for security alerts
             ),
+        ]
+    )
+
+    # Risk Model Configs (APEP-063 — Sprint 8)
+    risk_model_configs = db[RISK_MODEL_CONFIGS]
+    await risk_model_configs.create_indexes(
+        [
+            IndexModel([("model_id", ASCENDING)], unique=True),
+            IndexModel([("enabled", ASCENDING)]),
         ]
     )

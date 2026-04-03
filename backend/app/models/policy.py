@@ -246,6 +246,52 @@ class SecurityAlertEvent(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
+# --- Risk Scoring Engine (Sprint 8 — APEP-063) ---
+
+
+class RiskFactor(BaseModel):
+    """A single risk factor produced by a scorer."""
+
+    factor_name: str = Field(..., description="Unique scorer name, e.g. 'operation_type'")
+    score: float = Field(0.0, ge=0.0, le=1.0, description="Risk score in [0, 1]")
+    detail: str = Field(default="", description="Human-readable explanation")
+
+
+class RiskWeightConfig(BaseModel):
+    """Weight configuration for the risk aggregator (APEP-069).
+
+    Each key is a factor_name mapping to a weight ≥ 0.
+    The aggregator normalises weights so they sum to 1.
+    """
+
+    operation_type: float = Field(default=0.25, ge=0.0, description="Weight for OperationTypeScorer")
+    data_sensitivity: float = Field(default=0.25, ge=0.0, description="Weight for DataSensitivityScorer")
+    taint: float = Field(default=0.20, ge=0.0, description="Weight for TaintScorer")
+    session_accumulated: float = Field(default=0.10, ge=0.0, description="Weight for SessionAccumulatedRiskScorer")
+    delegation_depth: float = Field(default=0.20, ge=0.0, description="Weight for DelegationDepthScorer")
+
+
+class RiskModelConfig(BaseModel):
+    """Top-level risk model configuration stored in MongoDB (APEP-063).
+
+    Supports per-role overrides: if a role key exists in ``role_overrides``,
+    those weights replace the defaults for agents with that role.
+    """
+
+    model_id: str = Field(default="default", description="Unique config identifier")
+    default_weights: RiskWeightConfig = Field(default_factory=RiskWeightConfig)
+    role_overrides: dict[str, RiskWeightConfig] = Field(
+        default_factory=dict,
+        description="Per-role weight overrides keyed by role_id",
+    )
+    escalation_threshold: float = Field(
+        default=0.7, ge=0.0, le=1.0, description="Score above which ESCALATE is triggered"
+    )
+    enabled: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class InjectionSignature(BaseModel):
     """A categorised injection signature pattern (APEP-049)."""
 

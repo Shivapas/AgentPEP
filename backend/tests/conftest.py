@@ -52,6 +52,14 @@ def mock_mongodb(monkeypatch):
     except ImportError:
         pass
 
+    # Clear Sprint 8 singletons
+    try:
+        from app.services.risk_scoring import risk_engine
+
+        risk_engine.aggregator._cached_config = None
+    except ImportError:
+        pass
+
     # Clear Sprint 10 singletons
     try:
         from app.services.audit_logger import audit_logger
