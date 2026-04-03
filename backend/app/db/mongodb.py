@@ -42,6 +42,7 @@ API_KEYS = "api_keys"
 TAINT_GRAPHS = "taint_graphs"
 TAINT_AUDIT_EVENTS = "taint_audit_events"
 SECURITY_ALERTS = "security_alerts"
+AUDIT_HASH_CHAIN = "audit_hash_chain"
 
 
 async def init_collections() -> None:
@@ -145,6 +146,16 @@ async def init_collections() -> None:
                 [("timestamp", ASCENDING)],
                 expireAfterSeconds=86400 * 90,  # 90-day TTL for taint audit events
             ),
+        ]
+    )
+
+    # Audit Hash Chain (APEP-191 — Sprint 24)
+    audit_hash_chain = db[AUDIT_HASH_CHAIN]
+    await audit_hash_chain.create_indexes(
+        [
+            IndexModel([("sequence", ASCENDING)], unique=True),
+            IndexModel([("decision_id", ASCENDING)]),
+            IndexModel([("timestamp", DESCENDING)]),
         ]
     )
 

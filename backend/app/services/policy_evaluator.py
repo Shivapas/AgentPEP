@@ -24,6 +24,7 @@ from app.models.policy import (
     TaintLevel,
     ToolCallRequest,
 )
+from app.services.audit_integrity import audit_integrity_verifier
 from app.services.confused_deputy import confused_deputy_detector
 from app.services.role_resolver import role_resolver
 from app.services.rule_cache import rule_cache
@@ -228,9 +229,13 @@ class PolicyEvaluator:
         )
 
         try:
-            await db[db_module.AUDIT_DECISIONS].insert_one(
-                audit.model_dump(mode="json")
-            )
+            audit_dict = audit.model_dump(mode="json")
+            await db[db_module.AUDIT_DECISIONS].insert_one(audit_dict)
+            # APEP-191: Extend hash chain for integrity verification
+            try:
+                await audit_integrity_verifier.seal_record(audit_dict)
+            except Exception:
+                logger.warning("Failed to seal audit record in hash chain")
         except Exception:
             # Audit write failure should not block the decision
             pass

@@ -16,6 +16,7 @@ from agentpep.client import AgentPEPClient
 from agentpep.exceptions import PolicyDeniedError
 from agentpep.models import PolicyDecision
 from agentpep.offline import OfflineEvaluator
+from agentpep.tamper_detection import tamper_detector
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +86,8 @@ def _wrap_async(
                 reason=response.reason,
                 decision=response.decision.value,
             )
+        # APEP-190: Verify intercept was recorded before execution
+        tamper_detector.verify_before_execution(tool_name, agent_id)
         return await fn(*args, **kwargs)
 
     return wrapper
@@ -111,6 +114,8 @@ def _wrap_sync(
                 reason=response.reason,
                 decision=response.decision.value,
             )
+        # APEP-190: Verify intercept was recorded before execution
+        tamper_detector.verify_before_execution(tool_name, agent_id)
         return fn(*args, **kwargs)
 
     return wrapper

@@ -1,0 +1,88 @@
+# AgentPEP Helm chart values — APEP-192: Security-hardened defaults
+
+# --------------------------------------------------------------------------
+# MongoDB — hardened configuration
+# --------------------------------------------------------------------------
+mongodb:
+  # Authentication (APEP-192)
+  auth:
+    enabled: true
+    rootUser: agentpep-admin
+    # rootPassword should be supplied via --set or a Secret; never commit
+    rootPassword: ""
+    # Application-level credentials
+    database: agentpep
+    username: agentpep
+    # password should be supplied via --set or a Secret
+    password: ""
+
+  # Encryption at rest (APEP-192)
+  encryption:
+    enabled: true
+    # Path to the encryption key file inside the MongoDB container.
+    # In production, mount from a Kubernetes Secret backed by a KMS provider.
+    keyFile: /etc/mongodb/encryption-key
+
+  # Network restriction (APEP-192)
+  network:
+    # Bind only to the pod IP, not 0.0.0.0
+    bindIpAll: false
+    # NetworkPolicy: only allow traffic from agentpep-api pods
+    networkPolicy:
+      enabled: true
+      allowedLabels:
+        app: agentpep-api
+
+  # TLS
+  tls:
+    enabled: false
+    # certSecretName: mongodb-tls-cert
+
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# --------------------------------------------------------------------------
+# AgentPEP API
+# --------------------------------------------------------------------------
+api:
+  replicaCount: 2
+  image:
+    repository: agentpep/api
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  port: 8000
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+# --------------------------------------------------------------------------
+# AgentPEP Policy Console (frontend)
+# --------------------------------------------------------------------------
+console:
+  replicaCount: 1
+  image:
+    repository: agentpep/console
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  port: 5173
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi

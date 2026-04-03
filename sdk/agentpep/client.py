@@ -21,6 +21,7 @@ from agentpep.models import (
     TaintSource,
     ToolCallRequest,
 )
+from agentpep.tamper_detection import tamper_detector
 
 logger = logging.getLogger(__name__)
 
@@ -101,11 +102,14 @@ class AgentPEPClient:
                 json=request.model_dump(mode="json"),
             )
             resp.raise_for_status()
+            # APEP-190: Record successful intercept for tamper detection
+            tamper_detector.record_intercept(tool_name, agent_id)
             return PolicyDecisionResponse.model_validate(resp.json())
 
         except httpx.TimeoutException as exc:
             if self.fail_open:
                 logger.warning("AgentPEP timeout — fail_open=True, allowing tool call")
+                tamper_detector.record_intercept(tool_name, agent_id)
                 return PolicyDecisionResponse(
                     request_id=request.request_id,
                     decision=PolicyDecision.ALLOW,
@@ -116,6 +120,7 @@ class AgentPEPClient:
         except httpx.ConnectError as exc:
             if self.fail_open:
                 logger.warning("AgentPEP unreachable — fail_open=True, allowing tool call")
+                tamper_detector.record_intercept(tool_name, agent_id)
                 return PolicyDecisionResponse(
                     request_id=request.request_id,
                     decision=PolicyDecision.ALLOW,
@@ -243,11 +248,14 @@ class AgentPEPClient:
                 json=request.model_dump(mode="json"),
             )
             resp.raise_for_status()
+            # APEP-190: Record successful intercept for tamper detection
+            tamper_detector.record_intercept(tool_name, agent_id)
             return PolicyDecisionResponse.model_validate(resp.json())
 
         except httpx.TimeoutException as exc:
             if self.fail_open:
                 logger.warning("AgentPEP timeout — fail_open=True, allowing tool call")
+                tamper_detector.record_intercept(tool_name, agent_id)
                 return PolicyDecisionResponse(
                     request_id=request.request_id,
                     decision=PolicyDecision.ALLOW,
@@ -258,6 +266,7 @@ class AgentPEPClient:
         except httpx.ConnectError as exc:
             if self.fail_open:
                 logger.warning("AgentPEP unreachable — fail_open=True, allowing tool call")
+                tamper_detector.record_intercept(tool_name, agent_id)
                 return PolicyDecisionResponse(
                     request_id=request.request_id,
                     decision=PolicyDecision.ALLOW,

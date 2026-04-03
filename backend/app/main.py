@@ -6,6 +6,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
+from app.api.v1.audit import router as audit_router
 from app.api.v1.health import router as health_router
 from app.api.v1.intercept import router as intercept_router
 from app.api.v1.taint import router as taint_router
@@ -13,6 +14,11 @@ from app.core.config import settings
 from app.core.observability import get_metrics_app, setup_tracing
 from app.db.mongodb import close_client, init_collections
 from app.middleware.auth import APIKeyAuthMiddleware, MTLSMiddleware
+from app.middleware.security import (
+    CSRFMiddleware,
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +60,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Middleware (order matters: mTLS first, then API key)
+# Middleware (order matters — outermost runs first)
+# APEP-195: Rate limiting (outermost — reject early before auth overhead)
+app.add_middleware(RateLimitMiddleware, default_limit=100, intercept_limit=1000)
+# APEP-193: Security headers (XSS, clickjacking, HSTS, CSP)
+app.add_middleware(SecurityHeadersMiddleware)
+# APEP-193: CSRF protection for browser-based Policy Console
+app.add_middleware(CSRFMiddleware)
+# Auth middleware
 app.add_middleware(APIKeyAuthMiddleware)
 app.add_middleware(MTLSMiddleware)
 
@@ -62,6 +75,7 @@ app.add_middleware(MTLSMiddleware)
 app.include_router(health_router)
 app.include_router(intercept_router)
 app.include_router(taint_router)
+app.include_router(audit_router)
 
 # Observability
 if settings.metrics_enabled:
