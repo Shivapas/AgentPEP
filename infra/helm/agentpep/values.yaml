@@ -1,0 +1,74 @@
+# Default values for AgentPEP Helm chart (Sprint 26)
+
+replicaCount: 2
+
+image:
+  repository: agentpep/backend
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+  grpcPort: 50051
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+env:
+  AGENTPEP_MONGODB_URL: "mongodb://mongodb:27017"
+  AGENTPEP_MONGODB_DB_NAME: "agentpep"
+  AGENTPEP_OTLP_ENDPOINT: "http://otel-collector:4317"
+  AGENTPEP_METRICS_ENABLED: "true"
+  AGENTPEP_AUTH_ENABLED: "false"
+
+# --- Observability Stack (Sprint 26) ---
+
+otelCollector:
+  enabled: true
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: "0.96.0"
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+tempo:
+  enabled: true
+  image:
+    repository: grafana/tempo
+    tag: "2.4.1"
+  persistence:
+    size: 10Gi
+
+jaeger:
+  enabled: true
+  image:
+    repository: jaegertracing/all-in-one
+    tag: "1.56"
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+prometheus:
+  enabled: true
+  image:
+    repository: prom/prometheus
+    tag: "v2.51.0"
+  retention: 15d
+  persistence:
+    size: 50Gi
+
+grafana:
+  enabled: true
+  image:
+    repository: grafana/grafana
+    tag: "10.4.1"
+  adminPassword: "agentpep-admin"

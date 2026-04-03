@@ -1,0 +1,92 @@
+# AgentPEP Alerting Rules (Sprint 26, APEP-206)
+#
+# Deploy alongside Prometheus. Reference: docs/runbooks/
+groups:
+  - name: agentpep.decision
+    rules:
+      # DENY rate spike — fires when current DENY rate exceeds 5× the 1-hour baseline
+      - alert: AgentPEP_DenyRateSpike
+        expr: >
+          sum(rate(agentpep_decision_total{decision="DENY"}[5m]))
+          > 5 * sum(rate(agentpep_decision_total{decision="DENY"}[1h] offset 5m))
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "DENY rate spike detected (>5× baseline)"
+          description: >
+            The DENY decision rate over the last 5 minutes is more than 5× the
+            rolling 1-hour baseline. This may indicate a misconfigured policy,
+            a burst of unauthorized tool calls, or an attack.
+          runbook_url: "docs/runbooks/deny-rate-spike.md"
+
+      # p99 latency breach — fires when p99 decision latency exceeds 100 ms
+      - alert: AgentPEP_HighP99Latency
+        expr: >
+          histogram_quantile(0.99,
+            sum(rate(agentpep_decision_latency_seconds_bucket[5m])) by (le)
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "p99 decision latency exceeds 100 ms"
+          description: >
+            The 99th percentile decision latency has been above 100 ms for
+            5 minutes. Check MongoDB connectivity, rule cache hit rate, and
+            taint graph complexity.
+          runbook_url: "docs/runbooks/high-latency.md"
+
+  - name: agentpep.escalation
+    rules:
+      # Escalation backlog — fires when pending escalations exceed 10
+      - alert: AgentPEP_EscalationBacklog
+        expr: agentpep_escalation_backlog > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Escalation backlog exceeds 10"
+          description: >
+            More than 10 decisions are awaiting human review. This may
+            indicate insufficient human-in-the-loop capacity or a flood of
+            taint/delegation escalations.
+          runbook_url: "docs/runbooks/escalation-backlog.md"
+
+  - name: agentpep.infrastructure
+    rules:
+      # Audit write failures
+      - alert: AgentPEP_AuditWriteFailures
+        expr: >
+          sum(rate(agentpep_audit_write_total{status="failure"}[5m]))
+          / clamp_min(sum(rate(agentpep_audit_write_total[5m])), 0.001)
+          > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Audit log write failure rate exceeds 5%"
+          description: >
+            More than 5% of audit log writes are failing. This indicates
+            MongoDB connectivity issues or disk pressure. Decisions will
+            continue but audit trail integrity is compromised.
+          runbook_url: "docs/runbooks/audit-write-failures.md"
+
+      # Security alert burst
+      - alert: AgentPEP_SecurityAlertBurst
+        expr: >
+          sum(rate(agentpep_security_alert_total{severity=~"HIGH|CRITICAL"}[5m])) > 1
+        for: 2m
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "Burst of HIGH/CRITICAL security alerts"
+          description: >
+            More than 1 high-severity security alert per second over 2 minutes.
+            Possible active privilege escalation or confused-deputy attack.
+          runbook_url: "docs/runbooks/security-alert-burst.md"

@@ -1,0 +1,86 @@
+{{- if .Values.tempo.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-tempo
+  labels:
+    app: agentpep
+    component: tempo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agentpep
+      component: tempo
+  template:
+    metadata:
+      labels:
+        app: agentpep
+        component: tempo
+    spec:
+      containers:
+        - name: tempo
+          image: "{{ .Values.tempo.image.repository }}:{{ .Values.tempo.image.tag }}"
+          args: ["-config.file=/etc/tempo.yaml"]
+          ports:
+            - containerPort: 3200
+              name: http
+            - containerPort: 4317
+              name: otlp-grpc
+          volumeMounts:
+            - name: config
+              mountPath: /etc/tempo.yaml
+              subPath: tempo.yaml
+            - name: data
+              mountPath: /var/tempo
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-tempo-config
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo
+  labels:
+    app: agentpep
+    component: tempo
+spec:
+  ports:
+    - port: 3200
+      targetPort: http
+      name: http
+    - port: 4317
+      targetPort: otlp-grpc
+      name: otlp-grpc
+  selector:
+    app: agentpep
+    component: tempo
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-tempo-config
+data:
+  tempo.yaml: |
+    server:
+      http_listen_port: 3200
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: "0.0.0.0:4317"
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /var/tempo/traces
+        wal:
+          path: /var/tempo/wal
+    compactor:
+      compaction:
+        block_retention: 168h
+{{- end }}

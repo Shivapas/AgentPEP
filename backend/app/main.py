@@ -1,6 +1,5 @@
 """AgentPEP FastAPI application entry point."""
 
-import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -11,10 +10,13 @@ from app.api.v1.intercept import router as intercept_router
 from app.api.v1.taint import router as taint_router
 from app.core.config import settings
 from app.core.observability import get_metrics_app, setup_tracing
+from app.core.structured_logging import configure_logging, get_logger
 from app.db.mongodb import close_client, init_collections
 from app.middleware.auth import APIKeyAuthMiddleware, MTLSMiddleware
 
-logger = logging.getLogger(__name__)
+# Configure structured JSON logging before anything else (APEP-209)
+configure_logging()
+logger = get_logger(__name__)
 
 _grpc_server = None
 
@@ -24,6 +26,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application startup and shutdown lifecycle."""
     global _grpc_server
 
+    logger.info("app_startup", host=settings.host, port=settings.port)
     await init_collections()
 
     # Start gRPC server if enabled
@@ -32,10 +35,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             from app.grpc_service import start_grpc_server
 
             _grpc_server = await start_grpc_server(settings.grpc_port)
+            logger.info("grpc_started", port=settings.grpc_port)
         except ImportError:
             logger.warning(
-                "gRPC dependencies not installed — skipping gRPC server. "
-                "Install grpcio and grpcio-reflection to enable."
+                "grpc_unavailable",
+                detail="gRPC dependencies not installed — skipping gRPC server.",
             )
 
     yield
@@ -45,6 +49,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await _grpc_server.stop(grace=5)
 
     await close_client()
+    logger.info("app_shutdown")
 
 
 app = FastAPI(
