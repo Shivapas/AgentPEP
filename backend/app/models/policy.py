@@ -256,6 +256,48 @@ class InjectionSignature(BaseModel):
     description: str = Field(default="", description="Human-readable description")
 
 
+# --- Escalation (Sprint 18 — APEP-143 through APEP-150) ---
+
+
+class EscalationStatus(str, Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    DENIED = "DENIED"
+    ESCALATED_UP = "ESCALATED_UP"
+    AUTO_DECIDED = "AUTO_DECIDED"
+
+
+class EscalationTicket(BaseModel):
+    """An escalation ticket requiring human approval (APEP-143)."""
+
+    escalation_id: UUID = Field(default_factory=uuid4)
+    request_id: UUID
+    session_id: str
+    agent_id: str
+    agent_role: str = ""
+    tool_name: str
+    tool_args: dict[str, Any] = Field(default_factory=dict)
+    risk_score: float = Field(default=0.0, ge=0.0, le=1.0)
+    taint_flags: list[str] = Field(default_factory=list)
+    delegation_chain: list[str] = Field(default_factory=list)
+    matched_rule_id: UUID | None = None
+    reason: str = ""
+    status: EscalationStatus = EscalationStatus.PENDING
+    sla_deadline: datetime | None = Field(
+        default=None, description="Deadline before auto-decision triggers"
+    )
+    auto_decision: Decision = Field(
+        default=Decision.DENY, description="Decision applied if SLA expires"
+    )
+    resolved_by: str | None = Field(default=None, description="User/system that resolved the ticket")
+    resolution_comment: str = ""
+    escalated_to: str | None = Field(
+        default=None, description="Higher-tier reviewer if escalated up"
+    )
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    resolved_at: datetime | None = None
+
+
 # --- Audit Decision Log ---
 
 

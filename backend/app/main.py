@@ -6,6 +6,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
+from app.api.v1.escalation import router as escalation_router
 from app.api.v1.health import router as health_router
 from app.api.v1.intercept import router as intercept_router
 from app.api.v1.taint import router as taint_router
@@ -26,6 +27,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     await init_collections()
 
+    # Start escalation SLA watcher (Sprint 18)
+    from app.services.escalation_manager import escalation_manager
+
+    await escalation_manager.start_sla_watcher()
+
     # Start gRPC server if enabled
     if settings.grpc_enabled:
         try:
@@ -39,6 +45,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             )
 
     yield
+
+    # Shutdown escalation SLA watcher
+    escalation_manager.stop_sla_watcher()
 
     # Shutdown gRPC server
     if _grpc_server is not None:
@@ -62,6 +71,7 @@ app.add_middleware(MTLSMiddleware)
 app.include_router(health_router)
 app.include_router(intercept_router)
 app.include_router(taint_router)
+app.include_router(escalation_router)
 
 # Observability
 if settings.metrics_enabled:

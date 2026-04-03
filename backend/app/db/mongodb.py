@@ -42,6 +42,7 @@ API_KEYS = "api_keys"
 TAINT_GRAPHS = "taint_graphs"
 TAINT_AUDIT_EVENTS = "taint_audit_events"
 SECURITY_ALERTS = "security_alerts"
+ESCALATION_TICKETS = "escalation_tickets"
 
 
 async def init_collections() -> None:
@@ -160,6 +161,24 @@ async def init_collections() -> None:
             IndexModel(
                 [("timestamp", ASCENDING)],
                 expireAfterSeconds=86400 * 90,  # 90-day TTL for security alerts
+            ),
+        ]
+    )
+
+    # Escalation Tickets (Sprint 18 — APEP-143 through APEP-150)
+    escalation_tickets = db[ESCALATION_TICKETS]
+    await escalation_tickets.create_indexes(
+        [
+            IndexModel([("escalation_id", ASCENDING)], unique=True),
+            IndexModel([("status", ASCENDING)]),
+            IndexModel([("session_id", ASCENDING)]),
+            IndexModel([("agent_id", ASCENDING)]),
+            IndexModel([("tool_name", ASCENDING)]),
+            IndexModel([("sla_deadline", ASCENDING)]),
+            IndexModel([("created_at", DESCENDING)]),
+            IndexModel(
+                [("created_at", ASCENDING)],
+                expireAfterSeconds=86400 * 90,  # 90-day TTL
             ),
         ]
     )
