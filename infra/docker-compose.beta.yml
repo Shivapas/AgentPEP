@@ -1,0 +1,55 @@
+# Docker Compose for local beta environment simulation (APEP-211)
+# Mirrors the cloud beta setup with tenant isolation via separate databases.
+
+version: "3.9"
+
+services:
+  backend-tenant-alpha:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - AGENTPEP_MONGODB_URL=mongodb://mongodb:27017
+      - AGENTPEP_MONGODB_DB_NAME=agentpep_tenant_alpha
+      - AGENTPEP_DEBUG=false
+      - AGENTPEP_AUTH_ENABLED=true
+      - AGENTPEP_OTLP_ENDPOINT=http://otel-collector:4317
+    depends_on:
+      - mongodb
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  backend-tenant-bravo:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
+    environment:
+      - AGENTPEP_MONGODB_URL=mongodb://mongodb:27017
+      - AGENTPEP_MONGODB_DB_NAME=agentpep_tenant_bravo
+      - AGENTPEP_DEBUG=false
+      - AGENTPEP_AUTH_ENABLED=true
+      - AGENTPEP_OTLP_ENDPOINT=http://otel-collector:4317
+    depends_on:
+      - mongodb
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    command: npm run dev -- --host
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_beta_data:/data/db
+
+volumes:
+  mongo_beta_data:

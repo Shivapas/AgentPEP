@@ -5,7 +5,9 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.v1.console import router as console_router
 from app.api.v1.health import router as health_router
 from app.api.v1.intercept import router as intercept_router
 from app.api.v1.taint import router as taint_router
@@ -54,6 +56,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS middleware (APEP-215 friction #6)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Middleware (order matters: mTLS first, then API key)
 app.add_middleware(APIKeyAuthMiddleware)
 app.add_middleware(MTLSMiddleware)
@@ -62,6 +73,7 @@ app.add_middleware(MTLSMiddleware)
 app.include_router(health_router)
 app.include_router(intercept_router)
 app.include_router(taint_router)
+app.include_router(console_router)
 
 # Observability
 if settings.metrics_enabled:

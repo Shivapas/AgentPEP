@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     auth_enabled: bool = False  # Enable API key authentication
     mtls_enabled: bool = False  # Enable mTLS certificate validation
 
+    # CORS (APEP-215)
+    cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+
     # gRPC
     grpc_enabled: bool = False
     grpc_port: int = 50051
