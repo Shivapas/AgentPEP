@@ -6,6 +6,8 @@ Sprint 5: integrates taint checking (APEP-043) — escalates if UNTRUSTED/QUARAN
 args are used on privileged tools with taint_check enabled.
 Sprint 7: integrates confused-deputy detector (APEP-060) — validates delegation
 chains, enforces depth limits, and detects implicit delegation.
+Sprint 8: integrates risk scoring engine (APEP-070) — computes [0–1] risk score
+per tool call and ESCALATES when score exceeds the configured threshold.
 """
 
 import asyncio
@@ -25,6 +27,7 @@ from app.models.policy import (
     ToolCallRequest,
 )
 from app.services.confused_deputy import confused_deputy_detector
+from app.services.risk_scoring import risk_engine
 from app.services.role_resolver import role_resolver
 from app.services.rule_cache import rule_cache
 from app.services.rule_matcher import rule_matcher
@@ -160,6 +163,30 @@ class PolicyEvaluator:
             if taint_decision is not None:
                 decision = taint_decision
 
+        # --- Risk scoring (APEP-070) ---
+        risk_score = 0.0
+        try:
+            risk_score, risk_factors = await risk_engine.compute(
+                tool_name=request.tool_name,
+                tool_args=request.tool_args,
+                session_id=request.session_id,
+                taint_node_ids=request.taint_node_ids or None,
+                delegation_hops=request.delegation_hops or None,
+                agent_roles=agent_roles or None,
+            )
+
+            config = risk_engine.aggregator.get_config()
+            # Check per-rule risk_threshold first, then global escalation_threshold
+            threshold = matched_rule.risk_threshold
+            if threshold >= 1.0:
+                # Rule has no specific threshold — use global config
+                threshold = config.escalation_threshold
+
+            if risk_score > threshold and decision == Decision.ALLOW:
+                decision = Decision.ESCALATE
+        except Exception:
+            logger.warning("Risk scoring failed; proceeding without score", exc_info=True)
+
         # DRY_RUN mode: evaluate fully but never enforce
         if request.dry_run:
             decision = Decision.DRY_RUN
@@ -168,10 +195,13 @@ class PolicyEvaluator:
         if taint_flags:
             reason += f" | Taint flags: {', '.join(taint_flags)}"
 
+        elapsed_ms = int((time.monotonic() - start) * 1000)
+
         return PolicyDecisionResponse(
             request_id=request.request_id,
             decision=decision,
             matched_rule_id=matched_rule.rule_id,
+            risk_score=risk_score,
             reason=reason,
             taint_flags=taint_flags,
             latency_ms=elapsed_ms,
