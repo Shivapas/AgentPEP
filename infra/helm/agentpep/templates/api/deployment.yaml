@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "agentpep.fullname" . }}-api
+  labels:
+    {{- include "agentpep.labels" . | nindent 4 }}
+    {{- include "agentpep.api.selectorLabels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.api.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "agentpep.api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "agentpep.api.selectorLabels" . | nindent 8 }}
+      {{- with .Values.api.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "agentpep.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "agentpep.api.serviceAccountName" . }}
+      containers:
+        - name: api
+          image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+            {{- if eq .Values.api.env.grpcEnabled "true" }}
+            - name: grpc
+              containerPort: 50051
+              protocol: TCP
+            {{- end }}
+          env:
+            - name: AGENTPEP_MONGODB_URL
+              value: {{ include "agentpep.mongodb.url" . | quote }}
+            - name: AGENTPEP_MONGODB_DB_NAME
+              value: "agentpep"
+            - name: AGENTPEP_DEBUG
+              value: {{ .Values.api.env.debug | quote }}
+            - name: AGENTPEP_DEFAULT_FAIL_MODE
+              value: {{ .Values.api.env.defaultFailMode | quote }}
+            - name: AGENTPEP_AUTH_ENABLED
+              value: {{ .Values.api.env.authEnabled | quote }}
+            - name: AGENTPEP_MTLS_ENABLED
+              value: {{ .Values.api.env.mtlsEnabled | quote }}
+            - name: AGENTPEP_GRPC_ENABLED
+              value: {{ .Values.api.env.grpcEnabled | quote }}
+            - name: AGENTPEP_METRICS_ENABLED
+              value: {{ .Values.api.env.metricsEnabled | quote }}
+            - name: AGENTPEP_AUDIT_RETENTION_DAYS
+              value: {{ .Values.api.env.auditRetentionDays | quote }}
+            - name: AGENTPEP_EVALUATION_TIMEOUT_S
+              value: {{ .Values.api.env.evaluationTimeoutS | quote }}
+            - name: AGENTPEP_OTLP_ENDPOINT
+              value: {{ .Values.api.env.otlpEndpoint | quote }}
+          {{- with .Values.api.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.api.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+      {{- with .Values.api.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

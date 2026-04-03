@@ -1,0 +1,74 @@
+suite: Horizontal Pod Autoscaler
+templates:
+  - api/hpa.yaml
+tests:
+  - it: should create HPA when autoscaling is enabled
+    set:
+      autoscaling.enabled: true
+    asserts:
+      - isKind:
+          of: HorizontalPodAutoscaler
+      - equal:
+          path: spec.minReplicas
+          value: 2
+      - equal:
+          path: spec.maxReplicas
+          value: 10
+
+  - it: should not create HPA when autoscaling is disabled
+    set:
+      autoscaling.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should target the API deployment
+    set:
+      autoscaling.enabled: true
+    asserts:
+      - equal:
+          path: spec.scaleTargetRef.kind
+          value: Deployment
+      - equal:
+          path: spec.scaleTargetRef.name
+          value: RELEASE-NAME-agentpep-api
+
+  - it: should include RPS and CPU metrics
+    set:
+      autoscaling.enabled: true
+      autoscaling.targetRPS: 200
+      autoscaling.targetCPUUtilizationPercentage: 80
+    asserts:
+      - lengthEqual:
+          path: spec.metrics
+          count: 2
+      - equal:
+          path: spec.metrics[0].type
+          value: Pods
+      - equal:
+          path: spec.metrics[1].resource.target.averageUtilization
+          value: 80
+
+  - it: should configure scale-up and scale-down behavior
+    set:
+      autoscaling.enabled: true
+    asserts:
+      - equal:
+          path: spec.behavior.scaleUp.stabilizationWindowSeconds
+          value: 60
+      - equal:
+          path: spec.behavior.scaleDown.stabilizationWindowSeconds
+          value: 300
+
+  - it: should respect custom replica bounds
+    set:
+      autoscaling.enabled: true
+      autoscaling.minReplicas: 5
+      autoscaling.maxReplicas: 50
+    asserts:
+      - equal:
+          path: spec.minReplicas
+          value: 5
+      - equal:
+          path: spec.maxReplicas
+          value: 50

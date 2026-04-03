@@ -1,0 +1,19 @@
+{{- if and .Values.kafka.enabled .Values.zookeeper.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "agentpep.fullname" . }}-zookeeper
+  labels:
+    {{- include "agentpep.labels" . | nindent 4 }}
+    {{- include "agentpep.zookeeper.selectorLabels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: client
+      port: {{ .Values.zookeeper.service.port }}
+      targetPort: client
+      protocol: TCP
+  selector:
+    {{- include "agentpep.zookeeper.selectorLabels" . | nindent 4 }}
+{{- end }}

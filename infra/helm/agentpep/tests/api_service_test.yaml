@@ -1,0 +1,39 @@
+suite: API Service
+templates:
+  - api/service.yaml
+tests:
+  - it: should create a ClusterIP service
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: spec.type
+          value: ClusterIP
+
+  - it: should expose port 8000
+    asserts:
+      - contains:
+          path: spec.ports
+          content:
+            name: http
+            port: 8000
+            targetPort: http
+            protocol: TCP
+
+  - it: should include gRPC port when enabled
+    set:
+      api.env.grpcEnabled: "true"
+    asserts:
+      - contains:
+          path: spec.ports
+          content:
+            name: grpc
+            port: 50051
+            targetPort: grpc
+            protocol: TCP
+
+  - it: should have correct selector labels
+    asserts:
+      - equal:
+          path: spec.selector["app.kubernetes.io/component"]
+          value: api

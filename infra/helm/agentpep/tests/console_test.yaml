@@ -1,0 +1,61 @@
+suite: Console
+templates:
+  - console/deployment.yaml
+  - console/service.yaml
+tests:
+  - it: should create Console deployment when enabled
+    template: console/deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-agentpep-console
+
+  - it: should not create Console when disabled
+    template: console/deployment.yaml
+    set:
+      console.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should use correct image
+    template: console/deployment.yaml
+    set:
+      console.image.repository: my-registry/agentpep-console
+      console.image.tag: "2.0.0"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "my-registry/agentpep-console:2.0.0"
+
+  - it: should expose port 5173
+    template: console/service.yaml
+    asserts:
+      - contains:
+          path: spec.ports
+          content:
+            name: http
+            port: 5173
+            targetPort: http
+            protocol: TCP
+
+  - it: should set correct replica count
+    template: console/deployment.yaml
+    set:
+      console.replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  - it: should configure probes
+    template: console/deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /

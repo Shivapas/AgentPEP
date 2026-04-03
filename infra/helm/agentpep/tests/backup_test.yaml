@@ -1,0 +1,55 @@
+suite: Backup CronJob
+templates:
+  - backup/cronjob.yaml
+  - backup/secret.yaml
+tests:
+  - it: should not create CronJob when backup is disabled
+    template: backup/cronjob.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create CronJob when backup is enabled
+    template: backup/cronjob.yaml
+    set:
+      backup.enabled: true
+      backup.s3.endpoint: "https://s3.amazonaws.com"
+      backup.s3.bucket: "my-backups"
+    asserts:
+      - isKind:
+          of: CronJob
+      - equal:
+          path: spec.schedule
+          value: "0 2 * * *"
+      - equal:
+          path: spec.concurrencyPolicy
+          value: Forbid
+
+  - it: should use custom schedule
+    template: backup/cronjob.yaml
+    set:
+      backup.enabled: true
+      backup.schedule: "0 */6 * * *"
+    asserts:
+      - equal:
+          path: spec.schedule
+          value: "0 */6 * * *"
+
+  - it: should create S3 secret when no existing secret
+    template: backup/secret.yaml
+    set:
+      backup.enabled: true
+      backup.s3.accessKeyId: "AKID"
+      backup.s3.secretAccessKey: "SECRET"
+    asserts:
+      - isKind:
+          of: Secret
+
+  - it: should not create secret when existingSecret is set
+    template: backup/secret.yaml
+    set:
+      backup.enabled: true
+      backup.s3.existingSecret: "my-s3-secret"
+    asserts:
+      - hasDocuments:
+          count: 0

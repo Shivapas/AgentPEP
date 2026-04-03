@@ -1,0 +1,218 @@
+# -- Global settings
+global:
+  # -- Image pull policy for all containers
+  imagePullPolicy: IfNotPresent
+  # -- Image pull secrets for private registries (air-gapped deployments)
+  imagePullSecrets: []
+  # -- Storage class for persistent volumes (empty = cluster default)
+  storageClass: ""
+
+# -- AgentPEP API configuration
+api:
+  replicaCount: 2
+  image:
+    repository: agentpep/agentpep-api
+    tag: "0.1.0"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  service:
+    type: ClusterIP
+    port: 8000
+    grpcPort: 50051
+  # -- Environment variable overrides
+  env:
+    debug: "false"
+    defaultFailMode: "FAIL_CLOSED"
+    authEnabled: "false"
+    mtlsEnabled: "false"
+    grpcEnabled: "false"
+    metricsEnabled: "true"
+    auditRetentionDays: "365"
+    evaluationTimeoutS: "5.0"
+    otlpEndpoint: "http://localhost:4317"
+  # -- Liveness probe configuration
+  livenessProbe:
+    httpGet:
+      path: /v1/health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 3
+  # -- Readiness probe configuration
+  readinessProbe:
+    httpGet:
+      path: /v1/health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
+  # -- Pod annotations
+  podAnnotations: {}
+  # -- Node selector
+  nodeSelector: {}
+  # -- Tolerations
+  tolerations: []
+  # -- Affinity rules
+  affinity: {}
+  # -- Service account
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+
+# -- Horizontal Pod Autoscaler for API
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  # -- Target requests per second per pod
+  targetRPS: 100
+  # -- Target CPU utilization percentage (fallback metric)
+  targetCPUUtilizationPercentage: 70
+
+# -- AgentPEP Console (frontend) configuration
+console:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: agentpep/agentpep-console
+    tag: "0.1.0"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  service:
+    type: ClusterIP
+    port: 5173
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -- Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: agentpep.local
+      paths:
+        - path: /v1
+          pathType: Prefix
+          service: api
+        - path: /
+          pathType: Prefix
+          service: console
+  tls: []
+
+# -- MongoDB configuration
+mongodb:
+  enabled: true
+  image:
+    repository: mongo
+    tag: "7"
+  replicaCount: 1
+  auth:
+    enabled: false
+    # -- Set these when auth.enabled=true
+    rootUsername: ""
+    rootPassword: ""
+    existingSecret: ""
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  service:
+    port: 27017
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -- Kafka configuration
+kafka:
+  enabled: true
+  image:
+    repository: confluentinc/cp-kafka
+    tag: "7.7.0"
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+  service:
+    port: 9092
+    internalPort: 29092
+  config:
+    offsetsTopicReplicationFactor: 1
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -- Zookeeper configuration (required by Kafka)
+zookeeper:
+  enabled: true
+  image:
+    repository: confluentinc/cp-zookeeper
+    tag: "7.7.0"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: ""
+  service:
+    port: 2181
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -- MongoDB backup CronJob
+backup:
+  enabled: false
+  schedule: "0 2 * * *"
+  image:
+    repository: mongo
+    tag: "7"
+  s3:
+    endpoint: ""
+    bucket: "agentpep-backups"
+    prefix: "mongodb"
+    accessKeyId: ""
+    secretAccessKey: ""
+    existingSecret: ""
+  retention:
+    days: 30
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
