@@ -63,11 +63,14 @@ def mock_mongodb(monkeypatch):
     # Clear Sprint 9 singletons
     try:
         from app.services.escalation_manager import escalation_manager
+        from app.services.escalation_ws import escalation_ws_manager
         from app.models.policy import NotificationConfig
 
         escalation_manager._pending_futures.clear()
         escalation_manager._notification_config = NotificationConfig()
         escalation_manager._websocket_callback = None
+        escalation_ws_manager._connections.clear()
+        escalation_ws_manager._ws_sessions.clear()
     except ImportError:
         pass
 

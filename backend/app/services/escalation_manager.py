@@ -19,6 +19,8 @@ from uuid import UUID
 
 import httpx
 
+from pymongo import ReturnDocument
+
 from app.db import mongodb as db_module
 from app.models.policy import (
     ApprovalMemoryEntry,
@@ -248,20 +250,20 @@ class EscalationManager:
     async def resolve_ticket(
         self, resolve: EscalationResolveRequest
     ) -> EscalationTicket | None:
-        """Resolve a PENDING ticket to APPROVED or DENIED."""
+        """Resolve a PENDING ticket to APPROVED or DENIED.
+
+        Uses an atomic find_one_and_update with state==PENDING in the filter
+        to prevent concurrent double-resolution race conditions.
+        """
         if resolve.state not in (EscalationState.APPROVED, EscalationState.DENIED):
             return None
 
         db = db_module.get_database()
-        doc = await db[ESCALATION_TICKETS].find_one(
-            {"ticket_id": str(resolve.ticket_id), "state": EscalationState.PENDING.value}
-        )
-        if doc is None:
-            return None
-
         now = datetime.now(UTC)
-        await db[ESCALATION_TICKETS].update_one(
-            {"ticket_id": str(resolve.ticket_id)},
+
+        # Atomic update: only succeeds if ticket is still PENDING
+        doc = await db[ESCALATION_TICKETS].find_one_and_update(
+            {"ticket_id": str(resolve.ticket_id), "state": EscalationState.PENDING.value},
             {
                 "$set": {
                     "state": resolve.state.value,
@@ -270,14 +272,13 @@ class EscalationManager:
                     "resolved_at": now,
                 }
             },
+            return_document=ReturnDocument.AFTER,
         )
+        if doc is None:
+            return None
 
         doc.pop("_id", None)
         ticket = EscalationTicket(**doc)
-        ticket.state = resolve.state
-        ticket.decided_by = resolve.decided_by
-        ticket.decision_reason = resolve.decision_reason
-        ticket.resolved_at = now
 
         # Store in approval memory if approved (APEP-077)
         if resolve.state == EscalationState.APPROVED:
@@ -305,9 +306,16 @@ class EscalationManager:
         """Block the agent until the ticket is resolved or times out (APEP-073/075).
 
         On timeout, applies the ticket's timeout_action (auto-DENY or auto-ALLOW).
+        Re-checks DB state before waiting and on timeout to avoid missing
+        resolutions that occurred before the future was registered.
         """
         if ticket.state != EscalationState.PENDING:
             return ticket.state
+
+        # Re-check DB state in case ticket was resolved before we registered
+        db_ticket = await self.get_ticket(ticket.ticket_id)
+        if db_ticket is not None and db_ticket.state != EscalationState.PENDING:
+            return db_ticket.state
 
         loop = asyncio.get_running_loop()
         future: asyncio.Future[EscalationState] = loop.create_future()
@@ -321,6 +329,12 @@ class EscalationManager:
         except asyncio.TimeoutError:
             # Auto-resolve on timeout (APEP-075)
             self._pending_futures.pop(ticket.ticket_id, None)
+
+            # Re-check DB: ticket may have been resolved just before timeout
+            db_ticket = await self.get_ticket(ticket.ticket_id)
+            if db_ticket is not None and db_ticket.state != EscalationState.PENDING:
+                return db_ticket.state
+
             await self._timeout_ticket(ticket)
             return ticket.timeout_action
 
@@ -401,7 +415,7 @@ class EscalationManager:
             "created_at": ticket.created_at.isoformat(),
         }
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
                 resp = await client.post(config.email_webhook_url, json=payload)  # type: ignore[arg-type]
                 resp.raise_for_status()
             logger.info("Email notification sent for ticket %s", ticket.ticket_id)
@@ -426,7 +440,7 @@ class EscalationManager:
             payload["channel"] = config.slack_channel
 
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
                 resp = await client.post(config.slack_webhook_url, json=payload)  # type: ignore[arg-type]
                 resp.raise_for_status()
             logger.info("Slack notification sent for ticket %s", ticket.ticket_id)

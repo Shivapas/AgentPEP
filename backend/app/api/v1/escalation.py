@@ -4,9 +4,11 @@ Provides REST endpoints for managing escalation tickets, approver groups,
 and a WebSocket endpoint for real-time escalation event streaming.
 """
 
+import ipaddress
+from urllib.parse import urlparse
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, WebSocket, status
+from fastapi import APIRouter, HTTPException, Query, WebSocket, status
 
 from app.models.policy import (
     ApproverGroup,
@@ -101,9 +103,44 @@ async def delete_approver_group(group_id: str) -> None:
 # --- Notification Config ---
 
 
+def _validate_webhook_url(url: str, field_name: str) -> None:
+    """Validate a webhook URL to prevent SSRF attacks."""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("https",):
+        raise HTTPException(
+            status_code=400,
+            detail=f"{field_name} must use HTTPS",
+        )
+    hostname = parsed.hostname
+    if not hostname:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{field_name} has no hostname",
+        )
+    # Block loopback, private, and link-local addresses
+    try:
+        addr = ipaddress.ip_address(hostname)
+        if addr.is_loopback or addr.is_private or addr.is_link_local or addr.is_reserved:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{field_name} must not point to a private/loopback address",
+            )
+    except ValueError:
+        # hostname is a DNS name, not a raw IP — block obvious localhost aliases
+        if hostname in ("localhost", "localhost.localdomain"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"{field_name} must not point to localhost",
+            )
+
+
 @router.put("/notifications/config", response_model=NotificationConfig)
 async def update_notification_config(config: NotificationConfig) -> NotificationConfig:
     """Update email/Slack notification configuration."""
+    if config.email_webhook_url:
+        _validate_webhook_url(config.email_webhook_url, "email_webhook_url")
+    if config.slack_webhook_url:
+        _validate_webhook_url(config.slack_webhook_url, "slack_webhook_url")
     escalation_manager.set_notification_config(config)
     return config
 
@@ -112,13 +149,18 @@ async def update_notification_config(config: NotificationConfig) -> Notification
 
 
 @router.websocket("/ws")
-async def escalation_websocket(websocket: WebSocket) -> None:
+async def escalation_websocket(
+    websocket: WebSocket,
+    session_id: str = Query(..., description="Session ID to scope ticket events"),
+) -> None:
     """WebSocket endpoint for real-time escalation event streaming.
 
     Policy Console clients connect here to receive ESCALATE events pushed
-    as JSON messages whenever a ticket is created or resolved.
+    as JSON messages whenever a ticket is created or resolved within the
+    specified session. Clients must provide a session_id query parameter
+    to scope which tickets they receive.
     """
-    await escalation_ws_manager.connect(websocket)
+    await escalation_ws_manager.connect(websocket, session_id=session_id)
     try:
         await escalation_ws_manager.listen(websocket)
     finally:

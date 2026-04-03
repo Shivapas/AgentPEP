@@ -1,8 +1,8 @@
 """WebSocket server for pushing ESCALATE events to Policy Console sessions (APEP-074).
 
 Connected clients receive real-time notifications when escalation tickets are
-created or resolved. The server maintains a set of active connections and
-broadcasts events to all connected Policy Console sessions.
+created or resolved. The server maintains connections keyed by session_id and
+broadcasts events only to clients subscribed to the relevant session.
 """
 
 import asyncio
@@ -18,47 +18,63 @@ logger = logging.getLogger(__name__)
 
 
 class EscalationWebSocketManager:
-    """Manages WebSocket connections for escalation event broadcasting (APEP-074)."""
+    """Manages WebSocket connections for escalation event broadcasting (APEP-074).
+
+    Connections are scoped by session_id so that escalation ticket events are
+    only broadcast to clients subscribed to the relevant session, preventing
+    cross-session information leakage.
+    """
 
     def __init__(self) -> None:
-        self._connections: set[WebSocket] = set()
+        self._connections: dict[str, set[WebSocket]] = {}
+        self._ws_sessions: dict[WebSocket, str] = {}
         self._lock = asyncio.Lock()
 
     @property
     def connection_count(self) -> int:
-        return len(self._connections)
+        return sum(len(conns) for conns in self._connections.values())
 
-    async def connect(self, websocket: WebSocket) -> None:
-        """Accept and register a new WebSocket connection."""
+    async def connect(self, websocket: WebSocket, session_id: str) -> None:
+        """Accept and register a new WebSocket connection scoped to a session."""
         await websocket.accept()
         async with self._lock:
-            self._connections.add(websocket)
+            if session_id not in self._connections:
+                self._connections[session_id] = set()
+            self._connections[session_id].add(websocket)
+            self._ws_sessions[websocket] = session_id
         logger.info(
-            "Policy Console WebSocket connected (total=%d)", len(self._connections)
+            "Policy Console WebSocket connected session=%s (total=%d)",
+            session_id,
+            self.connection_count,
         )
 
     async def disconnect(self, websocket: WebSocket) -> None:
         """Remove a WebSocket connection."""
         async with self._lock:
-            self._connections.discard(websocket)
+            session_id = self._ws_sessions.pop(websocket, None)
+            if session_id and session_id in self._connections:
+                self._connections[session_id].discard(websocket)
+                if not self._connections[session_id]:
+                    del self._connections[session_id]
         logger.info(
-            "Policy Console WebSocket disconnected (total=%d)", len(self._connections)
+            "Policy Console WebSocket disconnected (total=%d)", self.connection_count
         )
 
     async def broadcast_ticket(self, ticket: EscalationTicket) -> None:
-        """Push an escalation ticket event to all connected sessions."""
-        if not self._connections:
+        """Push an escalation ticket event only to clients in the ticket's session."""
+        session_id = ticket.session_id
+        async with self._lock:
+            session_conns = list(self._connections.get(session_id, set()))
+
+        if not session_conns:
             return
 
         payload = self._serialize_ticket(ticket)
         message = json.dumps(payload)
 
-        # Send to all connections; remove dead ones
+        # Send to session connections; remove dead ones
         dead: list[WebSocket] = []
-        async with self._lock:
-            connections = list(self._connections)
-
-        for ws in connections:
+        for ws in session_conns:
             try:
                 await ws.send_text(message)
             except Exception:
@@ -67,7 +83,11 @@ class EscalationWebSocketManager:
         if dead:
             async with self._lock:
                 for ws in dead:
-                    self._connections.discard(ws)
+                    sid = self._ws_sessions.pop(ws, None)
+                    if sid and sid in self._connections:
+                        self._connections[sid].discard(ws)
+                        if not self._connections[sid]:
+                            del self._connections[sid]
 
     @staticmethod
     def _serialize_ticket(ticket: EscalationTicket) -> dict[str, Any]:
