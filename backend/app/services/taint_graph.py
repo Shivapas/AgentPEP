@@ -30,6 +30,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
+from app.core.config import settings
 from app.models.policy import (
     SanitisationGate,
     TaintAuditEvent,
@@ -373,12 +374,16 @@ class TaintGraph:
     - Audit event emission on every mutation (APEP-052).
     """
 
-    __slots__ = ("session_id", "_nodes", "_children", "_lock", "created_at", "_audit_logger")
+    __slots__ = (
+        "session_id", "_nodes", "_children", "_lock", "created_at",
+        "_audit_logger", "_max_nodes", "_access_order", "_evicted_count",
+    )
 
     def __init__(
         self,
         session_id: str,
         audit_logger: TaintAuditLogger | None = None,
+        max_nodes: int | None = None,
     ) -> None:
         self.session_id = session_id
         self._nodes: dict[UUID, TaintNode] = {}
@@ -386,6 +391,10 @@ class TaintGraph:
         self._lock = threading.Lock()
         self.created_at = datetime.utcnow()
         self._audit_logger = audit_logger or taint_audit_logger
+        # APEP-183: Bounded node limit with LRU eviction
+        self._max_nodes = max_nodes or settings.taint_graph_max_nodes_per_session
+        self._access_order: list[UUID] = []  # oldest-first for LRU eviction
+        self._evicted_count = 0
 
     # --- Node operations ---
 
@@ -445,7 +454,12 @@ class TaintGraph:
         )
 
         with self._lock:
+            # APEP-183: Evict LRU nodes if at capacity
+            while len(self._nodes) >= self._max_nodes and self._access_order:
+                self._evict_oldest()
+
             self._nodes[node.node_id] = node
+            self._access_order.append(node.node_id)
             # Register parent->child edges
             for parent_id in node.propagated_from:
                 self._children.setdefault(parent_id, []).append(node.node_id)
@@ -466,8 +480,16 @@ class TaintGraph:
         return node
 
     def get_node(self, node_id: UUID) -> TaintNode | None:
-        """Get a node by ID."""
-        return self._nodes.get(node_id)
+        """Get a node by ID. Touches LRU access order (APEP-183)."""
+        node = self._nodes.get(node_id)
+        if node is not None:
+            # Touch: move to end of access order (most recently used)
+            try:
+                self._access_order.remove(node_id)
+            except ValueError:
+                pass
+            self._access_order.append(node_id)
+        return node
 
     def get_children(self, node_id: UUID) -> list[TaintNode]:
         """Get direct children of a node."""
@@ -493,6 +515,37 @@ class TaintGraph:
     def nodes(self) -> list[TaintNode]:
         """All nodes in the graph."""
         return list(self._nodes.values())
+
+    def _evict_oldest(self) -> None:
+        """Remove the least-recently-used node (APEP-183). Caller must hold _lock."""
+        if not self._access_order:
+            return
+        evict_id = self._access_order.pop(0)
+        evicted = self._nodes.pop(evict_id, None)
+        if evicted is not None:
+            self._evicted_count += 1
+            # Remove from children index
+            self._children.pop(evict_id, None)
+            # Remove from parent->child edges
+            for children_list in self._children.values():
+                try:
+                    children_list.remove(evict_id)
+                except ValueError:
+                    pass
+            logger.debug(
+                "Evicted LRU taint node %s from session %s (total evicted: %d)",
+                evict_id, self.session_id, self._evicted_count,
+            )
+
+    @property
+    def evicted_count(self) -> int:
+        """Number of nodes evicted due to LRU capacity limit (APEP-183)."""
+        return self._evicted_count
+
+    @property
+    def max_nodes(self) -> int:
+        """Maximum node capacity for this graph (APEP-183)."""
+        return self._max_nodes
 
     @property
     def node_count(self) -> int:
@@ -622,7 +675,12 @@ class TaintGraph:
         )
 
         with self._lock:
+            # APEP-183: Evict LRU nodes if at capacity
+            while len(self._nodes) >= self._max_nodes and self._access_order:
+                self._evict_oldest()
+
             self._nodes[sanitised_node.node_id] = sanitised_node
+            self._access_order.append(sanitised_node.node_id)
             self._children.setdefault(node_id, []).append(sanitised_node.node_id)
 
         # Emit audit event (APEP-052)
@@ -729,7 +787,11 @@ class SessionGraphManager:
 
     def create_session(self, session_id: str) -> TaintGraph:
         """Create a new taint graph for a session. Overwrites existing."""
-        graph = TaintGraph(session_id, audit_logger=self._audit_logger)
+        graph = TaintGraph(
+            session_id,
+            audit_logger=self._audit_logger,
+            max_nodes=settings.taint_graph_max_nodes_per_session,
+        )
         with self._lock:
             self._graphs[session_id] = graph
         logger.debug("Created taint graph for session %s", session_id)
@@ -740,7 +802,9 @@ class SessionGraphManager:
         with self._lock:
             if session_id not in self._graphs:
                 self._graphs[session_id] = TaintGraph(
-                    session_id, audit_logger=self._audit_logger,
+                    session_id,
+                    audit_logger=self._audit_logger,
+                    max_nodes=settings.taint_graph_max_nodes_per_session,
                 )
                 logger.debug("Auto-created taint graph for session %s", session_id)
             return self._graphs[session_id]
