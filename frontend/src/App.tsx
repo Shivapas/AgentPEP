@@ -16,6 +16,8 @@ import { AuditExplorer } from "./components/AuditExplorer";
 import { SessionTimeline } from "./components/SessionTimeline";
 import { EscalationQueue } from "./components/escalation/EscalationQueue";
 import { TaintMapGraph } from "./components/taint/TaintMapGraph";
+import { SimulationBuilder } from "./components/SimulationBuilder";
+import { SimulationCompare } from "./components/SimulationCompare";
 
 export function App() {
   return (
@@ -33,42 +35,20 @@ export function App() {
                 }
               >
                 <Route path="/" element={<DashboardPage />} />
-                <Route
-                  path="/policies"
-                  element={<Placeholder title="Policies" />}
-                />
-                <Route
-                  path="/policy"
-                  element={<PolicyAuthoringPage />}
-                />
-                <Route
-                  path="/agents"
-                  element={<AgentRegistryList />}
-                />
+                <Route path="/policies" element={<Placeholder title="Policies" />} />
+                <Route path="/policy" element={<PolicyAuthoringPage />} />
+                <Route path="/agents" element={<AgentRegistryList />} />
                 <Route path="/agents/new" element={<AgentProfileForm />} />
                 <Route path="/agents/bulk-roles" element={<BulkRoleAssignment />} />
                 <Route path="/agents/:agentId" element={<AgentDetailPage />} />
                 <Route path="/agents/:agentId/edit" element={<AgentProfileForm />} />
-                <Route
-                  path="/audit"
-                  element={<AuditExplorer />}
-                />
-                <Route
-                  path="/audit/session/:sessionId"
-                  element={<SessionTimeline />}
-                />
-                <Route
-                  path="/escalations"
-                  element={<EscalationQueue />}
-                />
-                <Route
-                  path="/taint-map"
-                  element={<TaintMapGraph />}
-                />
-                <Route
-                  path="/risk"
-                  element={<RiskDashboard />}
-                />
+                <Route path="/audit" element={<AuditExplorer />} />
+                <Route path="/audit/session/:sessionId" element={<SessionTimeline />} />
+                <Route path="/escalations" element={<EscalationQueue />} />
+                <Route path="/taint-map" element={<TaintMapGraph />} />
+                <Route path="/simulate" element={<SimulationBuilder />} />
+                <Route path="/simulate/compare" element={<SimulationCompare />} />
+                <Route path="/risk" element={<RiskDashboard />} />
               </Route>
             </Routes>
           </ToastProvider>
