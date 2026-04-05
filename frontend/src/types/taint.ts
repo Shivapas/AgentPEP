@@ -40,3 +40,7 @@ export interface TaintVisResponse {
   edges: TaintVisEdge[];
   metadata: TaintVisMetadata;
 }
+
+/** Aliases used by components and hooks. */
+export type VisualisationNode = TaintVisNode;
+export type VisualisationResponse = TaintVisResponse;

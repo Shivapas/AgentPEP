@@ -116,6 +116,105 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/* ---- Audit types & endpoints (APEP-136..141) ---- */
+
+export interface AuditDecision {
+  decision_id: string;
+  session_id: string;
+  agent_id: string;
+  agent_role: string;
+  tool_name: string;
+  tool_args_hash: string;
+  decision: string;
+  risk_score: number;
+  latency_ms: number;
+  taint_flags: string[];
+  delegation_chain: string[];
+  matched_rule_id: string | null;
+  escalation_id: string | null;
+  chain_hash?: string;
+  timestamp: string;
+}
+
+export interface DecisionFilters {
+  page?: number;
+  page_size?: number;
+  sort_field?: string;
+  sort_order?: string;
+  search?: string;
+  session_id?: string;
+  agent_id?: string;
+  tool_name?: string;
+  decision?: string;
+  risk_min?: string;
+  risk_max?: string;
+  start_time?: string;
+  end_time?: string;
+}
+
+export interface PaginatedResponse {
+  items: AuditDecision[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface IntegrityResult {
+  status: string;
+  verified: number;
+  tampered: number;
+  total_records: number;
+}
+
+function buildQuery(params: Record<string, unknown>): string {
+  const qs = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== "")
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join("&");
+  return qs ? `?${qs}` : "";
+}
+
+export async function fetchDecisions(
+  filters: DecisionFilters,
+): Promise<PaginatedResponse> {
+  const res = await apiFetch(`/api/v1/audit/decisions${buildQuery(filters as Record<string, unknown>)}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<PaginatedResponse>;
+}
+
+export async function fetchDecisionDetail(
+  decisionId: string,
+): Promise<AuditDecision> {
+  const res = await apiFetch(`/api/v1/audit/decisions/${encodeURIComponent(decisionId)}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<AuditDecision>;
+}
+
+export async function fetchSessionTimeline(
+  sessionId: string,
+): Promise<AuditDecision[]> {
+  const res = await apiFetch(`/api/v1/audit/sessions/${encodeURIComponent(sessionId)}/timeline`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<AuditDecision[]>;
+}
+
+export async function fetchIntegrity(
+  params: { session_id?: string; start_time?: string; end_time?: string; limit?: number },
+): Promise<IntegrityResult> {
+  const res = await apiFetch(`/api/v1/audit/integrity${buildQuery(params as Record<string, unknown>)}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<IntegrityResult>;
+}
+
+export function exportUrl(
+  format: "csv" | "json",
+  filters: DecisionFilters,
+): string {
+  const base = `${BASE}/api/v1/audit/export/${format}`;
+  return `${base}${buildQuery(filters as Record<string, unknown>)}`;
+}
+
 /* ---- Escalation endpoints ---- */
 
 export function fetchPendingTickets() {

@@ -49,4 +49,7 @@ export interface EscalationWsMessage {
   action?: string;
   count?: number;
   tool_pattern?: string;
+  /** Alternate WS event format used by the real-time queue handler. */
+  event?: string;
+  data?: EscalationTicket | EscalationTicket[];
 }
