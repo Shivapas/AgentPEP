@@ -62,7 +62,6 @@ APPROVAL_MEMORY = "approval_memory"
 RATE_LIMIT_COUNTERS = "rate_limit_counters"
 MCP_PROXY_SESSIONS = "mcp_proxy_sessions"
 CONSOLE_USERS = "console_users"
-ESCALATION_TICKETS = "escalation_tickets"
 COMPLIANCE_REPORTS = "compliance_reports"
 REPORT_SCHEDULES = "report_schedules"
 AUDIT_HASH_CHAIN = "audit_hash_chain"
@@ -237,19 +236,6 @@ async def init_collections() -> None:
         [
             IndexModel([("model_id", ASCENDING)], unique=True),
             IndexModel([("enabled", ASCENDING)]),
-        ]
-    )
-
-    # Escalation Tickets (Sprint 9 — APEP-072)
-    escalation_tickets = db[ESCALATION_TICKETS]
-    await escalation_tickets.create_indexes(
-        [
-            IndexModel([("ticket_id", ASCENDING)], unique=True),
-            IndexModel([("request_id", ASCENDING)]),
-            IndexModel([("session_id", ASCENDING)]),
-            IndexModel([("agent_id", ASCENDING)]),
-            IndexModel([("state", ASCENDING)]),
-            IndexModel([("assigned_to", ASCENDING)]),
         ]
     )
 
