@@ -50,6 +50,8 @@ RATE_LIMIT_COUNTERS = "rate_limit_counters"
 MCP_PROXY_SESSIONS = "mcp_proxy_sessions"
 CONSOLE_USERS = "console_users"
 ESCALATION_TICKETS = "escalation_tickets"
+COMPLIANCE_REPORTS = "compliance_reports"
+REPORT_SCHEDULES = "report_schedules"
 
 
 async def init_collections() -> None:
@@ -224,6 +226,13 @@ async def init_collections() -> None:
             IndexModel([("agent_id", ASCENDING)]),
             IndexModel([("state", ASCENDING)]),
             IndexModel([("assigned_to", ASCENDING)]),
+    # Compliance Reports (Sprint 22 — APEP-172..174)
+    compliance_reports = db[COMPLIANCE_REPORTS]
+    await compliance_reports.create_indexes(
+        [
+            IndexModel([("report_id", ASCENDING)], unique=True),
+            IndexModel([("report_type", ASCENDING)]),
+            IndexModel([("status", ASCENDING)]),
             IndexModel([("created_at", DESCENDING)]),
         ]
     )
@@ -288,5 +297,13 @@ async def init_collections() -> None:
             IndexModel([("email", ASCENDING)], unique=True),
             IndexModel([("tenant_id", ASCENDING)]),
             IndexModel([("roles", ASCENDING)]),
+    # Report Schedules (Sprint 22 — APEP-177)
+    report_schedules = db[REPORT_SCHEDULES]
+    await report_schedules.create_indexes(
+        [
+            IndexModel([("schedule_id", ASCENDING)], unique=True),
+            IndexModel([("report_type", ASCENDING)]),
+            IndexModel([("enabled", ASCENDING)]),
+            IndexModel([("next_run_at", ASCENDING)]),
         ]
     )

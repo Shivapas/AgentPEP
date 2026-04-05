@@ -12,6 +12,7 @@ from app.api.v1.console_auth import router as console_auth_router
 from app.api.v1.console_dashboard import router as console_dashboard_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.escalation import router as escalation_router
+from app.api.v1.compliance import router as compliance_router
 from app.api.v1.health import router as health_router
 from app.api.v1.intercept import router as intercept_router
 from app.api.v1.mcp import router as mcp_router
@@ -58,6 +59,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 slack_channel=settings.escalation_slack_channel or None,
             )
         )
+    # Start report scheduler if enabled (APEP-177)
+    if settings.report_scheduler_enabled:
+        from app.services.compliance.report_scheduler import report_scheduler
+
+        await report_scheduler.start()
 
     # Start gRPC server if enabled
     if settings.grpc_enabled:
@@ -75,6 +81,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Shutdown Kafka producer
     await kafka_producer.stop()
+    # Shutdown report scheduler
+    if settings.report_scheduler_enabled:
+        from app.services.compliance.report_scheduler import report_scheduler
+
+        await report_scheduler.stop()
 
     # Shutdown gRPC server
     if _grpc_server is not None:
@@ -106,6 +117,7 @@ app.include_router(mcp_router)
 app.include_router(console_auth_router)
 app.include_router(console_dashboard_router)
 app.include_router(dashboard_router)
+app.include_router(compliance_router)
 
 # Observability
 if settings.metrics_enabled:
