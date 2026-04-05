@@ -31,6 +31,13 @@
     "recharts": "^2.15.0",
     "tailwind-merge": "^2.6.0",
     "vitest": "^4.1.2"
+    "@types/d3": "^7.4.3",
+    "clsx": "^2.1.1",
+    "d3": "^7.9.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",

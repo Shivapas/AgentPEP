@@ -587,3 +587,61 @@ class PolicyDecisionResponse(BaseModel):
     reason: str = ""
     escalation_id: UUID | None = None
     latency_ms: int = 0
+
+
+# --- Escalation Ticket (Sprint 18 — APEP-143..APEP-147) ---
+
+
+class EscalationStatus(str, Enum):
+    """Lifecycle states for an escalation ticket."""
+
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    DENIED = "DENIED"
+    ESCALATED_UP = "ESCALATED_UP"
+    AUTO_DECIDED = "AUTO_DECIDED"
+
+
+class EscalationTicket(BaseModel):
+    """A pending escalation awaiting human review (APEP-143)."""
+
+    ticket_id: UUID = Field(default_factory=uuid4)
+    session_id: str
+    agent_id: str
+    agent_role: str = ""
+    tool_name: str
+    tool_args: dict[str, Any] = Field(default_factory=dict)
+    tool_args_hash: str = Field(default="", description="SHA-256 of tool args for pattern matching")
+    risk_score: float = Field(default=0.0, ge=0.0, le=1.0)
+    taint_flags: list[str] = Field(default_factory=list)
+    delegation_chain: list[str] = Field(default_factory=list)
+    matched_rule_id: UUID | None = None
+    reason: str = ""
+    status: EscalationStatus = EscalationStatus.PENDING
+    resolution_comment: str = ""
+    resolved_by: str | None = None
+    sla_deadline: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="Deadline before auto-decision applies",
+    )
+    sla_seconds: int = Field(default=300, description="SLA window in seconds")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    resolved_at: datetime | None = None
+
+
+class EscalationAction(BaseModel):
+    """Request body for approving, denying, or escalating-up a ticket (APEP-145)."""
+
+    action: EscalationStatus = Field(
+        ..., description="APPROVED, DENIED, or ESCALATED_UP"
+    )
+    comment: str = Field(default="", description="Reviewer comment")
+    resolved_by: str = Field(default="console_user", description="Who resolved this")
+
+
+class BulkApproveRequest(BaseModel):
+    """Bulk approve tickets matching a tool pattern (APEP-146)."""
+
+    tool_pattern: str = Field(..., description="Glob pattern to match tool_name")
+    comment: str = Field(default="", description="Reviewer comment for all approvals")
+    resolved_by: str = Field(default="console_user")

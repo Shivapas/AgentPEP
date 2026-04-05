@@ -65,6 +65,8 @@ class Settings(BaseSettings):
     # MCP Proxy (Sprint 12)
     mcp_proxy_enabled: bool = False
     mcp_proxy_default_timeout_s: float = 30.0
+    # Escalation (Sprint 18)
+    escalation_sla_seconds: int = 300  # Default SLA window for escalation tickets
 
     model_config = {"env_prefix": "AGENTPEP_"}
 

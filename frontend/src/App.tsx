@@ -14,6 +14,8 @@ import { BulkRoleAssignment } from "./components/agents/BulkRoleAssignment";
 import { RiskDashboard } from "./components/RiskDashboard";
 import { AuditExplorer } from "./components/AuditExplorer";
 import { SessionTimeline } from "./components/SessionTimeline";
+import { EscalationQueue } from "./components/escalation/EscalationQueue";
+import { TaintMapGraph } from "./components/taint/TaintMapGraph";
 
 export function App() {
   return (
@@ -57,7 +59,11 @@ export function App() {
                 />
                 <Route
                   path="/escalations"
-                  element={<Placeholder title="Escalations" />}
+                  element={<EscalationQueue />}
+                />
+                <Route
+                  path="/taint-map"
+                  element={<TaintMapGraph />}
                 />
                 <Route
                   path="/risk"
