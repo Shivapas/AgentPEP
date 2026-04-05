@@ -39,6 +39,14 @@ async def get_current_user(authorization: str = Header(...)) -> dict:
     return payload
 
 
+def require_admin(user: dict = Depends(get_current_user)) -> dict:
+    """Require the current user to have the Admin role."""
+    roles = user.get("roles", [])
+    if "Admin" not in roles:
+        raise HTTPException(status_code=403, detail="Admin role required")
+    return user
+
+
 @router.post("/login", response_model=TokenResponse)
 async def login(body: LoginRequest):
     """Authenticate a console user and return JWT tokens."""
@@ -126,6 +134,14 @@ async def me(user: dict = Depends(get_current_user)):
 @router.post("/seed", include_in_schema=False)
 async def seed_admin():
     """Create a default admin user if none exists. For development only."""
+    from app.core.config import settings
+
+    if not settings.debug:
+        raise HTTPException(
+            status_code=403,
+            detail="Seed endpoint is only available in debug mode",
+        )
+
     db = db_module.get_database()
 
     # First-run protection: only allow seeding when no admin users exist at all
@@ -136,14 +152,22 @@ async def seed_admin():
             detail="Seed endpoint is only available when no admin users exist",
         )
 
+    import secrets
+
+    generated_password = secrets.token_urlsafe(16)
     await db[CONSOLE_USERS].insert_one(
         {
             "username": "admin",
             "email": "admin@agentpep.local",
-            "hashed_password": hash_password("admin"),
+            "hashed_password": hash_password(generated_password),
             "roles": ["Admin"],
             "tenant_id": "default",
             "enabled": True,
         }
     )
-    return {"message": "Admin user created (username: admin, password: admin)"}
+    return {
+        "message": "Admin user created",
+        "username": "admin",
+        "password": generated_password,
+        "warning": "Change this password immediately",
+    }

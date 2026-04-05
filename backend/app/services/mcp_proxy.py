@@ -56,6 +56,9 @@ class MCPProxy:
     transparently without policy evaluation.
     """
 
+    # Allowed URL schemes for upstream MCP servers
+    _ALLOWED_SCHEMES = {"http", "https"}
+
     def __init__(self, upstream_url: str, agent_id: str, session_id: str | None = None):
         """
         Args:
@@ -63,10 +66,37 @@ class MCPProxy:
             agent_id: The agent ID for policy evaluation.
             session_id: Optional session ID; auto-generated if not provided.
         """
+        self._validate_upstream_url(upstream_url)
         self.upstream_url = upstream_url.rstrip("/")
         self.agent_id = agent_id
         self.session_id = session_id or f"mcp-{uuid4().hex[:12]}"
         self._started = False
+
+    @classmethod
+    def _validate_upstream_url(cls, url: str) -> None:
+        """Validate upstream URL to prevent SSRF attacks."""
+        import ipaddress
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+        if parsed.scheme not in cls._ALLOWED_SCHEMES:
+            raise ValueError(
+                f"Upstream URL scheme must be http or https, got '{parsed.scheme}'"
+            )
+        hostname = parsed.hostname or ""
+        if not hostname:
+            raise ValueError("Upstream URL must have a hostname")
+        # Block private/internal IP ranges
+        try:
+            addr = ipaddress.ip_address(hostname)
+            if addr.is_private or addr.is_loopback or addr.is_reserved or addr.is_link_local:
+                raise ValueError(
+                    f"Upstream URL must not point to private/internal IP: {hostname}"
+                )
+        except ValueError as exc:
+            if "private" in str(exc) or "scheme" in str(exc) or "hostname" in str(exc):
+                raise
+            # hostname is a domain name — that's fine
 
     async def start(self) -> None:
         """Start the proxy session and initialise taint tracking."""

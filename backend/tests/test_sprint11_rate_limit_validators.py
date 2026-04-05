@@ -28,9 +28,10 @@ def anyio_backend():
 @pytest.fixture
 async def client():
     from app.main import app
+    from tests.conftest import _get_auth_headers
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(transport=transport, base_url="http://test", headers=_get_auth_headers()) as ac:
         yield ac
 
 
@@ -124,7 +125,7 @@ class TestSlidingWindowRateLimiter:
         result = await rate_limiter.check_sliding_window("reader", "read_file", rl)
         assert not result.allowed
         assert "Sliding window rate limit exceeded" in result.reason
-        assert result.current_count == 3
+        assert result.current_count > rl.count  # count was incremented atomically before check
         assert result.limit == 3
 
     @pytest.mark.asyncio

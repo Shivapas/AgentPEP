@@ -14,9 +14,10 @@ from datetime import datetime, timedelta, timezone, UTC
 from enum import Enum
 from typing import Any
 
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
+from app.api.v1.console_auth import get_current_user
 from app.db.mongodb import API_KEYS, AUDIT_DECISIONS, get_database
 
 logger = logging.getLogger(__name__)
@@ -56,7 +57,7 @@ WINDOW_BUCKETS: dict[TimeWindow, int] = {
 def _window_start(window: TimeWindow) -> datetime:
     # Use naive UTC datetime for MongoDB compatibility (mongomock
     # aggregation pipelines cannot mix aware/naive datetimes).
-    return datetime.utcnow() - WINDOW_DELTAS[window]
+    return datetime.now(UTC).replace(tzinfo=None) - WINDOW_DELTAS[window]
 
 
 # --- Response Models ---
@@ -320,6 +321,7 @@ async def _detect_anomalies(since: datetime) -> list[AnomalyAgent]:
 @router.get("/summary", response_model=DashboardSummary)
 async def get_dashboard_summary(
     window: TimeWindow = Query(default=TimeWindow.TWENTY_FOUR_HOURS),
+    _user: dict = Depends(get_current_user),
 ) -> DashboardSummary:
     """Return full dashboard summary for the given time window."""
     since = _window_start(window)
@@ -344,6 +346,7 @@ async def get_dashboard_summary(
 @router.get("/heatmap", response_model=list[HeatmapCell])
 async def get_heatmap(
     window: TimeWindow = Query(default=TimeWindow.TWENTY_FOUR_HOURS),
+    _user: dict = Depends(get_current_user),
 ) -> list[HeatmapCell]:
     """APEP-128: Risk heatmap data."""
     return await _build_heatmap(_window_start(window))
@@ -352,6 +355,7 @@ async def get_heatmap(
 @router.get("/trend", response_model=list[TrendBucket])
 async def get_trend(
     window: TimeWindow = Query(default=TimeWindow.TWENTY_FOUR_HOURS),
+    _user: dict = Depends(get_current_user),
 ) -> list[TrendBucket]:
     """APEP-129: Decision trend buckets."""
     return await _build_trend(_window_start(window), window)
@@ -361,6 +365,7 @@ async def get_trend(
 async def get_top_blocked(
     window: TimeWindow = Query(default=TimeWindow.TWENTY_FOUR_HOURS),
     limit: int = Query(default=10, ge=1, le=50),
+    _user: dict = Depends(get_current_user),
 ) -> list[BlockedTool]:
     """APEP-130: Top blocked tools."""
     return await _build_top_blocked(_window_start(window), limit)
@@ -369,6 +374,7 @@ async def get_top_blocked(
 @router.get("/histogram", response_model=list[HistogramBin])
 async def get_histogram(
     window: TimeWindow = Query(default=TimeWindow.TWENTY_FOUR_HOURS),
+    _user: dict = Depends(get_current_user),
 ) -> list[HistogramBin]:
     """APEP-131: Risk score distribution."""
     return await _build_histogram(_window_start(window))
@@ -377,6 +383,7 @@ async def get_histogram(
 @router.get("/anomalies", response_model=list[AnomalyAgent])
 async def get_anomalies(
     window: TimeWindow = Query(default=TimeWindow.TWENTY_FOUR_HOURS),
+    _user: dict = Depends(get_current_user),
 ) -> list[AnomalyAgent]:
     """APEP-134: Anomalous agents."""
     return await _detect_anomalies(_window_start(window))

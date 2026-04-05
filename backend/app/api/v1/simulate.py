@@ -3,9 +3,10 @@
 Sprint 19: APEP-151, APEP-152, APEP-154, APEP-155.
 """
 
+import asyncio
 from typing import Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from app.models.policy import ToolCallRequest
 from app.models.simulation import (
@@ -72,11 +73,17 @@ async def simulate(request: SimulateRequest) -> SimulateResponse:
     risk score, taint evaluation, delegation chain result, and step-by-step trace.
     """
     tool_call = _to_tool_call_request(request)
-    result = await simulation_engine.simulate(
-        tool_call,
-        policy_rules=request.policy_rules,
-        policy_version=request.policy_version,
-    )
+    try:
+        result = await asyncio.wait_for(
+            simulation_engine.simulate(
+                tool_call,
+                policy_rules=request.policy_rules,
+                policy_version=request.policy_version,
+            ),
+            timeout=30.0,
+        )
+    except TimeoutError:
+        raise HTTPException(status_code=504, detail="Simulation evaluation timed out")
     return _result_to_response(result)
 
 
@@ -135,8 +142,6 @@ async def list_vector_categories() -> list[str]:
 @router.get("/simulate/vectors/{vector_id}", response_model=TestVector)
 async def get_vector(vector_id: str) -> TestVector:
     """Get a specific test vector by ID."""
-    from fastapi import HTTPException
-
     vector = VECTORS_BY_ID.get(vector_id)
     if vector is None:
         raise HTTPException(status_code=404, detail=f"Test vector '{vector_id}' not found")

@@ -16,16 +16,17 @@ class SimulateRequest(BaseModel):
     session_id: str = Field(default="sim-session", description="Session identifier")
     agent_id: str = Field(..., description="Agent making the tool call")
     tool_name: str = Field(..., description="Tool being invoked")
-    tool_args: dict[str, Any] = Field(default_factory=dict)
-    delegation_chain: list[str] = Field(default_factory=list)
-    delegation_hops: list[DelegationHop] = Field(default_factory=list)
-    taint_node_ids: list[UUID] = Field(default_factory=list)
+    tool_args: dict[str, Any] = Field(default_factory=dict, max_length=100)
+    delegation_chain: list[str] = Field(default_factory=list, max_length=50)
+    delegation_hops: list[DelegationHop] = Field(default_factory=list, max_length=50)
+    taint_node_ids: list[UUID] = Field(default_factory=list, max_length=1000)
     policy_version: str = Field(
         default="current",
         description="Policy version label to evaluate against",
     )
     policy_rules: list[PolicyRule] | None = Field(
         default=None,
+        max_length=500,
         description="Optional explicit rule set to evaluate against instead of current rules",
     )
 

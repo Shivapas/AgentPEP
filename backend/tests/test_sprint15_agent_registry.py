@@ -11,7 +11,9 @@ BASE = "http://test"
 
 @pytest.fixture
 async def client():
-    async with AsyncClient(transport=transport, base_url=BASE) as c:
+    from tests.conftest import _get_auth_headers
+
+    async with AsyncClient(transport=transport, base_url=BASE, headers=_get_auth_headers()) as c:
         yield c
 
 

@@ -434,8 +434,10 @@ class TestComplianceAPI:
 
     @pytest.fixture
     def client(self):
+        from tests.conftest import _get_auth_headers
+
         transport = ASGITransport(app=app)
-        return AsyncClient(transport=transport, base_url="http://test")
+        return AsyncClient(transport=transport, base_url="http://test", headers=_get_auth_headers())
 
     async def test_generate_report_endpoint(self, mock_mongodb, client):
         await _seed_data(mock_mongodb)

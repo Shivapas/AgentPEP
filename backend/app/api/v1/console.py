@@ -13,9 +13,10 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
+from app.api.v1.console_auth import get_current_user
 from app.db.mongodb import (
     AGENT_PROFILES,
     AUDIT_DECISIONS,
@@ -41,7 +42,7 @@ class DashboardStats(BaseModel):
 
 
 @router.get("/stats", response_model=DashboardStats)
-async def get_stats() -> DashboardStats:
+async def get_stats(_user: dict = Depends(get_current_user)) -> DashboardStats:
     """Get dashboard statistics for the Policy Console."""
     db = get_database()
 

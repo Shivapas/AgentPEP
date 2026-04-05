@@ -1,5 +1,8 @@
 """API key authentication and mTLS certificate validation middleware."""
 
+import hashlib
+import secrets
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import JSONResponse
@@ -52,9 +55,19 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
                 },
             )
 
-        # Look up key in MongoDB
+        # Look up key by hash to avoid storing/comparing plaintext keys
         db = db_module.get_database()
-        key_record = await db[API_KEYS].find_one({"key": api_key, "enabled": True})
+        key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+        key_record = await db[API_KEYS].find_one({"key_hash": key_hash, "enabled": True})
+
+        # Fall back to plaintext lookup for backward compatibility during migration
+        if key_record is None:
+            key_record = await db[API_KEYS].find_one({"key": api_key, "enabled": True})
+            if key_record is not None:
+                # Use constant-time comparison for plaintext keys
+                stored_key = key_record.get("key", "")
+                if not secrets.compare_digest(stored_key, api_key):
+                    key_record = None
 
         if key_record is None:
             return JSONResponse(

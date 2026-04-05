@@ -108,7 +108,11 @@ class CSRFMiddleware(BaseHTTPMiddleware):
     (machine-to-machine traffic).
     """
 
-    EXEMPT_PATHS = {"/health", "/ready", "/metrics", "/docs", "/openapi.json", "/redoc"}
+    EXEMPT_PATHS = {
+        "/health", "/ready", "/metrics", "/docs", "/openapi.json", "/redoc",
+        "/v1/console/login", "/v1/console/refresh", "/v1/console/seed",
+        "/v1/ux-survey", "/v1/intercept",
+    }
     SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
     async def dispatch(
@@ -122,6 +126,11 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         if request.headers.get("X-API-Key"):
             return await call_next(request)
 
+        # Skip for Bearer token authenticated requests (programmatic API access)
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            return await call_next(request)
+
         # Skip exempt paths
         if request.url.path in self.EXEMPT_PATHS:
             return await call_next(request)
@@ -129,14 +138,11 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         cookie_token = request.cookies.get("agentpep_csrf")
         header_token = request.headers.get("X-CSRF-Token")
 
-        if cookie_token and header_token and cookie_token == header_token:
+        if cookie_token and header_token and secrets.compare_digest(cookie_token, header_token):
             return await call_next(request)
 
-        # If no CSRF cookie is set yet (first request), allow through
-        # to let the SecurityHeaders middleware set the initial token
-        if not cookie_token:
-            return await call_next(request)
-
+        # If no CSRF cookie is set, reject — the client must first perform a
+        # GET request to obtain a CSRF token cookie before making state-changing requests.
         return JSONResponse(
             status_code=403,
             content={
@@ -239,9 +245,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     @staticmethod
     def _get_client_ip(request: Request) -> str:
-        """Extract client IP, respecting X-Forwarded-For behind a reverse proxy."""
+        """Extract client IP, respecting X-Forwarded-For only from trusted proxies."""
+        from app.core.config import settings
+
         forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
         client = request.client
-        return client.host if client else "unknown"
+        direct_ip = client.host if client else "unknown"
+
+        if forwarded and settings.trusted_proxy_ips:
+            # Only trust X-Forwarded-For if the direct connection is from a trusted proxy
+            if direct_ip in settings.trusted_proxy_ips:
+                return forwarded.split(",")[0].strip()
+        # If no trusted proxies configured or direct IP not trusted, use direct connection IP
+        return direct_ip

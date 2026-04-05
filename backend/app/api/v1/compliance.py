@@ -3,9 +3,10 @@
 import json
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 
+from app.api.v1.console_auth import get_current_user
 from app.models.compliance import (
     ComplianceReport,
     CreateScheduleRequest,
@@ -30,7 +31,7 @@ router = APIRouter(prefix="/v1/compliance", tags=["compliance"])
 
 
 @router.post("/reports", response_model=ComplianceReport)
-async def create_report(req: GenerateReportRequest) -> ComplianceReport:
+async def create_report(req: GenerateReportRequest, _user: dict = Depends(get_current_user)) -> ComplianceReport:
     """Generate a compliance report for the specified type and period."""
     report = await generate_report(req.report_type, req.period_start, req.period_end)
     return report
@@ -38,6 +39,7 @@ async def create_report(req: GenerateReportRequest) -> ComplianceReport:
 
 @router.get("/reports", response_model=ReportListResponse)
 async def get_reports(
+    _user: dict = Depends(get_current_user),
     report_type: ReportType | None = None,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
@@ -48,7 +50,7 @@ async def get_reports(
 
 
 @router.get("/reports/{report_id}", response_model=ComplianceReport)
-async def get_report_detail(report_id: UUID) -> ComplianceReport:
+async def get_report_detail(report_id: UUID, _user: dict = Depends(get_current_user)) -> ComplianceReport:
     """Get a single compliance report by ID."""
     report = await get_report(report_id)
     if not report:
@@ -57,7 +59,7 @@ async def get_report_detail(report_id: UUID) -> ComplianceReport:
 
 
 @router.get("/reports/{report_id}/download")
-async def download_report(report_id: UUID) -> Response:
+async def download_report(report_id: UUID, _user: dict = Depends(get_current_user)) -> Response:
     """Download a compliance report as JSON file."""
     report = await get_report(report_id)
     if not report:
@@ -78,7 +80,7 @@ async def download_report(report_id: UUID) -> Response:
 
 
 @router.post("/schedules", response_model=ReportSchedule)
-async def create_report_schedule(req: CreateScheduleRequest) -> ReportSchedule:
+async def create_report_schedule(req: CreateScheduleRequest, _user: dict = Depends(get_current_user)) -> ReportSchedule:
     """Create a recurring report schedule."""
     schedule = ReportSchedule(
         report_type=req.report_type,
@@ -89,13 +91,13 @@ async def create_report_schedule(req: CreateScheduleRequest) -> ReportSchedule:
 
 
 @router.get("/schedules", response_model=list[ReportSchedule])
-async def get_schedules() -> list[ReportSchedule]:
+async def get_schedules(_user: dict = Depends(get_current_user)) -> list[ReportSchedule]:
     """List all report schedules."""
     return await list_schedules()
 
 
 @router.delete("/schedules/{schedule_id}", status_code=204)
-async def remove_schedule(schedule_id: UUID) -> None:
+async def remove_schedule(schedule_id: UUID, _user: dict = Depends(get_current_user)) -> None:
     """Delete a report schedule."""
     deleted = await delete_schedule(schedule_id)
     if not deleted:

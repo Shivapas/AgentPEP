@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     auth_enabled: bool = False  # Enable API key authentication
     mtls_enabled: bool = False  # Enable mTLS certificate validation
 
+    # Trusted proxy IPs for X-Forwarded-For header validation
+    trusted_proxy_ips: list[str] = []
+
     # JWT (Console authentication)
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
@@ -50,6 +53,8 @@ class Settings(BaseSettings):
     # gRPC
     grpc_enabled: bool = False
     grpc_port: int = 50051
+    grpc_tls_cert_path: str = ""
+    grpc_tls_key_path: str = ""
 
     # Escalation (Sprint 9)
     escalation_timeout_seconds: int = 300  # Default timeout for escalation tickets
@@ -115,7 +120,17 @@ class Settings(BaseSettings):
 settings = Settings()
 
 if settings.jwt_secret == "change-me-in-production":
+    if not settings.debug:
+        raise RuntimeError(
+            "CRITICAL: JWT secret is set to the insecure default value and debug mode is off. "
+            "Set AGENTPEP_JWT_SECRET to a strong random string (min 32 characters) "
+            "before deploying to production."
+        )
     _config_logger.warning(
         "JWT secret is set to the insecure default value. "
         "Set AGENTPEP_JWT_SECRET to a strong random string before deploying to production."
+    )
+elif len(settings.jwt_secret) < 32:
+    _config_logger.warning(
+        "JWT secret is shorter than 32 characters. Use a longer secret for production."
     )

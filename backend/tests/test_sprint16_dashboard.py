@@ -13,8 +13,10 @@ from app.main import app
 
 @pytest_asyncio.fixture
 async def client():
+    from tests.conftest import _get_auth_headers
+
     async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
+        transport=ASGITransport(app=app), base_url="http://test", headers=_get_auth_headers()
     ) as ac:
         yield ac
 

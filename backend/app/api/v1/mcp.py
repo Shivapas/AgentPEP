@@ -99,11 +99,18 @@ async def start_session(request: MCPSessionStartRequest) -> MCPSessionStartRespo
     if not upstream_url:
         raise HTTPException(status_code=400, detail="No upstream_url provided or configured")
 
-    # Prevent session ID overwrite: if the client supplies a session_id,
-    # check that no active session already exists with that ID.
+    # Prevent session ID overwrite and cross-agent hijacking:
+    # if the client supplies a session_id, check ownership.
     if request.session_id and request.session_id in _active_proxies:
+        existing_proxy = _active_proxies[request.session_id]
         existing_state = mcp_session_tracker.get_session(request.session_id)
         if existing_state is not None:
+            # Verify the requesting agent owns this session
+            if existing_proxy.agent_id != request.agent_id:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Session '{request.session_id}' belongs to a different agent",
+                )
             raise HTTPException(
                 status_code=409,
                 detail=f"Session '{request.session_id}' already exists and is active. "

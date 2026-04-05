@@ -132,7 +132,10 @@ def setup_tracing(app):  # type: ignore[no-untyped-def]
     provider = TracerProvider(resource=resource)
 
     if settings.otlp_endpoint:
-        exporter = OTLPSpanExporter(endpoint=settings.otlp_endpoint, insecure=True)
+        # Only allow insecure OTLP in debug mode to prevent unencrypted telemetry in production
+        exporter = OTLPSpanExporter(
+            endpoint=settings.otlp_endpoint, insecure=settings.debug
+        )
         provider.add_span_processor(BatchSpanProcessor(exporter))
 
     trace.set_tracer_provider(provider)
