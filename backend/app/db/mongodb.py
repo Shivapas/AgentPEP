@@ -202,6 +202,9 @@ async def init_collections() -> None:
                 [("created_at", ASCENDING)],
                 expireAfterSeconds=86400 * 30,  # 30-day TTL
             ),
+        ]
+    )
+
     # Audit Hash Chain (APEP-191 — Sprint 24)
     audit_hash_chain = db[AUDIT_HASH_CHAIN]
     await audit_hash_chain.create_indexes(
@@ -247,6 +250,9 @@ async def init_collections() -> None:
             IndexModel([("agent_id", ASCENDING)]),
             IndexModel([("state", ASCENDING)]),
             IndexModel([("assigned_to", ASCENDING)]),
+        ]
+    )
+
     # Compliance Reports (Sprint 22 — APEP-172..174)
     compliance_reports = db[COMPLIANCE_REPORTS]
     await compliance_reports.create_indexes(
@@ -318,6 +324,9 @@ async def init_collections() -> None:
             IndexModel([("email", ASCENDING)], unique=True),
             IndexModel([("tenant_id", ASCENDING)]),
             IndexModel([("roles", ASCENDING)]),
+        ]
+    )
+
     # Report Schedules (Sprint 22 — APEP-177)
     report_schedules = db[REPORT_SCHEDULES]
     await report_schedules.create_indexes(

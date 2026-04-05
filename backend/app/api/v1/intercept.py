@@ -50,15 +50,11 @@ async def intercept(request: ToolCallRequest) -> PolicyDecisionResponse:
         response = await policy_evaluator.evaluate(request)
         elapsed = time.monotonic() - start
 
-    # Record Prometheus metrics — use string value directly to avoid enum lookup
-    decision_val = response.decision.value
-    INTERCEPT_REQUESTS.labels(decision=decision_val).inc()
-    INTERCEPT_LATENCY.observe(elapsed)
-    POLICY_EVALUATIONS.labels(result=decision_val).inc()
-        # Record legacy Prometheus metrics
-        INTERCEPT_REQUESTS.labels(decision=response.decision.value).inc()
+        # Record Prometheus metrics — use string value directly to avoid enum lookup
+        decision_val = response.decision.value
+        INTERCEPT_REQUESTS.labels(decision=decision_val).inc()
         INTERCEPT_LATENCY.observe(elapsed)
-        POLICY_EVALUATIONS.labels(result=response.decision.value).inc()
+        POLICY_EVALUATIONS.labels(result=decision_val).inc()
 
         # Record Sprint 26 enhanced metrics (APEP-204)
         DECISION_TOTAL.labels(

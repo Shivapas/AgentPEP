@@ -84,6 +84,9 @@ def mock_mongodb(monkeypatch):
         from app.core.config import settings
 
         settings.global_rate_limit_enabled = False
+    except ImportError:
+        pass
+
     # Clear Sprint 12 MCP singletons
     try:
         from app.services.mcp_session_tracker import mcp_session_tracker

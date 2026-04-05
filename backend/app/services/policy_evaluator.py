@@ -509,7 +509,6 @@ class PolicyEvaluator:
             request_id=request.request_id,
             decision=decision,
             matched_rule_id=matched_rule.rule_id,
-            risk_score=risk_score,
             reason=reason,
             taint_flags=taint_flags,
             risk_score=computed_risk,

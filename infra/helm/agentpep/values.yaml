@@ -197,7 +197,6 @@ frontend:
     limits:
       cpu: 500m
       memory: 256Mi
-<<<<<<< HEAD
   service:
     type: ClusterIP
     port: 5173
@@ -399,7 +398,6 @@ grafana:
     repository: grafana/grafana
     tag: "10.4.1"
   adminPassword: "agentpep-admin"
-=======
       cpu: 250m
       memory: 256Mi
 
@@ -423,4 +421,3 @@ observability:
 serviceAccount:
   create: true
   annotations: {}
->>>>>>> origin/claude/implement-sprint-27-oRGXS
