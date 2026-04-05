@@ -13,16 +13,19 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api/, ""),
-      },
-      "/api/v1/dashboard/ws": {
+      "/v1/dashboard/ws": {
         target: "ws://localhost:8000",
         ws: true,
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api/, ""),
+      },
+      "/v1/escalations/ws": {
+        target: "ws://localhost:8000",
+        ws: true,
+        changeOrigin: true,
+      },
+      "/v1": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
       },
     },
   },

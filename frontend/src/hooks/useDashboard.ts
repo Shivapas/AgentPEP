@@ -3,11 +3,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DashboardSummary, TimeWindow } from "../types/dashboard";
 
-const API_BASE = "/api/v1/dashboard";
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  `http://${window.location.hostname}:8000`;
 
 function wsUrl(): string {
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${proto}//${window.location.host}/api/v1/dashboard/ws`;
+  const host =
+    (import.meta.env.VITE_API_URL as string | undefined)
+      ?.replace(/^https?:\/\//, "")
+    ?? `${window.location.hostname}:8000`;
+  return `${proto}//${host}/v1/dashboard/ws`;
 }
 
 export function useDashboard(window: TimeWindow) {
@@ -19,7 +25,7 @@ export function useDashboard(window: TimeWindow) {
   const fetchSummary = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/summary?window=${window}`);
+      const res = await fetch(`${BASE}/v1/dashboard/summary?window=${window}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json: DashboardSummary = await res.json();
       setData(json);

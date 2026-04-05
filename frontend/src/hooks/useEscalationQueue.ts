@@ -7,11 +7,15 @@ import type {
   EscalationWsMessage,
 } from "../types/escalation";
 
-const WS_URL =
-  (window.location.protocol === "https:" ? "wss:" : "ws:") +
-  "//" +
-  window.location.host +
-  "/v1/escalations/ws";
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  `http://${window.location.hostname}:8000`;
+
+function wsUrl(): string {
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const host = BASE.replace(/^https?:\/\//, "");
+  return `${proto}//${host}/v1/escalations/ws`;
+}
 
 export function useEscalationQueue() {
   const [tickets, setTickets] = useState<EscalationTicket[]>([]);
@@ -19,7 +23,7 @@ export function useEscalationQueue() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const ws = new WebSocket(WS_URL);
+    const ws = new WebSocket(wsUrl());
     wsRef.current = ws;
 
     ws.onopen = () => setConnected(true);
@@ -34,22 +38,29 @@ export function useEscalationQueue() {
     ws.onmessage = (event) => {
       try {
         const msg: EscalationWsMessage = JSON.parse(event.data);
-        switch (msg.event) {
-          case "escalation:snapshot":
-            setTickets(msg.data as EscalationTicket[]);
+        switch (msg.type) {
+          case "snapshot":
+            setTickets(msg.tickets ?? []);
             break;
-          case "escalation:created":
-            setTickets((prev) => [msg.data as EscalationTicket, ...prev]);
+          case "ticket_created":
+            if (msg.ticket) {
+              setTickets((prev) => [msg.ticket!, ...prev]);
+            }
             break;
-          case "escalation:resolved": {
-            const resolved = msg.data as EscalationTicket;
-            setTickets((prev) =>
-              prev.map((t) =>
-                t.escalation_id === resolved.escalation_id ? resolved : t
-              )
-            );
+          case "ticket_resolved":
+          case "sla_expired":
+            if (msg.ticket_id) {
+              setTickets((prev) =>
+                prev.filter((t) => t.ticket_id !== msg.ticket_id),
+              );
+            }
             break;
-          }
+          case "bulk_approved":
+            if (msg.ticket_ids) {
+              const ids = new Set(msg.ticket_ids);
+              setTickets((prev) => prev.filter((t) => !ids.has(t.ticket_id)));
+            }
+            break;
         }
       } catch {
         // ignore malformed messages
@@ -62,7 +73,7 @@ export function useEscalationQueue() {
   }, []);
 
   const refresh = useCallback(async () => {
-    const res = await fetch("/v1/escalations/pending");
+    const res = await fetch(`${BASE}/v1/escalations/pending`);
     if (res.ok) {
       const data = await res.json();
       setTickets(data);

@@ -178,7 +178,7 @@ function buildQuery(params: Record<string, unknown>): string {
 export async function fetchDecisions(
   filters: DecisionFilters,
 ): Promise<PaginatedResponse> {
-  const res = await apiFetch(`/api/v1/audit/decisions${buildQuery(filters as Record<string, unknown>)}`);
+  const res = await apiFetch(`/v1/audit/decisions${buildQuery(filters as Record<string, unknown>)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<PaginatedResponse>;
 }
@@ -186,7 +186,7 @@ export async function fetchDecisions(
 export async function fetchDecisionDetail(
   decisionId: string,
 ): Promise<AuditDecision> {
-  const res = await apiFetch(`/api/v1/audit/decisions/${encodeURIComponent(decisionId)}`);
+  const res = await apiFetch(`/v1/audit/decisions/${encodeURIComponent(decisionId)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<AuditDecision>;
 }
@@ -194,7 +194,7 @@ export async function fetchDecisionDetail(
 export async function fetchSessionTimeline(
   sessionId: string,
 ): Promise<AuditDecision[]> {
-  const res = await apiFetch(`/api/v1/audit/sessions/${encodeURIComponent(sessionId)}/timeline`);
+  const res = await apiFetch(`/v1/audit/sessions/${encodeURIComponent(sessionId)}/timeline`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<AuditDecision[]>;
 }
@@ -202,7 +202,10 @@ export async function fetchSessionTimeline(
 export async function fetchIntegrity(
   params: { session_id?: string; start_time?: string; end_time?: string; limit?: number },
 ): Promise<IntegrityResult> {
-  const res = await apiFetch(`/api/v1/audit/integrity${buildQuery(params as Record<string, unknown>)}`);
+  const res = await apiFetch(`/v1/audit/verify-integrity`, {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<IntegrityResult>;
 }
@@ -211,8 +214,8 @@ export function exportUrl(
   format: "csv" | "json",
   filters: DecisionFilters,
 ): string {
-  const base = `${BASE}/api/v1/audit/export/${format}`;
-  return `${base}${buildQuery(filters as Record<string, unknown>)}`;
+  const params = { ...filters, format } as Record<string, unknown>;
+  return `${BASE}/v1/audit/export${buildQuery(params)}`;
 }
 
 /* ---- Escalation endpoints ---- */

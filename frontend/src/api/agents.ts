@@ -1,6 +1,6 @@
 /** API client for Agent Registry endpoints. */
 
-const BASE = "/api/v1/agents";
+import { apiFetch } from "@/lib/api";
 
 export interface Agent {
   agent_id: string;
@@ -66,11 +66,8 @@ export interface DelegationGrant {
   authority_source: string;
 }
 
-async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    headers: { "Content-Type": "application/json", ...init?.headers },
-    ...init,
-  });
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await apiFetch(path, init);
   if (res.status === 204) return undefined as unknown as T;
   if (!res.ok) {
     const text = await res.text();
@@ -94,45 +91,45 @@ export function listAgents(params?: {
   if (params?.enabled !== undefined) q.set("enabled", String(params.enabled));
   if (params?.offset !== undefined) q.set("offset", String(params.offset));
   if (params?.limit !== undefined) q.set("limit", String(params.limit));
-  return request<AgentListResponse>(`${BASE}?${q.toString()}`);
+  return request<AgentListResponse>(`/v1/agents?${q.toString()}`);
 }
 
 export function getAgent(agentId: string): Promise<Agent> {
-  return request<Agent>(`${BASE}/${agentId}`);
+  return request<Agent>(`/v1/agents/${agentId}`);
 }
 
 export function createAgent(body: AgentCreateRequest): Promise<Agent> {
-  return request<Agent>(BASE, { method: "POST", body: JSON.stringify(body) });
+  return request<Agent>("/v1/agents", { method: "POST", body: JSON.stringify(body) });
 }
 
 export function updateAgent(agentId: string, body: AgentUpdateRequest): Promise<Agent> {
-  return request<Agent>(`${BASE}/${agentId}`, {
+  return request<Agent>(`/v1/agents/${agentId}`, {
     method: "PATCH",
     body: JSON.stringify(body),
   });
 }
 
 export function deleteAgent(agentId: string): Promise<void> {
-  return request<void>(`${BASE}/${agentId}`, { method: "DELETE" });
+  return request<void>(`/v1/agents/${agentId}`, { method: "DELETE" });
 }
 
 // API Keys
 export function listKeys(agentId: string): Promise<{ keys: APIKey[] }> {
-  return request<{ keys: APIKey[] }>(`${BASE}/${agentId}/keys`);
+  return request<{ keys: APIKey[] }>(`/v1/agents/${agentId}/keys`);
 }
 
 export function generateKey(agentId: string, name = "default"): Promise<APIKey> {
-  return request<APIKey>(`${BASE}/${agentId}/keys?name=${encodeURIComponent(name)}`, {
+  return request<APIKey>(`/v1/agents/${agentId}/keys?name=${encodeURIComponent(name)}`, {
     method: "POST",
   });
 }
 
 export function rotateKey(agentId: string, keyId: string): Promise<APIKey> {
-  return request<APIKey>(`${BASE}/${agentId}/keys/${keyId}/rotate`, { method: "POST" });
+  return request<APIKey>(`/v1/agents/${agentId}/keys/${keyId}/rotate`, { method: "POST" });
 }
 
 export function revokeKey(agentId: string, keyId: string): Promise<void> {
-  return request<void>(`${BASE}/${agentId}/keys/${keyId}`, { method: "DELETE" });
+  return request<void>(`/v1/agents/${agentId}/keys/${keyId}`, { method: "DELETE" });
 }
 
 // Activity
@@ -140,7 +137,7 @@ export function getActivity(
   agentId: string,
   limit = 100,
 ): Promise<{ agent_id: string; entries: ActivityEntry[]; total: number }> {
-  return request(`${BASE}/${agentId}/activity?limit=${limit}`);
+  return request(`/v1/agents/${agentId}/activity?limit=${limit}`);
 }
 
 // Bulk roles
@@ -148,7 +145,7 @@ export function bulkAssignRoles(
   agentIds: string[],
   roles: string[],
 ): Promise<{ updated: number; agent_ids: string[] }> {
-  return request(`${BASE}/bulk/roles`, {
+  return request(`/v1/agents/bulk/roles`, {
     method: "POST",
     body: JSON.stringify({ agent_ids: agentIds, roles }),
   });
@@ -158,5 +155,5 @@ export function bulkAssignRoles(
 export function getDelegations(
   agentId: string,
 ): Promise<{ agent_id: string; grants: DelegationGrant[] }> {
-  return request(`${BASE}/${agentId}/delegations`);
+  return request(`/v1/agents/${agentId}/delegations`);
 }

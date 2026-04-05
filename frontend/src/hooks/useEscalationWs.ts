@@ -4,9 +4,15 @@ import type {
   EscalationWsMessage,
 } from "../types/escalation";
 
-const WS_URL =
-  (import.meta.env.VITE_API_WS_URL as string | undefined) ??
-  `ws://${window.location.hostname}:8000/v1/escalations/ws`;
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  `http://${window.location.hostname}:8000`;
+
+function wsUrl(): string {
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const host = BASE.replace(/^https?:\/\//, "");
+  return `${proto}//${host}/v1/escalations/ws`;
+}
 
 /**
  * Hook that maintains a WebSocket connection to the escalation feed.
@@ -21,7 +27,7 @@ export function useEscalationWs() {
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    const ws = new WebSocket(WS_URL);
+    const ws = new WebSocket(wsUrl());
     wsRef.current = ws;
 
     ws.onopen = () => setConnected(true);
