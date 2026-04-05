@@ -7,6 +7,10 @@ import { AppShell } from "./components/layout/AppShell";
 import { DashboardPage } from "./components/dashboard/DashboardPage";
 import { Placeholder } from "./components/common/Placeholder";
 import { PolicyAuthoringPage } from "./components/policy/PolicyAuthoringPage";
+import { AgentRegistryList } from "./components/agents/AgentRegistryList";
+import { AgentProfileForm } from "./components/agents/AgentProfileForm";
+import { AgentDetailPage } from "./components/agents/AgentDetailPage";
+import { BulkRoleAssignment } from "./components/agents/BulkRoleAssignment";
 
 export function App() {
   return (
@@ -34,8 +38,12 @@ export function App() {
                 />
                 <Route
                   path="/agents"
-                  element={<Placeholder title="Agents" />}
+                  element={<AgentRegistryList />}
                 />
+                <Route path="/agents/new" element={<AgentProfileForm />} />
+                <Route path="/agents/bulk-roles" element={<BulkRoleAssignment />} />
+                <Route path="/agents/:agentId" element={<AgentDetailPage />} />
+                <Route path="/agents/:agentId/edit" element={<AgentProfileForm />} />
                 <Route
                   path="/audit"
                   element={<Placeholder title="Audit Log" />}

@@ -6,6 +6,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
+from app.api.v1.agents import router as agents_router
 from app.api.v1.audit import router as audit_router
 from app.api.v1.console_auth import router as console_auth_router
 from app.api.v1.console_dashboard import router as console_dashboard_router
@@ -92,6 +93,7 @@ app.add_middleware(APIKeyAuthMiddleware)
 app.add_middleware(MTLSMiddleware)
 
 # Routers
+app.include_router(agents_router)
 app.include_router(health_router)
 app.include_router(intercept_router)
 app.include_router(taint_router)
