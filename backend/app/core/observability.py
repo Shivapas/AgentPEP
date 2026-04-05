@@ -31,6 +31,38 @@ POLICY_EVALUATIONS = Counter(
 )
 
 
+# Sprint 23 — Performance metrics (APEP-180/183/184/186)
+
+RULE_CACHE_HITS = Counter(
+    "agentpep_rule_cache_hits_total",
+    "Rule cache hit count by tier",
+    ["tier"],  # l1, l2_redis, miss
+)
+
+AUDIT_LOG_QUEUE_SIZE = Histogram(
+    "agentpep_audit_log_queue_size",
+    "Async audit log queue depth at flush time",
+    buckets=[1, 5, 10, 25, 50, 100, 250, 500],
+)
+
+TAINT_GRAPH_EVICTIONS = Counter(
+    "agentpep_taint_graph_evictions_total",
+    "Taint graph LRU node evictions",
+)
+
+RISK_SCORE_HISTOGRAM = Histogram(
+    "agentpep_risk_score",
+    "Computed risk scores for intercept decisions",
+    buckets=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+)
+
+ADAPTIVE_TIMEOUT = Histogram(
+    "agentpep_adaptive_timeout_seconds",
+    "Adaptive timeout value selected per request",
+    buckets=[1.0, 2.0, 3.0, 5.0, 10.0],
+)
+
+
 def get_metrics_app():  # type: ignore[no-untyped-def]
     """Return a Prometheus ASGI app to mount at /metrics."""
     return make_asgi_app()

@@ -466,8 +466,13 @@ async def test_disabled_rules_are_skipped(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_audit_log_written_on_decision(client: AsyncClient):
-    """Every intercept call should write an audit decision record."""
+    """Every intercept call should write an audit decision record.
+
+    Sprint 23 (APEP-184): Audit writes are now async-batched.
+    We flush the writer before checking MongoDB.
+    """
     from app.db.mongodb import get_database, AUDIT_DECISIONS
+    from app.services.policy_evaluator import audit_log_writer
 
     db = get_database()
 
@@ -476,6 +481,9 @@ async def test_audit_log_written_on_decision(client: AsyncClient):
         "/v1/intercept",
         json=_make_request(request_id=req_id),
     )
+
+    # APEP-184: Flush the async audit log writer so records reach MongoDB
+    await audit_log_writer.flush_pending()
 
     # Check audit log
     audit = await db[AUDIT_DECISIONS].find_one({"session_id": "test-session"})

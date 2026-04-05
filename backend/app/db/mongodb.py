@@ -1,4 +1,9 @@
-"""MongoDB connection management and collection initialization."""
+"""MongoDB connection management and collection initialization.
+
+Sprint 23 (APEP-182): Connection pooling — the Motor client is configured
+with min/max pool sizes, idle timeouts, and connection timeouts for
+high-throughput workloads.
+"""
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo import ASCENDING, DESCENDING, IndexModel
@@ -12,7 +17,15 @@ _db: AsyncIOMotorDatabase | None = None  # type: ignore[type-arg]
 def get_client() -> AsyncIOMotorClient:  # type: ignore[type-arg]
     global _client
     if _client is None:
-        _client = AsyncIOMotorClient(settings.mongodb_url)
+        _client = AsyncIOMotorClient(
+            settings.mongodb_url,
+            # APEP-182: Connection pool settings
+            minPoolSize=settings.mongodb_min_pool_size,
+            maxPoolSize=settings.mongodb_max_pool_size,
+            maxIdleTimeMS=settings.mongodb_max_idle_time_ms,
+            connectTimeoutMS=settings.mongodb_connect_timeout_ms,
+            serverSelectionTimeoutMS=settings.mongodb_server_selection_timeout_ms,
+        )
     return _client
 
 

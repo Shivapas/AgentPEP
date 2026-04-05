@@ -12,8 +12,11 @@ services:
       - AGENTPEP_MONGODB_DB_NAME=agentpep
       - AGENTPEP_DEBUG=true
       - AGENTPEP_OTLP_ENDPOINT=http://otel-collector:4317
+      - AGENTPEP_REDIS_URL=redis://redis:6379/0
+      - AGENTPEP_REDIS_ENABLED=true
     depends_on:
       - mongodb
+      - redis
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -35,6 +38,13 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.7.0
@@ -58,3 +68,4 @@ services:
 
 volumes:
   mongo_data:
+  redis_data:

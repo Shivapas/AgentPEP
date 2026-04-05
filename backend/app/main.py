@@ -1,4 +1,8 @@
-"""AgentPEP FastAPI application entry point."""
+"""AgentPEP FastAPI application entry point.
+
+Sprint 23: starts async audit log writer (APEP-184) and optional Redis
+cache (APEP-181) during application lifespan.
+"""
 
 import logging
 from contextlib import asynccontextmanager
@@ -64,6 +68,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         from app.services.compliance.report_scheduler import report_scheduler
 
         await report_scheduler.start()
+    # Sprint 23 (APEP-181): Initialise Redis policy cache
+    from app.services.rule_cache import rule_cache
+
+    await rule_cache.init_redis()
+
+    # Sprint 23 (APEP-184): Start async audit log writer
+    from app.services.policy_evaluator import audit_log_writer
+
+    audit_log_writer.start()
 
     # Start gRPC server if enabled
     if settings.grpc_enabled:
@@ -90,6 +103,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Shutdown gRPC server
     if _grpc_server is not None:
         await _grpc_server.stop(grace=5)
+
+    # Sprint 23: Drain audit log writer
+    audit_log_writer.stop()
+    await audit_log_writer.flush_pending()
+
+    # Sprint 23: Close Redis
+    await rule_cache.close_redis()
 
     await close_client()
 
