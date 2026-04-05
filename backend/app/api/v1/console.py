@@ -116,7 +116,8 @@ async def list_audit(
     if agent_id:
         query["agent_id"] = agent_id
     if tool_name:
-        query["tool_name"] = {"$regex": tool_name, "$options": "i"}
+        import re
+        query["tool_name"] = {"$regex": re.escape(tool_name), "$options": "i"}
 
     total = await db[AUDIT_DECISIONS].count_documents(query)
     cursor = (
@@ -159,7 +160,7 @@ class AgentsListResponse(BaseModel):
     total: int = 0
 
 
-@router.get("/agents", response_model=AgentsListResponse)
+@router.get("/console/agents", response_model=AgentsListResponse)
 async def list_agents(
     limit: int = Query(default=100, ge=1, le=500),
 ) -> AgentsListResponse:

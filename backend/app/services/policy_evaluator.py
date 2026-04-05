@@ -580,14 +580,11 @@ class PolicyEvaluator:
     async def _write_audit_log(
         request: ToolCallRequest, response: PolicyDecisionResponse
     ) -> None:
-        """Write an audit decision record via AuditLogger (hash-chained) and publish to Kafka."""
-        """Write an audit decision record to MongoDB (legacy sync path).
+        """Write an audit decision record via AuditLogger (hash-chained) and publish to Kafka.
 
         Retained for backward compatibility with tests. Production path
         uses _enqueue_audit() via AsyncAuditLogWriter (APEP-184).
         """
-        db = db_module.get_database()
-        """Write an audit decision record to MongoDB."""
         with tracer.start_as_current_span(
             "audit_log_write",
             attributes={
@@ -601,39 +598,6 @@ class PolicyEvaluator:
                 json.dumps(request.tool_args, sort_keys=True).encode()
             ).hexdigest()
 
-        audit = AuditDecision(
-            session_id=request.session_id,
-            agent_id=request.agent_id,
-            agent_role="unknown",
-            tool_name=request.tool_name,
-            tool_args_hash=args_hash,
-            delegation_chain=request.delegation_chain,
-            matched_rule_id=response.matched_rule_id,
-            decision=response.decision,
-            risk_score=response.risk_score,
-            taint_flags=response.taint_flags,
-            latency_ms=response.latency_ms,
-        )
-
-        try:
-            # APEP-081/082: Append with SHA-256 hash chain
-            audit = await audit_logger.append(audit)
-            audit_dict = audit.model_dump(mode="json")
-            await db[db_module.AUDIT_DECISIONS].insert_one(audit_dict)
-            # APEP-191: Extend hash chain for integrity verification
-            try:
-                await audit_integrity_verifier.seal_record(audit_dict)
-            except Exception:
-                logger.warning("Failed to seal audit record in hash chain")
-        except Exception:
-            # Audit write failure should not block the decision
-            logger.exception("Audit append failed for request %s", request.request_id)
-
-        try:
-            # APEP-083: Publish to Kafka
-            await kafka_producer.publish_decision(audit)
-        except Exception:
-            logger.debug("Kafka publish skipped for request %s", request.request_id)
             audit = AuditDecision(
                 session_id=request.session_id,
                 agent_id=request.agent_id,
@@ -650,10 +614,16 @@ class PolicyEvaluator:
 
             audit_start = time.monotonic()
             try:
-                await db[db_module.AUDIT_DECISIONS].insert_one(
-                    audit.model_dump(mode="json")
-                )
+                # APEP-081/082: Append with SHA-256 hash chain
+                audit = await audit_logger.append(audit)
+                audit_dict = audit.model_dump(mode="json")
+                await db[db_module.AUDIT_DECISIONS].insert_one(audit_dict)
                 AUDIT_WRITE_TOTAL.labels(status="success").inc()
+                # APEP-191: Extend hash chain for integrity verification
+                try:
+                    await audit_integrity_verifier.seal_record(audit_dict)
+                except Exception:
+                    logger.warning("Failed to seal audit record in hash chain")
             except Exception:
                 AUDIT_WRITE_TOTAL.labels(status="failure").inc()
                 logger.warning(
@@ -663,6 +633,12 @@ class PolicyEvaluator:
                 )
             finally:
                 AUDIT_WRITE_LATENCY.observe(time.monotonic() - audit_start)
+
+        try:
+            # APEP-083: Publish to Kafka
+            await kafka_producer.publish_decision(audit)
+        except Exception:
+            logger.debug("Kafka publish skipped for request %s", request.request_id)
 
 
 # Module-level singleton

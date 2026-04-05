@@ -162,7 +162,7 @@ class TestDecisionDetail:
     async def test_not_found(self, client, mock_mongodb):
         resp = await client.get(f"/v1/audit/decisions/{uuid4()}")
         body = resp.json()
-        assert body.get("error") == "Decision not found"
+        assert body.get("detail") == "Decision not found"
 
 
 # -----------------------------------------------------------------------

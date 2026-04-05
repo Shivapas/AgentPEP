@@ -49,7 +49,7 @@ async def test_list_rules(client: AsyncClient):
 
 
 async def test_list_agents(client: AsyncClient):
-    resp = await client.get("/v1/agents")
+    resp = await client.get("/v1/console/agents")
     assert resp.status_code == 200
     data = resp.json()
     assert "items" in data
