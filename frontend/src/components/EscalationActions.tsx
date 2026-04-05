@@ -3,11 +3,18 @@
  */
 import { useState } from "react";
 import type { EscalationTicket } from "../types/escalation";
+import { apiFetch } from "../lib/api";
 
 interface EscalationActionsProps {
   ticket: EscalationTicket;
   onResolved: () => void;
 }
+
+const ACTION_MAP: Record<"approve" | "deny" | "escalate-up", string> = {
+  approve: "APPROVED",
+  deny: "DENIED",
+  "escalate-up": "ESCALATED_UP",
+};
 
 export function EscalationActions({
   ticket,
@@ -21,15 +28,15 @@ export function EscalationActions({
     setLoading(true);
     try {
       const body: Record<string, string> = {
+        action: ACTION_MAP[action],
         resolved_by: "console_user",
         comment,
       };
       if (action === "escalate-up") {
         body.escalated_to = escalateTo;
       }
-      await fetch(`/v1/escalations/${ticket.escalation_id}/${action}`, {
+      await apiFetch(`/v1/escalations/${ticket.ticket_id}/resolve`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       onResolved();
