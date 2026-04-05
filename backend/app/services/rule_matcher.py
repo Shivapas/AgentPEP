@@ -92,8 +92,12 @@ class RuleMatcher:
         try:
             if re.fullmatch(tool_pattern, tool_name):
                 return True
-        except re.error:
-            pass
+        except re.error as exc:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "Invalid regex pattern '%s' in rule: %s", tool_pattern, exc
+            )
         return False
 
     @staticmethod

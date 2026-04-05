@@ -49,8 +49,10 @@ class TestEnhancedMetrics:
 
     @pytest.fixture
     async def client(self):
+        from tests.conftest import _get_auth_headers
+
         transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=_get_auth_headers()) as c:
             yield c
 
     @pytest.fixture
@@ -257,8 +259,10 @@ class TestSecurityAlertMetrics:
 
     @pytest.fixture
     async def client(self):
+        from tests.conftest import _get_auth_headers
+
         transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=_get_auth_headers()) as c:
             yield c
 
     async def test_security_alert_counter(self, mock_mongodb):

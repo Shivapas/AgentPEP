@@ -11,6 +11,7 @@ message ToolCallRequest {
   map<string, string> tool_args = 5;
   repeated string delegation_chain = 6;
   bool dry_run = 7;
+  string tenant_id = 8;
 }
 
 // Policy evaluation decision returned by AgentPEP.

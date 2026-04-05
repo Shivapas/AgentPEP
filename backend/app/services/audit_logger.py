@@ -5,10 +5,10 @@ Sprint 10:
   APEP-082: SHA-256 hash chain across sequential audit records
 """
 
+import asyncio
 import hashlib
 import json
 import logging
-import threading
 
 from app.db import mongodb as db_module
 from app.models.policy import AuditDecision
@@ -54,7 +54,7 @@ class AuditLogger:
     """
 
     def __init__(self) -> None:
-        self._lock = threading.Lock()
+        self._lock = asyncio.Lock()
         self._sequence: int = 0
         self._previous_hash: str = GENESIS_HASH
         self._initialized: bool = False
@@ -66,7 +66,7 @@ class AuditLogger:
             sort=[("sequence_number", -1)]
         )
         if last_record:
-            with self._lock:
+            async with self._lock:
                 self._sequence = last_record.get("sequence_number", 0)
                 self._previous_hash = last_record.get("record_hash", GENESIS_HASH)
         self._initialized = True
@@ -80,7 +80,7 @@ class AuditLogger:
         if not self._initialized:
             await self.initialize()
 
-        with self._lock:
+        async with self._lock:
             self._sequence += 1
             audit.sequence_number = self._sequence
             audit.previous_hash = self._previous_hash
@@ -99,10 +99,10 @@ class AuditLogger:
 
     def reset(self) -> None:
         """Reset internal state (used in tests)."""
-        with self._lock:
-            self._sequence = 0
-            self._previous_hash = GENESIS_HASH
-            self._initialized = False
+        self._lock = asyncio.Lock()
+        self._sequence = 0
+        self._previous_hash = GENESIS_HASH
+        self._initialized = False
 
 
 # Module-level singleton

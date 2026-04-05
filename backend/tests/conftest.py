@@ -6,6 +6,33 @@ import pytest
 import app.db.mongodb as mongodb_module
 
 
+def make_auth_headers(roles: list[str] | None = None) -> dict[str, str]:
+    """Create JWT auth headers for testing."""
+    from app.services.jwt_auth import create_access_token
+
+    token = create_access_token(
+        {
+            "sub": "test_user",
+            "tenant_id": "default",
+            "roles": roles or ["Admin"],
+            "jti": "test-jti",
+        }
+    )
+    return {"Authorization": f"Bearer {token}"}
+
+
+# Default auth headers for all tests
+AUTH_HEADERS = None
+
+
+def _get_auth_headers() -> dict[str, str]:
+    """Lazily create default auth headers (avoids import-time side effects)."""
+    global AUTH_HEADERS
+    if AUTH_HEADERS is None:
+        AUTH_HEADERS = make_auth_headers()
+    return AUTH_HEADERS
+
+
 @pytest.fixture(autouse=True)
 def mock_mongodb(monkeypatch):
     """Replace the real MongoDB client with mongomock-motor for all tests."""
@@ -23,6 +50,10 @@ def mock_mongodb(monkeypatch):
         monkeypatch.setattr(auth_module, "get_database", lambda: mock_db)
     except (ImportError, AttributeError):
         pass
+
+    # Reset AUTH_HEADERS cache so it uses the test-patched JWT secret
+    global AUTH_HEADERS
+    AUTH_HEADERS = None
 
     yield mock_db
 

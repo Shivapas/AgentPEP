@@ -14,9 +14,10 @@ import re
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
+from app.api.v1.console_auth import get_current_user
 from app.db import mongodb as db_module
 from app.models.policy import Decision
 
@@ -92,6 +93,7 @@ def _serialize_doc(doc: dict[str, Any]) -> dict[str, Any]:
 
 @router.get("/decisions")
 async def list_decisions(
+    _user: dict = Depends(get_current_user),
     page: int = Query(default=1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(default=25, ge=1, le=100, description="Rows per page"),
     sort_field: str = Query(default="timestamp", description="Field to sort by"),
@@ -138,7 +140,7 @@ async def list_decisions(
 
 
 @router.get("/decisions/{decision_id}")
-async def get_decision(decision_id: str) -> dict[str, Any]:
+async def get_decision(decision_id: str, _user: dict = Depends(get_current_user)) -> dict[str, Any]:
     """Return full detail for a single audit decision."""
     db = db_module.get_database()
     col = db[db_module.AUDIT_DECISIONS]
@@ -154,7 +156,7 @@ async def get_decision(decision_id: str) -> dict[str, Any]:
 
 
 @router.get("/sessions/{session_id}/timeline")
-async def session_timeline(session_id: str) -> list[dict[str, Any]]:
+async def session_timeline(session_id: str, _user: dict = Depends(get_current_user)) -> list[dict[str, Any]]:
     """Return all decisions for a session in chronological order."""
     db = db_module.get_database()
     col = db[db_module.AUDIT_DECISIONS]
@@ -169,6 +171,7 @@ async def session_timeline(session_id: str) -> list[dict[str, Any]]:
 
 @router.get("/export")
 async def export_audit(
+    _user: dict = Depends(get_current_user),
     format: str = Query(default="json", pattern="^(csv|json)$"),
     session_id: str | None = Query(default=None),
     agent_id: str | None = Query(default=None),
@@ -179,7 +182,7 @@ async def export_audit(
     start_time: datetime | None = Query(default=None),
     end_time: datetime | None = Query(default=None),
     search: str | None = Query(default=None),
-    limit: int = Query(default=10000, ge=1, le=50000),
+    limit: int = Query(default=10000, ge=1, le=10000),
 ) -> StreamingResponse:
     """Export filtered audit decisions as CSV or JSON."""
     db = db_module.get_database()
@@ -248,6 +251,7 @@ def _json_response(docs: list[dict[str, Any]]) -> StreamingResponse:
 
 @router.get("/integrity")
 async def verify_integrity(
+    _user: dict = Depends(get_current_user),
     session_id: str | None = Query(default=None),
     start_time: datetime | None = Query(default=None),
     end_time: datetime | None = Query(default=None),
@@ -336,6 +340,7 @@ async def verify_integrity(
 
 @router.get("/verify")
 async def verify_audit_chain(
+    _user: dict = Depends(get_current_user),
     start_sequence: int | None = Query(default=None),
     end_sequence: int | None = Query(default=None),
 ) -> dict[str, Any]:
@@ -412,7 +417,7 @@ async def verify_audit_chain(
 
 
 @router.post("/verify-integrity")
-async def verify_audit_integrity():
+async def verify_audit_integrity(_user: dict = Depends(get_current_user)):
     """Run hash chain verification on the audit log.
 
     Returns verification result including any broken links detected.
@@ -424,7 +429,7 @@ async def verify_audit_integrity():
 
 
 @router.get("/chain-length")
-async def get_chain_length():
+async def get_chain_length(_user: dict = Depends(get_current_user)):
     """Return the current number of entries in the audit hash chain."""
     from app.services.audit_integrity import audit_integrity_verifier
 
@@ -438,7 +443,7 @@ async def get_chain_length():
 
 
 @router.post("/export/json")
-async def export_compliance_json(body: dict[str, Any]) -> dict[str, Any]:
+async def export_compliance_json(body: dict[str, Any], _user: dict = Depends(get_current_user)) -> dict[str, Any]:
     """Export audit records as a JSON compliance report."""
     from app.models.policy import AuditQueryRequest
     from app.services.compliance_export import export_json
@@ -457,7 +462,7 @@ async def export_compliance_json(body: dict[str, Any]) -> dict[str, Any]:
 
 
 @router.post("/export/csv")
-async def export_compliance_csv(body: dict[str, Any]) -> StreamingResponse:
+async def export_compliance_csv(body: dict[str, Any], _user: dict = Depends(get_current_user)) -> StreamingResponse:
     """Export audit records as a CSV compliance report."""
     from app.models.policy import AuditQueryRequest
     from app.services.compliance_export import export_csv
@@ -479,7 +484,7 @@ async def export_compliance_csv(body: dict[str, Any]) -> StreamingResponse:
 
 
 @router.post("/export/pdf")
-async def export_compliance_pdf(body: dict[str, Any]):
+async def export_compliance_pdf(body: dict[str, Any], _user: dict = Depends(get_current_user)):
     """Export audit records as a PDF compliance report."""
     from fastapi.responses import Response
 

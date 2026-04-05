@@ -33,8 +33,10 @@ def anyio_backend():
 
 @pytest.fixture
 async def client():
+    from tests.conftest import _get_auth_headers
+
     transport = ASGITransport(app=app)  # type: ignore[arg-type]
-    async with AsyncClient(transport=transport, base_url="http://test") as c:
+    async with AsyncClient(transport=transport, base_url="http://test", headers=_get_auth_headers()) as c:
         yield c
 
 

@@ -5,11 +5,12 @@ Uses grpcio for the server implementation with generated protobuf stubs.
 """
 
 import logging
-from concurrent import futures
+import pathlib
 
 import grpc
 from grpc_reflection.v1alpha import reflection
 
+from app.core.config import settings
 from app.generated import intercept_pb2, intercept_pb2_grpc
 from app.models.policy import Decision, ToolCallRequest
 from app.services.policy_evaluator import policy_evaluator
@@ -65,8 +66,8 @@ class InterceptServicer(intercept_pb2_grpc.InterceptServiceServicer):
 
 
 async def start_grpc_server(port: int = 50051) -> grpc.aio.Server:
-    """Start the async gRPC server."""
-    server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=10))
+    """Start the async gRPC server with optional TLS."""
+    server = grpc.aio.server()
     intercept_pb2_grpc.add_InterceptServiceServicer_to_server(
         InterceptServicer(), server
     )
@@ -79,7 +80,22 @@ async def start_grpc_server(port: int = 50051) -> grpc.aio.Server:
     reflection.enable_server_reflection(service_names, server)
 
     listen_addr = f"[::]:{port}"
-    server.add_insecure_port(listen_addr)
+
+    # Use TLS if cert and key paths are configured
+    if settings.grpc_tls_cert_path and settings.grpc_tls_key_path:
+        cert = pathlib.Path(settings.grpc_tls_cert_path).read_bytes()
+        key = pathlib.Path(settings.grpc_tls_key_path).read_bytes()
+        credentials = grpc.ssl_server_credentials([(key, cert)])
+        server.add_secure_port(listen_addr, credentials)
+        logger.info("gRPC InterceptService listening on %s (TLS)", listen_addr)
+    else:
+        if not settings.debug:
+            logger.warning(
+                "gRPC server running WITHOUT TLS. Set grpc_tls_cert_path and "
+                "grpc_tls_key_path for production use."
+            )
+        server.add_insecure_port(listen_addr)
+        logger.info("gRPC InterceptService listening on %s (insecure)", listen_addr)
+
     await server.start()
-    logger.info("gRPC InterceptService listening on %s", listen_addr)
     return server

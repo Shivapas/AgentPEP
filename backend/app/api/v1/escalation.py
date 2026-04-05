@@ -12,9 +12,10 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
 from pydantic import BaseModel, Field
 
+from app.api.v1.console_auth import get_current_user
 from app.models.policy import (
     BulkApproveRequest,
     EscalationAction,
@@ -58,7 +59,7 @@ def _ticket_dict(t: EscalationTicket) -> dict[str, Any]:
 
 
 @router.get("/pending")
-async def list_pending() -> list[dict[str, Any]]:
+async def list_pending(_user: dict = Depends(get_current_user)) -> list[dict[str, Any]]:
     """Return all PENDING escalation tickets, newest first."""
     tickets = escalation_manager.list_pending()
     tickets.sort(key=lambda t: t.created_at, reverse=True)
@@ -66,7 +67,7 @@ async def list_pending() -> list[dict[str, Any]]:
 
 
 @router.get("/all")
-async def list_all() -> list[dict[str, Any]]:
+async def list_all(_user: dict = Depends(get_current_user)) -> list[dict[str, Any]]:
     """Return all escalation tickets regardless of status."""
     tickets = escalation_manager.list_all()
     tickets.sort(key=lambda t: t.created_at, reverse=True)
@@ -79,7 +80,7 @@ async def list_all() -> list[dict[str, Any]]:
 
 
 @router.get("/{ticket_id}")
-async def get_ticket(ticket_id: UUID) -> dict[str, Any]:
+async def get_ticket(ticket_id: UUID, _user: dict = Depends(get_current_user)) -> dict[str, Any]:
     """Return full detail for a single escalation ticket."""
     ticket = escalation_manager.get_ticket(ticket_id)
     if ticket is None:
@@ -96,7 +97,7 @@ async def get_ticket(ticket_id: UUID) -> dict[str, Any]:
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_ticket(request: CreateEscalationRequest) -> dict[str, Any]:
+async def create_ticket(request: CreateEscalationRequest, _user: dict = Depends(get_current_user)) -> dict[str, Any]:
     """Create a new escalation ticket."""
     ticket = escalation_manager.create_ticket(
         session_id=request.session_id,
@@ -121,7 +122,7 @@ async def create_ticket(request: CreateEscalationRequest) -> dict[str, Any]:
 
 
 @router.post("/{ticket_id}/resolve")
-async def resolve_ticket(ticket_id: UUID, body: EscalationAction) -> dict[str, Any]:
+async def resolve_ticket(ticket_id: UUID, body: EscalationAction, _user: dict = Depends(get_current_user)) -> dict[str, Any]:
     """Approve, deny, or escalate-up a pending ticket."""
     if body.action not in (
         EscalationStatus.APPROVED,
@@ -152,7 +153,7 @@ async def resolve_ticket(ticket_id: UUID, body: EscalationAction) -> dict[str, A
 
 
 @router.post("/bulk-approve")
-async def bulk_approve(body: BulkApproveRequest) -> dict[str, Any]:
+async def bulk_approve(body: BulkApproveRequest, _user: dict = Depends(get_current_user)) -> dict[str, Any]:
     """Approve all PENDING tickets matching the given tool pattern."""
     resolved = escalation_manager.bulk_approve(
         tool_pattern=body.tool_pattern,
@@ -171,7 +172,7 @@ async def bulk_approve(body: BulkApproveRequest) -> dict[str, Any]:
 
 
 @router.post("/check-sla")
-async def check_sla() -> dict[str, Any]:
+async def check_sla(_user: dict = Depends(get_current_user)) -> dict[str, Any]:
     """Trigger an SLA expiration check and auto-decide expired tickets."""
     expired = escalation_manager.check_sla_expirations()
     return {

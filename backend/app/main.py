@@ -137,12 +137,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Middleware (order matters — outermost runs first)
-# APEP-195: Rate limiting (outermost — reject early before auth overhead)
-app.add_middleware(RateLimitMiddleware, default_limit=100, intercept_limit=1000)
-# APEP-193: Security headers (XSS, clickjacking, HSTS, CSP)
-app.add_middleware(SecurityHeadersMiddleware)
-# APEP-193: CSRF protection for browser-based Policy Console
+# Middleware (order matters — outermost runs first, innermost runs last)
+# Starlette processes middleware in reverse order of add_middleware calls:
+# the LAST added runs FIRST (outermost).
+# Desired order: Rate Limit -> Security Headers -> CORS -> Auth -> CSRF
+# So we add in reverse: CSRF first (innermost), then Auth, CORS, Headers, Rate Limit last (outermost)
+
+# Auth middleware (innermost — runs after rate limit, headers, and CORS)
+app.add_middleware(MTLSMiddleware)
+app.add_middleware(APIKeyAuthMiddleware)
+# APEP-193: CSRF protection (runs after auth so API-key exemption works)
 app.add_middleware(CSRFMiddleware)
 # CORS middleware (APEP-215 friction #6)
 app.add_middleware(
@@ -152,9 +156,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# Auth middleware (order matters: mTLS first, then API key)
-app.add_middleware(APIKeyAuthMiddleware)
-app.add_middleware(MTLSMiddleware)
+# APEP-193: Security headers (XSS, clickjacking, HSTS, CSP)
+app.add_middleware(SecurityHeadersMiddleware)
+# APEP-195: Rate limiting (outermost — reject early before auth overhead)
+app.add_middleware(RateLimitMiddleware, default_limit=100, intercept_limit=1000)
 
 # Routers
 app.include_router(agents_router)

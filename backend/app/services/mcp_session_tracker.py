@@ -122,6 +122,13 @@ class MCPSessionTracker:
         """
         state = self._sessions.get(session_id)
         if state is None:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "Taint node lookup for unknown session %s (tool=%s) — returning empty",
+                session_id,
+                tool_name,
+            )
             return []
         return list(state.tracked_input_nodes)
 

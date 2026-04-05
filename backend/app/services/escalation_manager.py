@@ -189,12 +189,18 @@ class EscalationManager:
 
     def _broadcast(self, message: dict[str, object]) -> None:
         with self._lock:
-            subs = list(self._subscribers)
-        for q in subs:
-            try:
-                q.put_nowait(message)
-            except asyncio.QueueFull:
-                logger.warning("WebSocket subscriber queue full — dropping message")
+            dead: list[asyncio.Queue] = []
+            for q in self._subscribers:
+                try:
+                    q.put_nowait(message)
+                except asyncio.QueueFull:
+                    logger.warning("WebSocket subscriber queue full — dropping message")
+                    dead.append(q)
+            for q in dead:
+                try:
+                    self._subscribers.remove(q)
+                except ValueError:
+                    pass
 
     # --- Cleanup ---
 

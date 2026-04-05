@@ -15,10 +15,11 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
+from app.api.v1.console_auth import get_current_user, require_admin
 from app.db.mongodb import AGENT_ROLES, POLICY_RULES, get_database
 from app.models.policy import Decision
 
@@ -68,7 +69,7 @@ class UpdateRoleRequest(BaseModel):
 
 
 @router.get("/roles")
-async def list_roles() -> list[dict[str, Any]]:
+async def list_roles(_user: dict = Depends(get_current_user)) -> list[dict[str, Any]]:
     """List all agent roles."""
     db = get_database()
     cursor = db[AGENT_ROLES].find({}, {"_id": 0}).sort("role_id", 1)
@@ -76,7 +77,7 @@ async def list_roles() -> list[dict[str, Any]]:
 
 
 @router.post("/roles", status_code=201)
-async def create_role(body: CreateRoleRequest) -> dict[str, Any]:
+async def create_role(body: CreateRoleRequest, _user: dict = Depends(require_admin)) -> dict[str, Any]:
     """Create a new agent role."""
     db = get_database()
     existing = await db[AGENT_ROLES].find_one({"role_id": body.role_id})
@@ -95,7 +96,7 @@ async def create_role(body: CreateRoleRequest) -> dict[str, Any]:
 
 
 @router.patch("/roles/{role_id}")
-async def update_role(role_id: str, body: UpdateRoleRequest) -> dict[str, Any]:
+async def update_role(role_id: str, body: UpdateRoleRequest, _user: dict = Depends(require_admin)) -> dict[str, Any]:
     """Update an existing agent role."""
     db = get_database()
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
@@ -114,7 +115,7 @@ async def update_role(role_id: str, body: UpdateRoleRequest) -> dict[str, Any]:
 
 
 @router.delete("/roles/{role_id}", status_code=204)
-async def delete_role(role_id: str) -> None:
+async def delete_role(role_id: str, _user: dict = Depends(require_admin)) -> None:
     """Delete an agent role."""
     db = get_database()
     result = await db[AGENT_ROLES].delete_one({"role_id": role_id})
@@ -154,7 +155,7 @@ class ReorderRequest(BaseModel):
 
 
 @router.post("/rules", status_code=201)
-async def create_rule(body: CreateRuleRequest) -> dict[str, Any]:
+async def create_rule(body: CreateRuleRequest, _user: dict = Depends(require_admin)) -> dict[str, Any]:
     """Create a new policy rule."""
     db = get_database()
     now = datetime.now(UTC)
@@ -170,7 +171,7 @@ async def create_rule(body: CreateRuleRequest) -> dict[str, Any]:
 
 
 @router.patch("/rules/{rule_id}")
-async def update_rule(rule_id: str, body: UpdateRuleRequest) -> dict[str, Any]:
+async def update_rule(rule_id: str, body: UpdateRuleRequest, _user: dict = Depends(require_admin)) -> dict[str, Any]:
     """Update an existing policy rule."""
     db = get_database()
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
@@ -189,7 +190,7 @@ async def update_rule(rule_id: str, body: UpdateRuleRequest) -> dict[str, Any]:
 
 
 @router.delete("/rules/{rule_id}", status_code=204)
-async def delete_rule(rule_id: str) -> None:
+async def delete_rule(rule_id: str, _user: dict = Depends(require_admin)) -> None:
     """Delete a policy rule."""
     db = get_database()
     result = await db[POLICY_RULES].delete_one({"rule_id": rule_id})
@@ -198,9 +199,28 @@ async def delete_rule(rule_id: str) -> None:
 
 
 @router.post("/rules/reorder")
-async def reorder_rules(body: ReorderRequest) -> dict[str, bool]:
+async def reorder_rules(body: ReorderRequest, _user: dict = Depends(require_admin)) -> dict[str, bool]:
     """Reorder rules by assigning sequential priorities based on the provided order."""
     db = get_database()
+
+    # Validate: no duplicates
+    if len(body.rule_ids) != len(set(body.rule_ids)):
+        raise HTTPException(status_code=400, detail="Duplicate rule IDs in reorder request")
+
+    # Validate: all IDs must exist
+    existing_cursor = db[POLICY_RULES].find({}, {"rule_id": 1, "_id": 0})
+    existing_ids = {doc["rule_id"] async for doc in existing_cursor}
+    unknown = set(body.rule_ids) - existing_ids
+    if unknown:
+        raise HTTPException(status_code=400, detail=f"Unknown rule IDs: {', '.join(unknown)}")
+
+    missing = existing_ids - set(body.rule_ids)
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing rule IDs (must include all rules): {', '.join(missing)}",
+        )
+
     for idx, rule_id in enumerate(body.rule_ids):
         await db[POLICY_RULES].update_one(
             {"rule_id": rule_id},
@@ -210,7 +230,7 @@ async def reorder_rules(body: ReorderRequest) -> dict[str, bool]:
 
 
 @router.get("/rules/conflicts")
-async def detect_conflicts() -> list[dict[str, Any]]:
+async def detect_conflicts(_user: dict = Depends(get_current_user)) -> list[dict[str, Any]]:
     """Detect overlapping rules that may conflict."""
     db = get_database()
     cursor = db[POLICY_RULES].find({"enabled": True}, {"_id": 0}).sort("priority", 1)
@@ -262,7 +282,7 @@ async def detect_conflicts() -> list[dict[str, Any]]:
 
 
 @router.get("/policy-sets")
-async def list_policy_sets() -> list[dict[str, Any]]:
+async def list_policy_sets(_user: dict = Depends(get_current_user)) -> list[dict[str, Any]]:
     """List all policy sets."""
     db = get_database()
     cursor = db[POLICY_SETS].find({}, {"_id": 0}).sort("created_at", -1)
@@ -270,7 +290,7 @@ async def list_policy_sets() -> list[dict[str, Any]]:
 
 
 @router.get("/policy-sets/{set_id}")
-async def get_policy_set(set_id: str) -> dict[str, Any]:
+async def get_policy_set(set_id: str, _user: dict = Depends(get_current_user)) -> dict[str, Any]:
     """Get a policy set by ID."""
     db = get_database()
     doc = await db[POLICY_SETS].find_one({"policy_set_id": set_id}, {"_id": 0})
@@ -280,7 +300,7 @@ async def get_policy_set(set_id: str) -> dict[str, Any]:
 
 
 @router.post("/policy-sets/{set_id}/versions", status_code=201)
-async def create_policy_version(set_id: str, version: dict[str, Any]) -> dict[str, Any]:
+async def create_policy_version(set_id: str, version: dict[str, Any], _user: dict = Depends(require_admin)) -> dict[str, Any]:
     """Create a new version snapshot for a policy set."""
     db = get_database()
     policy_set = await db[POLICY_SETS].find_one({"policy_set_id": set_id})
@@ -330,7 +350,7 @@ async def create_policy_version(set_id: str, version: dict[str, Any]) -> dict[st
 
 
 @router.post("/policy-sets/{set_id}/versions/{version_id}/restore")
-async def restore_version(set_id: str, version_id: str) -> dict[str, Any]:
+async def restore_version(set_id: str, version_id: str, user: dict = Depends(require_admin)) -> dict[str, Any]:
     """Restore rules and roles from a specific version."""
     db = get_database()
     policy_set = await db[POLICY_SETS].find_one({"policy_set_id": set_id})
@@ -356,6 +376,14 @@ async def restore_version(set_id: str, version_id: str) -> dict[str, Any]:
     if version.get("roles"):
         await db[AGENT_ROLES].insert_many(version["roles"])
 
+    # Audit log the restore action
+    logger.info(
+        "policy_version_restored",
+        policy_set_id=set_id,
+        version_id=version_id,
+        restored_by=user.get("sub", "unknown"),
+    )
+
     return _serialize(dict(version))
 
 
@@ -364,6 +392,7 @@ async def update_version_status(
     set_id: str,
     version_id: str,
     body: dict[str, str],
+    _user: dict = Depends(require_admin),
 ) -> dict[str, Any]:
     """Update the review status of a policy version."""
     new_status = body.get("status")
@@ -392,7 +421,7 @@ async def update_version_status(
 
 
 @router.get("/policy-sets/{set_id}/export/yaml")
-async def export_yaml(set_id: str) -> PlainTextResponse:
+async def export_yaml(set_id: str, _user: dict = Depends(get_current_user)) -> PlainTextResponse:
     """Export a policy set's current rules and roles as YAML."""
     db = get_database()
     policy_set = await db[POLICY_SETS].find_one({"policy_set_id": set_id}, {"_id": 0})
@@ -414,9 +443,13 @@ async def export_yaml(set_id: str) -> PlainTextResponse:
 
 
 @router.post("/policy-sets/import/yaml", status_code=201)
-async def import_yaml(request: Request) -> dict[str, Any]:
+async def import_yaml(request: Request, _user: dict = Depends(require_admin)) -> dict[str, Any]:
     """Import a policy set from YAML."""
     raw = await request.body()
+    # Limit payload size to 1MB to prevent memory exhaustion
+    max_size = 1_048_576  # 1 MB
+    if len(raw) > max_size:
+        raise HTTPException(status_code=413, detail=f"Payload too large (max {max_size} bytes)")
 
     try:
         import yaml

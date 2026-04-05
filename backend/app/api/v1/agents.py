@@ -6,10 +6,14 @@ from datetime import datetime, timezone, UTC
 from typing import Any
 from uuid import uuid4
 
+import logging
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from app.db.mongodb import AGENT_PROFILES, API_KEYS, AUDIT_DECISIONS, get_database
+
+_key_logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1/agents", tags=["agents"])
 
@@ -284,6 +288,9 @@ async def generate_key(agent_id: str, name: str = Query("default")) -> APIKeyRes
         "created_at": now,
     }
     await db[API_KEYS].insert_one(doc)
+    _key_logger.info(
+        "api_key_generated agent_id=%s key_id=%s name=%s", agent_id, key_id, name
+    )
     return APIKeyResponse(
         key_id=key_id,
         prefix=plain_key[:12] + "...",
@@ -321,6 +328,10 @@ async def rotate_key(agent_id: str, key_id: str) -> APIKeyResponse:
         "created_at": now,
     }
     await db[API_KEYS].insert_one(doc)
+    _key_logger.info(
+        "api_key_rotated agent_id=%s old_key_id=%s new_key_id=%s",
+        agent_id, key_id, new_key_id,
+    )
     return APIKeyResponse(
         key_id=new_key_id,
         prefix=plain_key[:12] + "...",
@@ -342,6 +353,9 @@ async def revoke_key(agent_id: str, key_id: str) -> None:
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Key not found")
+    _key_logger.info(
+        "api_key_revoked agent_id=%s key_id=%s", agent_id, key_id
+    )
 
 
 # ---------------------------------------------------------------------------

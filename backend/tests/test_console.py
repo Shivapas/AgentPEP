@@ -4,6 +4,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
+from tests.conftest import make_auth_headers
 
 
 @pytest.fixture
@@ -13,8 +14,13 @@ async def client():
         yield c
 
 
-async def test_get_stats(client: AsyncClient):
-    resp = await client.get("/v1/stats")
+@pytest.fixture
+def auth_headers():
+    return make_auth_headers()
+
+
+async def test_get_stats(client: AsyncClient, auth_headers):
+    resp = await client.get("/v1/stats", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert "policy_rules" in data
@@ -25,23 +31,23 @@ async def test_get_stats(client: AsyncClient):
     assert "escalations_pending" in data
 
 
-async def test_list_audit(client: AsyncClient):
-    resp = await client.get("/v1/audit")
+async def test_list_audit(client: AsyncClient, auth_headers):
+    resp = await client.get("/v1/audit", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert "items" in data
     assert "total" in data
 
 
-async def test_list_audit_with_filter(client: AsyncClient):
-    resp = await client.get("/v1/audit?decision=DENY&limit=10")
+async def test_list_audit_with_filter(client: AsyncClient, auth_headers):
+    resp = await client.get("/v1/audit?decision=DENY&limit=10", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert "items" in data
 
 
-async def test_list_rules(client: AsyncClient):
-    resp = await client.get("/v1/rules")
+async def test_list_rules(client: AsyncClient, auth_headers):
+    resp = await client.get("/v1/rules", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert "items" in data
@@ -78,4 +84,10 @@ async def test_submit_ux_survey_validation(client: AsyncClient):
             "score": 50.0,
         },
     )
+    assert resp.status_code == 422
+
+
+async def test_stats_requires_auth(client: AsyncClient):
+    """Stats endpoint should reject unauthenticated requests."""
+    resp = await client.get("/v1/stats")
     assert resp.status_code == 422

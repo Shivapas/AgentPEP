@@ -89,8 +89,8 @@ class RateLimitType(str, Enum):
 
 
 class RateLimit(BaseModel):
-    count: int = Field(..., gt=0, description="Max invocations per window")
-    window_s: int = Field(..., gt=0, description="Window duration in seconds")
+    count: int = Field(..., gt=0, le=100000, description="Max invocations per window")
+    window_s: int = Field(..., gt=0, le=86400, description="Window duration in seconds (max 24h)")
     limiter_type: RateLimitType = Field(
         default=RateLimitType.SLIDING_WINDOW,
         description="Rate limiting algorithm: SLIDING_WINDOW or FIXED_WINDOW",
@@ -254,6 +254,13 @@ class EscalationState(str, Enum):
     TIMEOUT = "TIMEOUT"
 
 
+class EscalationTimeoutAction(str, Enum):
+    """Valid actions when an escalation ticket times out."""
+
+    APPROVED = "APPROVED"
+    DENIED = "DENIED"
+
+
 class ApproverRoutingStrategy(str, Enum):
     """Routing strategy for selecting approvers (APEP-076)."""
 
@@ -286,8 +293,8 @@ class EscalationTicketV1(BaseModel):
     )
     decision_reason: str = Field(default="", description="Approver's reason for decision")
     timeout_seconds: int = Field(default=300, ge=1, description="Timeout before auto-resolution")
-    timeout_action: EscalationState = Field(
-        default=EscalationState.DENIED,
+    timeout_action: EscalationTimeoutAction = Field(
+        default=EscalationTimeoutAction.DENIED,
         description="Action on timeout: APPROVED or DENIED",
     )
     taint_flags: list[str] = Field(default_factory=list)

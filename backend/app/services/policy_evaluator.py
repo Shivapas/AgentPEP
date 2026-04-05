@@ -314,10 +314,17 @@ class PolicyEvaluator:
         """Core evaluation logic: resolve roles, fetch cached rules, match, decide."""
 
         # --- Global per-tenant rate limit (APEP-092) ---
-        # NOTE: tenant_id should be validated from the auth context (middleware).
-        # If an authenticated tenant_id is available, prefer it over the
-        # client-supplied value to prevent tenant ID spoofing.
-        tenant_id = getattr(request, "_authenticated_tenant_id", None) or request.tenant_id
+        # Prefer authenticated tenant_id from middleware to prevent tenant ID spoofing.
+        # Never fall back to the client-supplied request body value.
+        tenant_id = getattr(request, "_authenticated_tenant_id", None)
+        if tenant_id is None:
+            tenant_id = request.tenant_id
+            if tenant_id and tenant_id != "default":
+                logger.warning(
+                    "tenant_id_unverified",
+                    tenant_id=tenant_id,
+                    session_id=request.session_id,
+                )
         global_rl = await rate_limiter.check_global_rate_limit(tenant_id)
         if not global_rl.allowed:
             elapsed_ms = int((time.monotonic() - start) * 1000)
@@ -537,7 +544,12 @@ class PolicyEvaluator:
         """
         graph = session_graph_manager.get_session(session_id)
         if graph is None:
-            return None, []
+            logger.warning(
+                "taint_session_not_found",
+                session_id=session_id,
+                detail="Taint check requested for uninitialized session — defaulting to DENY",
+            )
+            return Decision.DENY, ["UNKNOWN_SESSION"]
 
         taint_flags = graph.get_taint_flags(taint_node_ids)
 
