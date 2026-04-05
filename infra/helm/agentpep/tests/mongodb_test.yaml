@@ -1,0 +1,72 @@
+suite: MongoDB
+templates:
+  - mongodb/statefulset.yaml
+  - mongodb/service.yaml
+tests:
+  - it: should create a StatefulSet when enabled
+    template: mongodb/statefulset.yaml
+    asserts:
+      - isKind:
+          of: StatefulSet
+      - equal:
+          path: spec.serviceName
+          value: RELEASE-NAME-agentpep-mongodb
+
+  - it: should not create resources when disabled
+    template: mongodb/statefulset.yaml
+    set:
+      mongodb.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should use mongo 7 image by default
+    template: mongodb/statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "mongo:7"
+
+  - it: should create a headless service
+    template: mongodb/service.yaml
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: spec.clusterIP
+          value: None
+      - contains:
+          path: spec.ports
+          content:
+            name: mongodb
+            port: 27017
+            targetPort: mongodb
+            protocol: TCP
+
+  - it: should create PVC when persistence is enabled
+    template: mongodb/statefulset.yaml
+    set:
+      mongodb.persistence.enabled: true
+      mongodb.persistence.size: 20Gi
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 20Gi
+
+  - it: should use emptyDir when persistence is disabled
+    template: mongodb/statefulset.yaml
+    set:
+      mongodb.persistence.enabled: false
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            emptyDir: {}
+
+  - it: should configure liveness probe
+    template: mongodb/statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.exec.command[0]
+          value: mongosh

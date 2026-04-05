@@ -4,3 +4,13 @@ description: AgentPEP — Deterministic Authorization Engine for AI Agent System
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
+<<<<<<< HEAD
+=======
+keywords:
+  - ai
+  - authorization
+  - policy-enforcement
+  - agent-security
+maintainers:
+  - name: AgentPEP Team
+>>>>>>> origin/claude/implement-sprint-25-0mN1o

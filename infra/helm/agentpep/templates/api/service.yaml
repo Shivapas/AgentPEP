@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "agentpep.fullname" . }}-api
+  labels:
+    {{- include "agentpep.labels" . | nindent 4 }}
+    {{- include "agentpep.api.selectorLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.api.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.api.service.port }}
+      targetPort: http
+      protocol: TCP
+    {{- if eq .Values.api.env.grpcEnabled "true" }}
+    - name: grpc
+      port: {{ .Values.api.service.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+    {{- end }}
+  selector:
+    {{- include "agentpep.api.selectorLabels" . | nindent 4 }}

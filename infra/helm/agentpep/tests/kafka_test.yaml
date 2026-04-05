@@ -1,0 +1,62 @@
+suite: Kafka & Zookeeper
+templates:
+  - kafka/statefulset.yaml
+  - kafka/service.yaml
+  - kafka/zookeeper-statefulset.yaml
+  - kafka/zookeeper-service.yaml
+tests:
+  - it: should create Kafka StatefulSet when enabled
+    template: kafka/statefulset.yaml
+    asserts:
+      - isKind:
+          of: StatefulSet
+      - equal:
+          path: spec.serviceName
+          value: RELEASE-NAME-agentpep-kafka
+
+  - it: should not create Kafka when disabled
+    template: kafka/statefulset.yaml
+    set:
+      kafka.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should use correct Kafka image
+    template: kafka/statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "confluentinc/cp-kafka:7.7.0"
+
+  - it: should create Zookeeper StatefulSet
+    template: kafka/zookeeper-statefulset.yaml
+    asserts:
+      - isKind:
+          of: StatefulSet
+
+  - it: should not create Zookeeper when disabled
+    template: kafka/zookeeper-statefulset.yaml
+    set:
+      zookeeper.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create headless Kafka service
+    template: kafka/service.yaml
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: spec.clusterIP
+          value: None
+
+  - it: should create headless Zookeeper service
+    template: kafka/zookeeper-service.yaml
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: spec.clusterIP
+          value: None

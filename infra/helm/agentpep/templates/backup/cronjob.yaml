@@ -1,0 +1,86 @@
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "agentpep.fullname" . }}-backup
+  labels:
+    {{- include "agentpep.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: {{ include "agentpep.name" . }}-backup
+            app.kubernetes.io/instance: {{ .Release.Name }}
+            app.kubernetes.io/component: backup
+        spec:
+          {{- include "agentpep.imagePullSecrets" . | nindent 10 }}
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: "{{ .Values.backup.image.repository }}:{{ .Values.backup.image.tag }}"
+              imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+                  DUMP_DIR="/tmp/backup-${TIMESTAMP}"
+                  ARCHIVE="/tmp/agentpep-backup-${TIMESTAMP}.gz"
+
+                  echo "[backup] Starting MongoDB dump at ${TIMESTAMP}"
+                  mongodump --uri="${MONGODB_URI}" --db=agentpep --archive="${ARCHIVE}" --gzip
+
+                  echo "[backup] Installing AWS CLI for S3 upload"
+                  apt-get update -qq && apt-get install -y -qq awscli > /dev/null 2>&1
+
+                  echo "[backup] Uploading to s3://${S3_BUCKET}/${S3_PREFIX}/"
+                  aws s3 cp "${ARCHIVE}" "s3://${S3_BUCKET}/${S3_PREFIX}/agentpep-backup-${TIMESTAMP}.gz" \
+                    --endpoint-url "${S3_ENDPOINT}"
+
+                  # Prune old backups beyond retention
+                  echo "[backup] Pruning backups older than ${RETENTION_DAYS} days"
+                  CUTOFF_DATE=$(date -d "-${RETENTION_DAYS} days" +%Y%m%d)
+                  aws s3 ls "s3://${S3_BUCKET}/${S3_PREFIX}/" --endpoint-url "${S3_ENDPOINT}" | \
+                    awk '{print $4}' | while read -r file; do
+                      FILE_DATE=$(echo "${file}" | grep -oP '\d{8}' | head -1)
+                      if [ -n "${FILE_DATE}" ] && [ "${FILE_DATE}" -lt "${CUTOFF_DATE}" ]; then
+                        echo "[backup] Deleting old backup: ${file}"
+                        aws s3 rm "s3://${S3_BUCKET}/${S3_PREFIX}/${file}" --endpoint-url "${S3_ENDPOINT}"
+                      fi
+                    done
+
+                  echo "[backup] Completed successfully"
+              env:
+                - name: MONGODB_URI
+                  value: {{ include "agentpep.mongodb.url" . | quote }}
+                - name: S3_ENDPOINT
+                  value: {{ .Values.backup.s3.endpoint | quote }}
+                - name: S3_BUCKET
+                  value: {{ .Values.backup.s3.bucket | quote }}
+                - name: S3_PREFIX
+                  value: {{ .Values.backup.s3.prefix | quote }}
+                - name: RETENTION_DAYS
+                  value: {{ .Values.backup.retention.days | quote }}
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ default (printf "%s-backup-s3" (include "agentpep.fullname" .)) .Values.backup.s3.existingSecret }}
+                      key: access-key-id
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ default (printf "%s-backup-s3" (include "agentpep.fullname" .)) .Values.backup.s3.existingSecret }}
+                      key: secret-access-key
+              resources:
+                {{- toYaml .Values.backup.resources | nindent 16 }}
+{{- end }}

@@ -1,0 +1,23 @@
+{{- if .Values.kafka.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "agentpep.fullname" . }}-kafka
+  labels:
+    {{- include "agentpep.labels" . | nindent 4 }}
+    {{- include "agentpep.kafka.selectorLabels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: client
+      port: {{ .Values.kafka.service.port }}
+      targetPort: client
+      protocol: TCP
+    - name: internal
+      port: {{ .Values.kafka.service.internalPort }}
+      targetPort: internal
+      protocol: TCP
+  selector:
+    {{- include "agentpep.kafka.selectorLabels" . | nindent 4 }}
+{{- end }}

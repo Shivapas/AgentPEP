@@ -1,0 +1,60 @@
+suite: Ingress
+templates:
+  - ingress.yaml
+tests:
+  - it: should not create Ingress when disabled
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create Ingress when enabled
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: agentpep.example.com
+          paths:
+            - path: /v1
+              pathType: Prefix
+              service: api
+            - path: /
+              pathType: Prefix
+              service: console
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: spec.rules[0].host
+          value: agentpep.example.com
+
+  - it: should set ingress class name
+    set:
+      ingress.enabled: true
+      ingress.className: nginx
+      ingress.hosts:
+        - host: agentpep.local
+          paths:
+            - path: /
+              pathType: Prefix
+              service: console
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: should configure TLS
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: agentpep.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+              service: console
+      ingress.tls:
+        - secretName: agentpep-tls
+          hosts:
+            - agentpep.example.com
+    asserts:
+      - equal:
+          path: spec.tls[0].secretName
+          value: agentpep-tls

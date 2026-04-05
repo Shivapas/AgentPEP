@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "agentpep.fullname" . }}-test-connection"
+  labels:
+    {{- include "agentpep.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: test-api
+      image: busybox:1.36
+      command: ['sh', '-c']
+      args:
+        - |
+          echo "Testing API health endpoint..."
+          wget -qO- http://{{ include "agentpep.fullname" . }}-api:{{ .Values.api.service.port }}/v1/health && echo " OK" || exit 1
+  restartPolicy: Never
