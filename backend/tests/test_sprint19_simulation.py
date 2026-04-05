@@ -10,7 +10,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
-from app.models.policy import Decision, PolicyRule
+from app.models.policy import Decision
 from app.services.test_vectors import (
     ALL_VECTORS,
     BENIGN_VECTORS,

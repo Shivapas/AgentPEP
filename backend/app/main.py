@@ -4,8 +4,8 @@ Sprint 23: starts async audit log writer (APEP-184) and optional Redis
 cache (APEP-181) during application lifespan.
 """
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -59,9 +59,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await kafka_producer.start()
 
     # Wire up escalation WebSocket broadcast callback (Sprint 9)
+    from app.models.policy import NotificationConfig
     from app.services.escalation_manager import escalation_manager
     from app.services.escalation_ws import escalation_ws_manager
-    from app.models.policy import EscalationState, NotificationConfig
 
     escalation_manager.set_websocket_callback(escalation_ws_manager.broadcast_ticket)
 

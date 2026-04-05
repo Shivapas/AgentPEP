@@ -36,7 +36,7 @@ def mock_mongodb(monkeypatch):
 
     # Clear Sprint 6 singletons
     try:
-        from app.services.taint_graph import taint_audit_logger, sanitisation_gate_registry
+        from app.services.taint_graph import sanitisation_gate_registry, taint_audit_logger
 
         taint_audit_logger.clear()
         for gate in list(sanitisation_gate_registry.list_gates()):

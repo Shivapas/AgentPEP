@@ -99,7 +99,7 @@ async def test_deny_by_default_when_no_rules(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_allow_when_matching_rule_exists(client: AsyncClient):
     """Insert an ALLOW rule that matches, verify ALLOW decision."""
-    from app.db.mongodb import get_database, POLICY_RULES
+    from app.db.mongodb import POLICY_RULES, get_database
 
     db = get_database()
     rule = {
@@ -136,7 +136,7 @@ async def test_allow_when_matching_rule_exists(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_deny_when_deny_rule_matches(client: AsyncClient):
     """Insert a DENY rule that matches the tool, verify DENY decision."""
-    from app.db.mongodb import get_database, POLICY_RULES
+    from app.db.mongodb import POLICY_RULES, get_database
 
     db = get_database()
     rule = {
@@ -187,7 +187,7 @@ async def test_dry_run_returns_dry_run_decision(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_dry_run_with_deny_rule_still_returns_dry_run(client: AsyncClient):
     """Even when a DENY rule matches, DRY_RUN mode should return DRY_RUN."""
-    from app.db.mongodb import get_database, POLICY_RULES
+    from app.db.mongodb import POLICY_RULES, get_database
 
     db = get_database()
     rule = {
@@ -227,7 +227,7 @@ async def test_dry_run_with_deny_rule_still_returns_dry_run(client: AsyncClient)
 @pytest.mark.asyncio
 async def test_first_match_priority_ordering(client: AsyncClient):
     """Higher-priority (lower number) rule should win over lower-priority."""
-    from app.db.mongodb import get_database, POLICY_RULES
+    from app.db.mongodb import POLICY_RULES, get_database
 
     db = get_database()
     deny_rule = {
@@ -280,7 +280,7 @@ async def test_first_match_priority_ordering(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_glob_pattern_matching(client: AsyncClient):
     """Glob patterns like 'file_*' should match tool names like 'file_read'."""
-    from app.db.mongodb import get_database, POLICY_RULES
+    from app.db.mongodb import POLICY_RULES, get_database
 
     db = get_database()
     rule = {
@@ -311,7 +311,7 @@ async def test_glob_pattern_matching(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_regex_pattern_matching(client: AsyncClient):
     """Regex patterns should match tool names."""
-    from app.db.mongodb import get_database, POLICY_RULES
+    from app.db.mongodb import POLICY_RULES, get_database
 
     db = get_database()
     rule = {
@@ -347,7 +347,7 @@ async def test_regex_pattern_matching(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_role_specific_rule_matches_agent_role(client: AsyncClient):
     """Rule targeting a specific role should match agents with that role."""
-    from app.db.mongodb import get_database, POLICY_RULES, AGENT_PROFILES
+    from app.db.mongodb import AGENT_PROFILES, POLICY_RULES, get_database
 
     db = get_database()
 
@@ -387,7 +387,7 @@ async def test_role_specific_rule_matches_agent_role(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_role_specific_rule_does_not_match_other_role(client: AsyncClient):
     """Rule targeting WriterAgent should not match a ReaderAgent."""
-    from app.db.mongodb import get_database, POLICY_RULES, AGENT_PROFILES
+    from app.db.mongodb import AGENT_PROFILES, POLICY_RULES, get_database
 
     db = get_database()
 
@@ -433,7 +433,7 @@ async def test_role_specific_rule_does_not_match_other_role(client: AsyncClient)
 @pytest.mark.asyncio
 async def test_disabled_rules_are_skipped(client: AsyncClient):
     """Disabled rules should not be evaluated."""
-    from app.db.mongodb import get_database, POLICY_RULES
+    from app.db.mongodb import POLICY_RULES, get_database
 
     db = get_database()
     rule = {
@@ -471,7 +471,7 @@ async def test_audit_log_written_on_decision(client: AsyncClient):
     Sprint 23 (APEP-184): Audit writes are now async-batched.
     We flush the writer before checking MongoDB.
     """
-    from app.db.mongodb import get_database, AUDIT_DECISIONS
+    from app.db.mongodb import AUDIT_DECISIONS, get_database
     from app.services.policy_evaluator import audit_log_writer
 
     db = get_database()

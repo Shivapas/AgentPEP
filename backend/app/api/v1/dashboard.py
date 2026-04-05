@@ -10,14 +10,14 @@ Provides aggregated data for the Policy Console Risk Dashboard:
 
 import logging
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 from enum import Enum
 from typing import Any
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
-from app.db.mongodb import AUDIT_DECISIONS, API_KEYS, get_database
+from app.db.mongodb import API_KEYS, AUDIT_DECISIONS, get_database
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +54,8 @@ WINDOW_BUCKETS: dict[TimeWindow, int] = {
 
 
 def _window_start(window: TimeWindow) -> datetime:
+    # Use naive UTC datetime for MongoDB compatibility (mongomock
+    # aggregation pipelines cannot mix aware/naive datetimes).
     return datetime.utcnow() - WINDOW_DELTAS[window]
 
 
@@ -335,7 +337,7 @@ async def get_dashboard_summary(
         histogram=histogram,
         anomalies=anomalies,
         window=window.value,
-        generated_at=datetime.utcnow().isoformat() + "Z",
+        generated_at=datetime.now(UTC).isoformat() + "Z",
     )
 
 
@@ -409,7 +411,10 @@ async def dashboard_ws(websocket: WebSocket) -> None:
             await websocket.close(code=4001, reason="Invalid or expired token")
             return
     else:
-        await websocket.close(code=4001, reason="Authentication required: provide token or api_key query param")
+        await websocket.close(
+            code=4001,
+            reason="Authentication required: provide token or api_key query param",
+        )
         return
 
     await websocket.accept()
@@ -430,7 +435,7 @@ async def dashboard_ws(websocket: WebSocket) -> None:
                 histogram=await _build_histogram(since),
                 anomalies=await _detect_anomalies(since),
                 window=window.value,
-                generated_at=datetime.utcnow().isoformat() + "Z",
+                generated_at=datetime.now(UTC).isoformat() + "Z",
             )
             await websocket.send_json(summary.model_dump())
     except WebSocketDisconnect:
@@ -451,7 +456,7 @@ async def broadcast_dashboard_update(window: TimeWindow = TimeWindow.TWENTY_FOUR
         histogram=await _build_histogram(since),
         anomalies=await _detect_anomalies(since),
         window=window.value,
-        generated_at=datetime.utcnow().isoformat() + "Z",
+        generated_at=datetime.now(UTC).isoformat() + "Z",
     )
     data = summary.model_dump()
     dead: set[WebSocket] = set()
@@ -460,4 +465,4 @@ async def broadcast_dashboard_update(window: TimeWindow = TimeWindow.TWENTY_FOUR
             await ws.send_json(data)
         except Exception:
             dead.add(ws)
-    _ws_connections -= dead
+    _ws_connections.difference_update(dead)

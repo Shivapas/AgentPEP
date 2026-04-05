@@ -11,17 +11,16 @@ from __future__ import annotations
 
 import fnmatch
 import logging
-import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
 from app.db.mongodb import AGENT_ROLES, POLICY_RULES, get_database
-from app.models.policy import AgentRole, Decision, PolicyRule
+from app.models.policy import Decision
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +83,7 @@ async def create_role(body: CreateRoleRequest) -> dict[str, Any]:
     if existing:
         raise HTTPException(status_code=409, detail=f"Role '{body.role_id}' already exists")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     doc = {
         **body.model_dump(),
         "created_at": now,
@@ -103,7 +102,7 @@ async def update_role(role_id: str, body: UpdateRoleRequest) -> dict[str, Any]:
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
 
-    updates["updated_at"] = datetime.now(timezone.utc)
+    updates["updated_at"] = datetime.now(UTC)
     result = await db[AGENT_ROLES].find_one_and_update(
         {"role_id": role_id},
         {"$set": updates},
@@ -158,7 +157,7 @@ class ReorderRequest(BaseModel):
 async def create_rule(body: CreateRuleRequest) -> dict[str, Any]:
     """Create a new policy rule."""
     db = get_database()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     doc = {
         "rule_id": str(uuid4()),
         **body.model_dump(),
@@ -178,7 +177,7 @@ async def update_rule(rule_id: str, body: UpdateRuleRequest) -> dict[str, Any]:
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
 
-    updates["updated_at"] = datetime.now(timezone.utc)
+    updates["updated_at"] = datetime.now(UTC)
     result = await db[POLICY_RULES].find_one_and_update(
         {"rule_id": rule_id},
         {"$set": updates},
@@ -205,7 +204,7 @@ async def reorder_rules(body: ReorderRequest) -> dict[str, bool]:
     for idx, rule_id in enumerate(body.rule_ids):
         await db[POLICY_RULES].update_one(
             {"rule_id": rule_id},
-            {"$set": {"priority": idx + 1, "updated_at": datetime.now(timezone.utc)}},
+            {"$set": {"priority": idx + 1, "updated_at": datetime.now(UTC)}},
         )
     return {"ok": True}
 
@@ -287,7 +286,7 @@ async def create_policy_version(set_id: str, version: dict[str, Any]) -> dict[st
     policy_set = await db[POLICY_SETS].find_one({"policy_set_id": set_id})
     if not policy_set:
         # Auto-create policy set if it doesn't exist
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         policy_set = {
             "policy_set_id": set_id,
             "name": version.get("comment", set_id),
@@ -305,7 +304,7 @@ async def create_policy_version(set_id: str, version: dict[str, Any]) -> dict[st
     roles = [_serialize(doc) async for doc in roles_cursor]
 
     new_version_num = policy_set.get("current_version", 0) + 1
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     version_doc = {
         "version_id": str(uuid4()),
         "version": new_version_num,
@@ -374,7 +373,7 @@ async def update_version_status(
     db = get_database()
     result = await db[POLICY_SETS].find_one_and_update(
         {"policy_set_id": set_id, "versions.version_id": version_id},
-        {"$set": {"versions.$.status": new_status, "updated_at": datetime.now(timezone.utc)}},
+        {"$set": {"versions.$.status": new_status, "updated_at": datetime.now(UTC)}},
         return_document=True,
     )
     if not result:
@@ -432,7 +431,7 @@ async def import_yaml(request: Request) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail="YAML must be a mapping")
 
     db = get_database()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     set_id = data.get("policy_set_id", str(uuid4()))
     doc = {
         "policy_set_id": set_id,

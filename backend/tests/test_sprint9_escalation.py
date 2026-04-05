@@ -13,29 +13,27 @@ Tests cover:
 """
 
 import asyncio
-import json
-from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.db import mongodb as db_module
+from app.db.mongodb import APPROVAL_MEMORY, APPROVER_GROUPS, ESCALATION_TICKETS
 from app.main import app
 from app.models.policy import (
-    ApprovalMemoryEntry,
     ApproverGroup,
     ApproverRoutingStrategy,
     EscalationResolveRequest,
     EscalationState,
-    EscalationTicketV1 as EscalationTicket,
     NotificationConfig,
+)
+from app.models.policy import (
+    EscalationTicketV1 as EscalationTicket,
 )
 from app.services.escalation_manager import escalation_manager
 from app.services.escalation_ws import escalation_ws_manager
-from app.db import mongodb as db_module
-from app.db.mongodb import APPROVAL_MEMORY, APPROVER_GROUPS, ESCALATION_TICKETS
-
 
 # ---------- Fixtures ----------
 

@@ -2,14 +2,14 @@
 
 import hashlib
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.db.mongodb import get_database, AGENT_PROFILES, AUDIT_DECISIONS, API_KEYS
+from app.db.mongodb import AGENT_PROFILES, API_KEYS, AUDIT_DECISIONS, get_database
 
 router = APIRouter(prefix="/v1/agents", tags=["agents"])
 
@@ -176,7 +176,7 @@ async def create_agent(body: AgentCreateRequest) -> AgentResponse:
     if existing:
         raise HTTPException(status_code=409, detail=f"Agent '{body.agent_id}' already exists")
 
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     doc = {
         **body.model_dump(),
         "enabled": True,
@@ -205,7 +205,7 @@ async def update_agent(agent_id: str, body: AgentUpdateRequest) -> AgentResponse
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
-    updates["updated_at"] = datetime.utcnow()
+    updates["updated_at"] = datetime.now(UTC)
 
     result = await db[AGENT_PROFILES].find_one_and_update(
         {"agent_id": agent_id},
@@ -272,7 +272,7 @@ async def generate_key(agent_id: str, name: str = Query("default")) -> APIKeyRes
 
     plain_key = _generate_api_key()
     key_id = str(uuid4())
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     doc = {
         "key_id": key_id,
         "key": plain_key,
@@ -309,7 +309,7 @@ async def rotate_key(agent_id: str, key_id: str) -> APIKeyResponse:
     # Generate new key
     plain_key = _generate_api_key()
     new_key_id = str(uuid4())
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     doc = {
         "key_id": new_key_id,
         "key": plain_key,
@@ -388,7 +388,7 @@ async def bulk_assign_roles(body: BulkRoleRequest) -> BulkRoleResponse:
     db = get_database()
     result = await db[AGENT_PROFILES].update_many(
         {"agent_id": {"$in": body.agent_ids}},
-        {"$set": {"roles": body.roles, "updated_at": datetime.utcnow()}},
+        {"$set": {"roles": body.roles, "updated_at": datetime.now(UTC)}},
     )
     return BulkRoleResponse(updated=result.modified_count, agent_ids=body.agent_ids)
 

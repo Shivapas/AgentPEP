@@ -1,6 +1,6 @@
 """Pydantic models for compliance reports and SIEM integration (Sprint 22)."""
 
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from enum import Enum
 from uuid import UUID, uuid4
 
@@ -127,7 +127,7 @@ class ComplianceReport(BaseModel):
     generated_by: str = "system"
     content: dict = Field(default_factory=dict, description="Report-specific JSON content")
     error_message: str | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # --- Report Schedule (APEP-177) ---
@@ -143,8 +143,8 @@ class ReportSchedule(BaseModel):
     enabled: bool = True
     last_run_at: datetime | None = None
     next_run_at: datetime | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # --- API Schemas ---

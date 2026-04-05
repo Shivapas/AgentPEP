@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, UTC
 from typing import Any
 
 from app.db import mongodb as db_module
@@ -72,7 +72,7 @@ class AuditIntegrityVerifier:
         previous_hash = latest["chain_hash"] if latest else "GENESIS"
         sequence = (latest["sequence"] + 1) if latest else 0
 
-        timestamp_str = str(audit_record.get("timestamp", datetime.utcnow().isoformat()))
+        timestamp_str = str(audit_record.get("timestamp", datetime.now(UTC).isoformat()))
 
         chain_hash = self.compute_record_hash(
             previous_hash=previous_hash,
@@ -89,7 +89,7 @@ class AuditIntegrityVerifier:
             "decision_id": str(audit_record.get("decision_id", "")),
             "chain_hash": chain_hash,
             "previous_hash": previous_hash,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(UTC),
         }
 
         await db[AUDIT_HASH_CHAIN].insert_one(chain_entry)
@@ -243,7 +243,7 @@ class AuditIntegrityVerifier:
             # Store the verification result for dashboarding
             db = db_module.get_database()
             await db["audit_verification_results"].insert_one({
-                "timestamp": datetime.utcnow(),
+                "timestamp": datetime.now(UTC),
                 "verified": result.verified,
                 "records_checked": result.records_checked,
                 "broken_links": result.broken_links,

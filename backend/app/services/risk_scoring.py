@@ -22,7 +22,6 @@ from app.db import mongodb as db_module
 from app.models.policy import (
     RiskFactor,
     RiskModelConfig,
-    RiskWeightConfig,
     TaintLevel,
 )
 from app.services.taint_graph import session_graph_manager
@@ -40,7 +39,8 @@ _DELETE_VERBS = re.compile(
     re.IGNORECASE,
 )
 _WRITE_VERBS = re.compile(
-    r"(write|create|update|put|patch|insert|set|modify|upload|send|post|execute|run|invoke|deploy|push|publish)",
+    r"(write|create|update|put|patch|insert|set|modify|upload"
+    r"|send|post|execute|run|invoke|deploy|push|publish)",
     re.IGNORECASE,
 )
 _READ_VERBS = re.compile(
@@ -119,7 +119,10 @@ _PII_PATTERNS = [
 ]
 
 _CREDENTIAL_PATTERNS = [
-    re.compile(r"(password|passwd|secret|token|api_key|apikey|auth_token|access_key|private_key)", re.IGNORECASE),
+    re.compile(
+        r"(password|passwd|secret|token|api_key|apikey|auth_token|access_key|private_key)",
+        re.IGNORECASE,
+    ),
     re.compile(r"(AKIA[0-9A-Z]{16})"),                              # AWS access key
     re.compile(r"(ghp_[A-Za-z0-9_]{36})"),                          # GitHub PAT
     re.compile(r"(sk-[A-Za-z0-9]{32,})"),                           # OpenAI-style key
@@ -128,7 +131,10 @@ _CREDENTIAL_PATTERNS = [
 ]
 
 _FINANCIAL_PATTERNS = [
-    re.compile(r"(account_number|routing_number|swift_code|bank_account|credit_card)", re.IGNORECASE),
+    re.compile(
+        r"(account_number|routing_number|swift_code|bank_account|credit_card)",
+        re.IGNORECASE,
+    ),
     re.compile(r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b"),   # Credit card formatted
     re.compile(r"(amount|balance|transaction|payment|invoice)\s*[:=]\s*\$?\d+", re.IGNORECASE),
 ]
@@ -174,7 +180,11 @@ class DataSensitivityScorer:
                 break
 
         if not found_categories:
-            return RiskFactor(factor_name="data_sensitivity", score=0.0, detail="No sensitive data detected")
+            return RiskFactor(
+                factor_name="data_sensitivity",
+                score=0.0,
+                detail="No sensitive data detected",
+            )
 
         return RiskFactor(
             factor_name="data_sensitivity",

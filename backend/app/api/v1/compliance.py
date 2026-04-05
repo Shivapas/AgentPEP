@@ -64,7 +64,9 @@ async def download_report(report_id: UUID) -> Response:
         raise HTTPException(status_code=404, detail="Report not found")
 
     content = json.dumps(report.model_dump(mode="json"), indent=2, default=str)
-    filename = f"{report.report_type.value}_{report.period_start:%Y%m%d}_{report.period_end:%Y%m%d}.json"
+    start = report.period_start.strftime("%Y%m%d")
+    end = report.period_end.strftime("%Y%m%d")
+    filename = f"{report.report_type.value}_{start}_{end}.json"
     return Response(
         content=content,
         media_type="application/json",

@@ -3,11 +3,11 @@
 Uses Hypothesis to generate random inputs and verify invariants.
 """
 
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from app.models.policy import ArgValidator, Decision, PolicyRule
 from app.services.rule_matcher import RuleMatcher
-
 
 # --- Strategies ---
 

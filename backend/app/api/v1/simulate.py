@@ -3,7 +3,6 @@
 Sprint 19: APEP-151, APEP-152, APEP-154, APEP-155.
 """
 
-import time
 from typing import Any
 
 from fastapi import APIRouter, Query
@@ -20,7 +19,6 @@ from app.models.simulation import (
 )
 from app.services.simulation_engine import simulation_engine
 from app.services.test_vectors import (
-    ALL_VECTORS,
     VECTORS_BY_CATEGORY,
     VECTORS_BY_ID,
     get_vectors,

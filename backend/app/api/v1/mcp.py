@@ -15,7 +15,7 @@ Endpoints:
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -127,7 +127,7 @@ async def start_session(request: MCPSessionStartRequest) -> MCPSessionStartRespo
             "upstream_url": upstream_url,
             "status": "active",
             "tool_call_count": 0,
-            "started_at": datetime.utcnow(),
+            "started_at": datetime.now(UTC),
         })
     except Exception:
         logger.exception("Failed to persist MCP session metadata")
@@ -153,7 +153,7 @@ async def end_session(request: MCPSessionEndRequest) -> dict[str, str]:
         db = db_module.get_database()
         await db[db_module.MCP_PROXY_SESSIONS].update_one(
             {"session_id": request.session_id},
-            {"$set": {"status": "ended", "ended_at": datetime.utcnow()}},
+            {"$set": {"status": "ended", "ended_at": datetime.now(UTC)}},
         )
     except Exception:
         logger.exception("Failed to update MCP session status")

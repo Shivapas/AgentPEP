@@ -6,7 +6,7 @@ use pre-validated request objects, record latency with minimal overhead.
 
 import time
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 
 from app.core.observability import (
     DECISION_LATENCY,
@@ -16,7 +16,7 @@ from app.core.observability import (
     POLICY_EVALUATIONS,
     get_tracer,
 )
-from app.models.policy import ToolCallRequest, PolicyDecisionResponse
+from app.models.policy import PolicyDecisionResponse, ToolCallRequest
 from app.services.policy_evaluator import policy_evaluator
 
 router = APIRouter(prefix="/v1", tags=["intercept"])

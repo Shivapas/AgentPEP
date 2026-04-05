@@ -3,7 +3,7 @@
 import logging
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException
 
 from app.db import mongodb as db_module
 from app.models.console_user import (

@@ -7,9 +7,8 @@ Sprint 10:
 
 import csv
 import io
-import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 
 from app.db import mongodb as db_module
 from app.models.policy import AuditQueryRequest
@@ -161,7 +160,7 @@ async def export_json(template: str, params: AuditQueryRequest) -> dict:
         "title": tmpl["title"],
         "description": tmpl["description"],
         "template": template,
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "total_matching_records": total,
         "returned_records": len(filtered),
         "records": filtered,
@@ -222,7 +221,7 @@ async def export_pdf(template: str, params: AuditQueryRequest) -> bytes:
     elements.append(Spacer(1, 6))
     elements.append(
         Paragraph(
-            f"Generated: {datetime.utcnow().isoformat()} | "
+            f"Generated: {datetime.now(UTC).isoformat()} | "
             f"Total records: {total} | Returned: {len(records)}",
             styles["Normal"],
         )
@@ -259,7 +258,9 @@ async def export_pdf(template: str, params: AuditQueryRequest) -> bytes:
                     ("FONTSIZE", (0, 1), (-1, -1), 7),
                     ("ALIGN", (0, 0), (-1, -1), "LEFT"),
                     ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f7fafc")]),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [
+                        colors.white, colors.HexColor("#f7fafc"),
+                    ]),
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
                 ]
             )

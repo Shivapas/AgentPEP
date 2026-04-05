@@ -1,6 +1,6 @@
 """Console dashboard endpoints for KPI data (APEP-110)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/v1/console", tags=["console-dashboard"])
 async def get_dashboard_kpis(user: dict = Depends(get_current_user)):
     """Return KPI metrics for the dashboard homepage."""
     db = db_module.get_database()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     one_hour_ago = now - timedelta(hours=1)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 

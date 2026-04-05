@@ -1,6 +1,5 @@
 """Sprint 16 — Tests for Risk Dashboard API endpoints (APEP-128 to APEP-135)."""
 
-import math
 from datetime import datetime, timedelta
 from uuid import uuid4
 

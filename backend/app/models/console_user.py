@@ -1,6 +1,6 @@
 """Pydantic models for Policy Console users and RBAC."""
 
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -24,8 +24,8 @@ class ConsoleUser(BaseModel):
     roles: list[ConsoleRole] = Field(default_factory=lambda: [ConsoleRole.ANALYST])
     tenant_id: str = "default"
     enabled: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # --- Request / Response Schemas ---

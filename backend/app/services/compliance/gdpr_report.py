@@ -6,7 +6,7 @@ metrics and privacy control evidence.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 
 from app.db.mongodb import AUDIT_DECISIONS, POLICY_RULES, get_database
 from app.models.compliance import (
@@ -86,7 +86,10 @@ async def generate_gdpr_art25_report(
     db = get_database()
     report = ComplianceReport(
         report_type=ReportType.GDPR_ART25,
-        title=f"GDPR Art. 25 Privacy by Design Report ({period_start:%Y-%m-%d} to {period_end:%Y-%m-%d})",
+        title=(
+            f"GDPR Art. 25 Privacy by Design Report"
+            f" ({period_start:%Y-%m-%d} to {period_end:%Y-%m-%d})"
+        ),
         status=ReportStatus.GENERATING,
         period_start=period_start,
         period_end=period_end,
@@ -109,7 +112,10 @@ async def generate_gdpr_art25_report(
                 control_name=ctrl_def["control_name"],
                 description=ctrl_def["description"],
                 implemented=True,
-                evidence=f"{total_rules} active policy rules; {total_decisions} decisions in period",
+                evidence=(
+                    f"{total_rules} active policy rules; "
+                    f"{total_decisions} decisions in period"
+                ),
             )
             controls.append(ctrl.model_dump())
 
@@ -122,7 +128,11 @@ async def generate_gdpr_art25_report(
                     "total": {"$sum": 1},
                     "with_taint": {
                         "$sum": {
-                            "$cond": [{"$gt": [{"$size": {"$ifNull": ["$taint_flags", []]}}, 0]}, 1, 0]
+                            "$cond": [
+                                {"$gt": [{"$size": {"$ifNull": ["$taint_flags", []]}}, 0]},
+                                1,
+                                0,
+                            ]
                         }
                     },
                 }
@@ -163,7 +173,7 @@ async def generate_gdpr_art25_report(
             },
         }
         report.status = ReportStatus.COMPLETED
-        report.generated_at = datetime.utcnow()
+        report.generated_at = datetime.now(UTC)
 
     except Exception as exc:
         logger.exception("Failed to generate GDPR Art. 25 report")

@@ -6,8 +6,7 @@ APEP-092: Global rate limit — per-tenant total decisions/second ceiling.
 """
 
 import logging
-import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from app.core.config import settings
 from app.db import mongodb as db_module
@@ -61,13 +60,12 @@ class RateLimiter:
         collection = db[db_module.RATE_LIMIT_COUNTERS]
 
         key = f"sliding:{agent_role}:{tool_name}"
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         window_start = now - timedelta(seconds=rate_limit.window_s)
 
         # Atomic increment: use findOneAndUpdate with upsert to atomically
         # insert/increment a counter for this window, avoiding the race
         # condition of a separate count-then-insert.
-        bucket_key = f"{key}:{int(now.timestamp())}"
         result = await collection.find_one_and_update(
             {"key": key, "window_start": {"$gte": window_start}},
             {
@@ -89,7 +87,8 @@ class RateLimiter:
                 allowed=False,
                 reason=(
                     f"Sliding window rate limit exceeded for role={agent_role} "
-                    f"tool={tool_name}: {current_count}/{rate_limit.count} in {rate_limit.window_s}s"
+                    f"tool={tool_name}: "
+                    f"{current_count}/{rate_limit.count} in {rate_limit.window_s}s"
                 ),
                 current_count=current_count,
                 limit=rate_limit.count,
@@ -117,10 +116,10 @@ class RateLimiter:
         db = db_module.get_database()
         collection = db[db_module.RATE_LIMIT_COUNTERS]
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         epoch_s = int(now.timestamp())
         bucket_start_s = (epoch_s // rate_limit.window_s) * rate_limit.window_s
-        bucket_start = datetime.fromtimestamp(bucket_start_s, tz=timezone.utc)
+        bucket_start = datetime.fromtimestamp(bucket_start_s, tz=UTC)
         bucket_expires = bucket_start + timedelta(seconds=rate_limit.window_s)
 
         key = f"fixed:{agent_role}:{tool_name}"
@@ -172,9 +171,9 @@ class RateLimiter:
         db = db_module.get_database()
         collection = db[db_module.RATE_LIMIT_COUNTERS]
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         epoch_s = int(now.timestamp())
-        bucket_start = datetime.fromtimestamp(epoch_s, tz=timezone.utc)
+        bucket_start = datetime.fromtimestamp(epoch_s, tz=UTC)
         bucket_expires = bucket_start + timedelta(seconds=2)  # expire after 2s for safety
 
         key = f"global:{tenant_id}"

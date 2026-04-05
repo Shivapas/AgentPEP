@@ -10,7 +10,7 @@ Provides:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Query
@@ -49,7 +49,7 @@ async def get_stats() -> DashboardStats:
     rule_count = await db[POLICY_RULES].count_documents({"enabled": True})
 
     # Count today's decisions
-    today_start = datetime.now(timezone.utc).replace(
+    today_start = datetime.now(UTC).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
     today_filter = {"timestamp": {"$gte": today_start}}
@@ -191,7 +191,7 @@ async def submit_ux_survey(request: UXSurveyRequest) -> dict[str, str]:
             "responses": request.responses,
             "score": request.score,
             "additional_feedback": request.additional_feedback,
-            "timestamp": request.timestamp or datetime.now(timezone.utc).isoformat(),
+            "timestamp": request.timestamp or datetime.now(UTC).isoformat(),
         }
     )
     return {"status": "recorded"}

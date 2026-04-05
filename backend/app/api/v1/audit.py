@@ -334,6 +334,83 @@ async def verify_integrity(
 # ---------------------------------------------------------------------------
 
 
+@router.get("/verify")
+async def verify_audit_chain(
+    start_sequence: int | None = Query(default=None),
+    end_sequence: int | None = Query(default=None),
+) -> dict[str, Any]:
+    """Verify the audit hash chain by recomputing hashes (APEP-088).
+
+    Returns {valid, total_records, verified_records, first_tampered_sequence}.
+    """
+    from app.services.audit_logger import GENESIS_HASH, compute_record_hash
+
+    col = db_module.get_database()[db_module.AUDIT_DECISIONS]
+    query: dict[str, Any] = {}
+    if start_sequence is not None or end_sequence is not None:
+        seq_filter: dict[str, int] = {}
+        if start_sequence is not None:
+            seq_filter["$gte"] = start_sequence
+        if end_sequence is not None:
+            seq_filter["$lte"] = end_sequence
+        query["sequence_number"] = seq_filter
+    cursor = col.find(query).sort("sequence_number", 1)
+    records = [doc async for doc in cursor]
+
+    if not records:
+        return {
+            "valid": True,
+            "total_records": 0,
+            "verified_records": 0,
+            "first_tampered_sequence": None,
+            "first_tampered_decision_id": None,
+            "detail": "No audit records",
+        }
+
+    # If starting from a partial range, get the previous record's hash
+    prev_hash = GENESIS_HASH
+    if start_sequence is not None and start_sequence > 0:
+        prev_rec = await col.find_one(
+            {"sequence_number": start_sequence - 1},
+        )
+        if prev_rec:
+            prev_hash = prev_rec.get("record_hash", GENESIS_HASH)
+
+    verified = 0
+    first_tampered_seq = None
+    first_tampered_id = None
+
+    for rec in records:
+        from app.models.policy import AuditDecision
+
+        rec.pop("_id", None)
+        try:
+            audit = AuditDecision(**rec)
+        except Exception:
+            first_tampered_seq = rec.get("sequence_number", 0)
+            first_tampered_id = str(rec.get("decision_id", ""))
+            break
+
+        expected = compute_record_hash(audit, prev_hash)
+        if rec.get("record_hash") != expected:
+            first_tampered_seq = rec.get("sequence_number", 0)
+            first_tampered_id = str(rec.get("decision_id", ""))
+            break
+
+        prev_hash = rec["record_hash"]
+        verified += 1
+
+    valid = first_tampered_seq is None
+    return {
+        "valid": valid,
+        "total_records": len(records),
+        "verified_records": verified,
+        "first_tampered_sequence": first_tampered_seq,
+        "first_tampered_decision_id": first_tampered_id,
+        "detail": "All records verified" if valid else f"Tampered at seq {first_tampered_seq}",
+    }
+
+
 @router.post("/verify-integrity")
 async def verify_audit_integrity():
     """Run hash chain verification on the audit log.
@@ -353,3 +430,73 @@ async def get_chain_length():
 
     length = await audit_integrity_verifier.get_chain_length()
     return {"chain_length": length}
+
+
+# ---------------------------------------------------------------------------
+# APEP-086 / APEP-087 — Compliance export (JSON, CSV, PDF)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/export/json")
+async def export_compliance_json(body: dict[str, Any]) -> dict[str, Any]:
+    """Export audit records as a JSON compliance report."""
+    from app.models.policy import AuditQueryRequest
+    from app.services.compliance_export import export_json
+
+    template = body.get("template", "DPDPA")
+    params = AuditQueryRequest(
+        agent_id=body.get("agent_id"),
+        tool_name=body.get("tool_name"),
+        decision=body.get("decision"),
+    )
+    result = await export_json(template, params)
+    # Remap 'records' to 'items' for test compatibility
+    if "records" in result:
+        result["items"] = result.pop("records")
+    return result
+
+
+@router.post("/export/csv")
+async def export_compliance_csv(body: dict[str, Any]) -> StreamingResponse:
+    """Export audit records as a CSV compliance report."""
+    from app.models.policy import AuditQueryRequest
+    from app.services.compliance_export import export_csv
+
+    template = body.get("template", "DPDPA")
+    params = AuditQueryRequest(
+        agent_id=body.get("agent_id"),
+        tool_name=body.get("tool_name"),
+        decision=body.get("decision"),
+    )
+    csv_content = await export_csv(template, params)
+    return StreamingResponse(
+        iter([csv_content]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename={template}_export.csv"
+        },
+    )
+
+
+@router.post("/export/pdf")
+async def export_compliance_pdf(body: dict[str, Any]):
+    """Export audit records as a PDF compliance report."""
+    from fastapi.responses import Response
+
+    from app.models.policy import AuditQueryRequest
+    from app.services.compliance_export import export_pdf
+
+    template = body.get("template", "DPDPA")
+    params = AuditQueryRequest(
+        agent_id=body.get("agent_id"),
+        tool_name=body.get("tool_name"),
+        decision=body.get("decision"),
+    )
+    pdf_bytes = await export_pdf(template, params)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={template}_report.pdf"
+        },
+    )

@@ -4,9 +4,11 @@ Verifies score ranges for known-benign and known-malicious payloads across
 all five scorers, the aggregator, and the full PolicyEvaluator integration.
 """
 
-import pytest
 from uuid import uuid4
 
+import pytest
+
+import app.db.mongodb as db_module
 from app.models.policy import (
     Decision,
     RiskFactor,
@@ -20,14 +22,11 @@ from app.services.risk_scoring import (
     DelegationDepthScorer,
     OperationTypeScorer,
     RiskAggregator,
-    RiskScoringEngine,
     SessionAccumulatedRiskScorer,
     TaintScorer,
     risk_engine,
 )
 from app.services.taint_graph import session_graph_manager
-import app.db.mongodb as db_module
-
 
 # ---- Fixtures ----
 
@@ -524,8 +523,8 @@ class TestPolicyEvaluatorRiskIntegration:
 
     @pytest.mark.asyncio
     async def test_low_risk_allowed(self, mock_mongodb):
-        from app.services.policy_evaluator import policy_evaluator
         from app.models.policy import ToolCallRequest
+        from app.services.policy_evaluator import policy_evaluator
 
         req = ToolCallRequest(
             session_id="policy-low",
@@ -539,8 +538,8 @@ class TestPolicyEvaluatorRiskIntegration:
 
     @pytest.mark.asyncio
     async def test_high_risk_escalated(self, mock_mongodb):
-        from app.services.policy_evaluator import policy_evaluator
         from app.models.policy import ToolCallRequest
+        from app.services.policy_evaluator import policy_evaluator
 
         req = ToolCallRequest(
             session_id="policy-high",
@@ -556,8 +555,8 @@ class TestPolicyEvaluatorRiskIntegration:
 
     @pytest.mark.asyncio
     async def test_risk_score_in_response(self, mock_mongodb):
-        from app.services.policy_evaluator import policy_evaluator
         from app.models.policy import ToolCallRequest
+        from app.services.policy_evaluator import policy_evaluator
 
         req = ToolCallRequest(
             session_id="policy-score",
@@ -571,8 +570,8 @@ class TestPolicyEvaluatorRiskIntegration:
 
     @pytest.mark.asyncio
     async def test_dry_run_still_computes_risk(self, mock_mongodb):
-        from app.services.policy_evaluator import policy_evaluator
         from app.models.policy import ToolCallRequest
+        from app.services.policy_evaluator import policy_evaluator
 
         req = ToolCallRequest(
             session_id="policy-dry",

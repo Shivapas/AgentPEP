@@ -15,9 +15,6 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.models.policy import (
-    Decision,
-    InjectionSignature,
-    PolicyRule,
     SanitisationGate,
     TaintEventType,
     TaintLevel,
@@ -25,11 +22,7 @@ from app.models.policy import (
 )
 from app.services.injection_signatures import MatchedSignature, injection_library
 from app.services.taint_graph import (
-    INJECTION_SIGNATURES,
-    UNTRUSTED_SOURCES,
     SanitisationGateRegistry,
-    SessionGraphManager,
-    TaintAuditLogger,
     TaintGraph,
     check_injection_signature_id,
     check_injection_signatures,

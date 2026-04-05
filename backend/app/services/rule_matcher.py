@@ -13,7 +13,7 @@ from typing import Any
 
 import jsonschema
 
-from app.models.policy import ArgValidator, Decision, PolicyRule
+from app.models.policy import ArgValidator, PolicyRule
 
 logger = logging.getLogger(__name__)
 

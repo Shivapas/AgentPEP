@@ -1,12 +1,12 @@
 """Prometheus metrics, OpenTelemetry tracing, and structured logging setup (Sprint 26)."""
 
-from prometheus_client import Counter, Gauge, Histogram, make_asgi_app
 from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.sdk.resources import Resource
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from prometheus_client import Counter, Gauge, Histogram, make_asgi_app
 
 from app.core.config import settings
 

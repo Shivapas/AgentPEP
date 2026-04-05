@@ -1,12 +1,11 @@
 """Pydantic models for policy rules, taint nodes, audit decisions, and agent profiles."""
 
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from enum import Enum
 from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator
-
 
 # --- Enums ---
 
@@ -75,8 +74,8 @@ class AgentRole(BaseModel):
         default=1.0, ge=0.0, le=1.0, description="Max risk score this role can tolerate"
     )
     enabled: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # --- Policy Rule ---
@@ -118,8 +117,8 @@ class PolicyRule(BaseModel):
     arg_validators: list[ArgValidator] = Field(default_factory=list)
     priority: int = Field(default=100, description="Lower = higher priority")
     enabled: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # --- Taint Node ---
@@ -146,7 +145,7 @@ class TaintNode(BaseModel):
     sanitised_by: str | None = Field(
         default=None, description="Sanitisation function that downgraded taint (APEP-048)"
     )
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class SanitisationGate(BaseModel):
@@ -167,7 +166,7 @@ class SanitisationGate(BaseModel):
         default=False, description="If True, downgrade requires human approval"
     )
     enabled: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class TaintAuditEvent(BaseModel):
@@ -188,7 +187,7 @@ class TaintAuditEvent(BaseModel):
     matched_signature: str | None = Field(
         default=None, description="Injection pattern that triggered QUARANTINE"
     )
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # --- Delegation Chain (Sprint 7 — Confused-Deputy Detector) ---
@@ -210,7 +209,7 @@ class DelegationHop(BaseModel):
         default="user",
         description="Origin of authority: 'user', 'role:<role_id>', or 'agent:<agent_id>'",
     )
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class DelegationChain(BaseModel):
@@ -293,7 +292,7 @@ class EscalationTicketV1(BaseModel):
     )
     taint_flags: list[str] = Field(default_factory=list)
     delegation_chain: list[str] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     resolved_at: datetime | None = None
 
 
@@ -322,7 +321,7 @@ class ApprovalMemoryEntry(BaseModel):
     tool_args_hash: str = Field(..., description="SHA-256 of tool arguments pattern")
     approved_by: str
     original_ticket_id: UUID
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class EscalationResolveRequest(BaseModel):
@@ -351,8 +350,8 @@ class NotificationConfig(BaseModel):
         """Only allow HTTPS URLs and block private/internal IP ranges to prevent SSRF."""
         if v is None or v == "":
             return v
-        from urllib.parse import urlparse
         import ipaddress
+        from urllib.parse import urlparse
 
         parsed = urlparse(v)
         if parsed.scheme != "https":
@@ -385,7 +384,7 @@ class SecurityAlertEvent(BaseModel):
     tool_name: str = ""
     detail: str = ""
     severity: str = Field(default="HIGH", description="LOW, MEDIUM, HIGH, CRITICAL")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # --- Risk Scoring Engine (Sprint 8 — APEP-063) ---
@@ -406,11 +405,11 @@ class RiskWeightConfig(BaseModel):
     The aggregator normalises weights so they sum to 1.
     """
 
-    operation_type: float = Field(default=0.25, ge=0.0, description="Weight for OperationTypeScorer")
-    data_sensitivity: float = Field(default=0.25, ge=0.0, description="Weight for DataSensitivityScorer")
-    taint: float = Field(default=0.20, ge=0.0, description="Weight for TaintScorer")
-    session_accumulated: float = Field(default=0.10, ge=0.0, description="Weight for SessionAccumulatedRiskScorer")
-    delegation_depth: float = Field(default=0.20, ge=0.0, description="Weight for DelegationDepthScorer")
+    operation_type: float = Field(default=0.25, ge=0.0)
+    data_sensitivity: float = Field(default=0.25, ge=0.0)
+    taint: float = Field(default=0.20, ge=0.0)
+    session_accumulated: float = Field(default=0.10, ge=0.0)
+    delegation_depth: float = Field(default=0.20, ge=0.0)
 
 
 class RiskModelConfig(BaseModel):
@@ -430,15 +429,19 @@ class RiskModelConfig(BaseModel):
         default=0.7, ge=0.0, le=1.0, description="Score above which ESCALATE is triggered"
     )
     enabled: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class InjectionSignature(BaseModel):
     """A categorised injection signature pattern (APEP-049)."""
 
     signature_id: str = Field(..., description="Unique identifier e.g. INJ-001")
-    category: str = Field(..., description="Category: prompt_override, role_hijack, system_escape, jailbreak, encoding_bypass")
+    category: str = Field(
+        ...,
+        description="Category: prompt_override, role_hijack, "
+        "system_escape, jailbreak, encoding_bypass",
+    )
     pattern: str = Field(..., description="Regex pattern string")
     severity: str = Field(default="HIGH", description="LOW, MEDIUM, HIGH, CRITICAL")
     description: str = Field(default="", description="Human-readable description")
@@ -485,7 +488,7 @@ class AuditDecision(BaseModel):
     decision: Decision
     escalation_id: UUID | None = None
     latency_ms: int = 0
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     # Sprint 10 — APEP-082: SHA-256 hash chain
     previous_hash: str = Field(default="", description="SHA-256 hash of the previous audit record")
     record_hash: str = Field(default="", description="SHA-256 hash of this record (chained)")
@@ -580,8 +583,8 @@ class AgentProfile(BaseModel):
         description="MCP proxy configuration (APEP-102)",
     )
     enabled: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # --- Intercept API Schemas ---
@@ -591,7 +594,10 @@ class ToolCallRequest(BaseModel):
     request_id: UUID = Field(default_factory=uuid4)
     session_id: str
     agent_id: str
-    tenant_id: str = Field(default="default", description="Tenant identifier for global rate limits (APEP-092)")
+    tenant_id: str = Field(
+        default="default",
+        description="Tenant identifier for global rate limits (APEP-092)",
+    )
     tool_name: str
     tool_args: dict[str, Any] = Field(default_factory=dict)
     delegation_chain: list[str] = Field(default_factory=list)
@@ -649,11 +655,11 @@ class EscalationTicket(BaseModel):
     resolution_comment: str = ""
     resolved_by: str | None = None
     sla_deadline: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(UTC),
         description="Deadline before auto-decision applies",
     )
     sla_seconds: int = Field(default=300, description="SLA window in seconds")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     resolved_at: datetime | None = None
 
 
