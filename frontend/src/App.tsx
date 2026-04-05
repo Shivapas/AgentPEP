@@ -11,6 +11,7 @@ import { AgentRegistryList } from "./components/agents/AgentRegistryList";
 import { AgentProfileForm } from "./components/agents/AgentProfileForm";
 import { AgentDetailPage } from "./components/agents/AgentDetailPage";
 import { BulkRoleAssignment } from "./components/agents/BulkRoleAssignment";
+import { RiskDashboard } from "./components/RiskDashboard";
 
 export function App() {
   return (
@@ -54,7 +55,7 @@ export function App() {
                 />
                 <Route
                   path="/risk"
-                  element={<Placeholder title="Risk Map" />}
+                  element={<RiskDashboard />}
                 />
               </Route>
             </Routes>

@@ -10,6 +10,7 @@ from app.api.v1.agents import router as agents_router
 from app.api.v1.audit import router as audit_router
 from app.api.v1.console_auth import router as console_auth_router
 from app.api.v1.console_dashboard import router as console_dashboard_router
+from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.escalation import router as escalation_router
 from app.api.v1.health import router as health_router
 from app.api.v1.intercept import router as intercept_router
@@ -102,6 +103,7 @@ app.include_router(escalation_router)
 app.include_router(mcp_router)
 app.include_router(console_auth_router)
 app.include_router(console_dashboard_router)
+app.include_router(dashboard_router)
 
 # Observability
 if settings.metrics_enabled:
