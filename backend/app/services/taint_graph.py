@@ -234,6 +234,12 @@ class TaintAuditLogger:
         """Record an audit event."""
         with self._lock:
             self._events.append(event)
+
+        # Sprint 26 (APEP-204): increment taint event Prometheus counter
+        from app.core.observability import TAINT_EVENT_TOTAL
+
+        TAINT_EVENT_TOTAL.labels(event_type=event.event_type.value).inc()
+
         logger.debug(
             "Audit event %s: %s node=%s session=%s",
             event.event_type.value,

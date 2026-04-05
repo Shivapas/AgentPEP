@@ -1,0 +1,58 @@
+{{- if .Values.jaeger.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-jaeger
+  labels:
+    app: agentpep
+    component: jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agentpep
+      component: jaeger
+  template:
+    metadata:
+      labels:
+        app: agentpep
+        component: jaeger
+    spec:
+      containers:
+        - name: jaeger
+          image: "{{ .Values.jaeger.image.repository }}:{{ .Values.jaeger.image.tag }}"
+          env:
+            - name: COLLECTOR_OTLP_ENABLED
+              value: "true"
+          ports:
+            - containerPort: 16686
+              name: ui
+            - containerPort: 4317
+              name: otlp-grpc
+            - containerPort: 14268
+              name: collector
+          resources:
+            {{- toYaml .Values.jaeger.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger
+  labels:
+    app: agentpep
+    component: jaeger
+spec:
+  ports:
+    - port: 16686
+      targetPort: ui
+      name: ui
+    - port: 4317
+      targetPort: otlp-grpc
+      name: otlp-grpc
+    - port: 14268
+      targetPort: collector
+      name: collector
+  selector:
+    app: agentpep
+    component: jaeger
+{{- end }}

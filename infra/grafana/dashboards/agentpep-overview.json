@@ -1,0 +1,242 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Decision Rate (per second)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(agentpep_decision_total[5m])) by (decision)",
+          "legendFormat": "{{ decision }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Decision Rate by Agent",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(agentpep_decision_total[5m])) by (agent_id)",
+          "legendFormat": "{{ agent_id }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Latency Percentiles (p50 / p90 / p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(agentpep_decision_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(agentpep_decision_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p90",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(agentpep_decision_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "title": "Latency Percentiles by Tool",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(agentpep_decision_latency_seconds_bucket[5m])) by (le, tool_name))",
+          "legendFormat": "p99 {{ tool_name }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "DENY Heatmap (by Agent × Tool)",
+      "type": "heatmap",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": {
+        "calculate": false,
+        "yAxis": { "axisPlacement": "left" }
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(agentpep_decision_total{decision=\"DENY\"}[5m])) by (agent_id, tool_name)",
+          "legendFormat": "{{ agent_id }} / {{ tool_name }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Escalation Backlog",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "agentpep_escalation_backlog",
+          "legendFormat": "Pending Escalations",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Escalation SLA (resolved within 5m)",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.9 },
+              { "color": "green", "value": 0.95 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "1 - (agentpep_escalation_backlog / clamp_min(sum(rate(agentpep_decision_total{decision=\"ESCALATE\"}[5m])) * 300, 1))",
+          "legendFormat": "SLA %",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Taint Events (per second)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(agentpep_taint_event_total[5m])) by (event_type)",
+          "legendFormat": "{{ event_type }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Security Alerts",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(agentpep_security_alert_total[5m])) by (alert_type, severity)",
+          "legendFormat": "{{ alert_type }} [{{ severity }}]",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Audit Write Latency",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(agentpep_audit_write_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99 audit write",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(agentpep_audit_write_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50 audit write",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Audit Write Success / Failure",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(agentpep_audit_write_total[5m])) by (status)",
+          "legendFormat": "{{ status }}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["agentpep", "observability"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "utc",
+  "title": "AgentPEP Overview",
+  "uid": "agentpep-overview",
+  "version": 1
+}

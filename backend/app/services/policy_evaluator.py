@@ -18,16 +18,23 @@ Sprint 23:
             from the intercept response path via a background queue.
   APEP-186: Adaptive timeouts — uses shorter timeout when rules are cached.
   APEP-187: Optimised risk scorer — inline risk calculation on hot path.
+Sprint 26: adds OpenTelemetry spans (APEP-207) and audit write metrics (APEP-204).
 """
 
 import asyncio
 import hashlib
 import json
-import logging
 import time
 from uuid import UUID
 
 from app.core.config import settings
+from app.core.observability import (
+    AUDIT_WRITE_LATENCY,
+    AUDIT_WRITE_TOTAL,
+    ESCALATION_BACKLOG,
+    get_tracer,
+)
+from app.core.structured_logging import get_logger
 from app.db import mongodb as db_module
 from app.models.policy import (
     AuditDecision,
@@ -49,7 +56,8 @@ from app.services.rule_matcher import rule_matcher
 from app.services.taint_graph import session_graph_manager
 from app.services.validator_pipeline import validator_pipeline
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+tracer = get_tracer(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -270,6 +278,24 @@ class PolicyEvaluator:
 
         # APEP-184: Enqueue audit record (non-blocking)
         self._enqueue_audit(request, decision_response)
+        # Track escalation backlog
+        if decision_response.decision == Decision.ESCALATE:
+            ESCALATION_BACKLOG.inc()
+
+        await self._write_audit_log(request, decision_response)
+
+        logger.info(
+            "policy_decision",
+            decision_id=str(decision_response.request_id),
+            session_id=request.session_id,
+            agent_id=request.agent_id,
+            tool_name=request.tool_name,
+            decision=decision_response.decision.value,
+            latency_ms=decision_response.latency_ms,
+            matched_rule_id=str(decision_response.matched_rule_id) if decision_response.matched_rule_id else None,
+            reason=decision_response.reason,
+        )
+
         return decision_response
 
     @staticmethod
@@ -297,65 +323,81 @@ class PolicyEvaluator:
             )
 
         # --- Confused-deputy check (APEP-060) ---
-        if request.delegation_hops:
-            deputy_ok, deputy_reason = await confused_deputy_detector.evaluate(
-                session_id=request.session_id,
-                agent_id=request.agent_id,
-                tool_name=request.tool_name,
-                delegation_hops=request.delegation_hops,
-            )
-            if not deputy_ok:
-                elapsed_ms = int((time.monotonic() - start) * 1000)
-                # ESCALATE for implicit delegation warnings, DENY for hard violations
-                if deputy_reason.startswith("ESCALATE:"):
+        with tracer.start_as_current_span(
+            "confused_deputy_check",
+            attributes={"agentpep.agent_id": request.agent_id},
+        ):
+            if request.delegation_hops:
+                deputy_ok, deputy_reason = await confused_deputy_detector.evaluate(
+                    session_id=request.session_id,
+                    agent_id=request.agent_id,
+                    tool_name=request.tool_name,
+                    delegation_hops=request.delegation_hops,
+                )
+                if not deputy_ok:
+                    elapsed_ms = int((time.monotonic() - start) * 1000)
+                    # ESCALATE for implicit delegation warnings, DENY for hard violations
+                    if deputy_reason.startswith("ESCALATE:"):
+                        decision = Decision.ESCALATE
+                        reason = deputy_reason[len("ESCALATE: "):]
+                    else:
+                        decision = Decision.DENY
+                        reason = deputy_reason
+
+                    if request.dry_run:
+                        decision = Decision.DRY_RUN
+
+                    return PolicyDecisionResponse(
+                        request_id=request.request_id,
+                        decision=decision,
+                        reason=f"Confused-deputy check: {reason}",
+                        latency_ms=elapsed_ms,
+                    )
+            else:
+                # No explicit delegation — check for implicit delegation (APEP-058)
+                deputy_ok, deputy_reason = await confused_deputy_detector.evaluate(
+                    session_id=request.session_id,
+                    agent_id=request.agent_id,
+                    tool_name=request.tool_name,
+                    delegation_hops=[],
+                )
+                if not deputy_ok and deputy_reason.startswith("ESCALATE:"):
+                    elapsed_ms = int((time.monotonic() - start) * 1000)
                     decision = Decision.ESCALATE
-                    reason = deputy_reason[len("ESCALATE: "):]
-                else:
-                    decision = Decision.DENY
-                    reason = deputy_reason
-
-                if request.dry_run:
-                    decision = Decision.DRY_RUN
-
-                return PolicyDecisionResponse(
-                    request_id=request.request_id,
-                    decision=decision,
-                    reason=f"Confused-deputy check: {reason}",
-                    latency_ms=elapsed_ms,
-                )
-        else:
-            # No explicit delegation — check for implicit delegation (APEP-058)
-            deputy_ok, deputy_reason = await confused_deputy_detector.evaluate(
-                session_id=request.session_id,
-                agent_id=request.agent_id,
-                tool_name=request.tool_name,
-                delegation_hops=[],
-            )
-            if not deputy_ok and deputy_reason.startswith("ESCALATE:"):
-                elapsed_ms = int((time.monotonic() - start) * 1000)
-                decision = Decision.ESCALATE
-                if request.dry_run:
-                    decision = Decision.DRY_RUN
-                return PolicyDecisionResponse(
-                    request_id=request.request_id,
-                    decision=decision,
-                    reason=f"Confused-deputy check: {deputy_reason[len('ESCALATE: '):]}",
-                    latency_ms=elapsed_ms,
-                )
+                    if request.dry_run:
+                        decision = Decision.DRY_RUN
+                    return PolicyDecisionResponse(
+                        request_id=request.request_id,
+                        decision=decision,
+                        reason=f"Confused-deputy check: {deputy_reason[len('ESCALATE: '):]!s}",
+                        latency_ms=elapsed_ms,
+                    )
 
         # Resolve all agent roles (direct + inherited via hierarchy)
-        agent_roles = await role_resolver.resolve_roles(request.agent_id)
+        with tracer.start_as_current_span(
+            "resolve_roles",
+            attributes={"agentpep.agent_id": request.agent_id},
+        ):
+            agent_roles = await role_resolver.resolve_roles(request.agent_id)
 
         # Fetch enabled rules (cached with TTL)
-        rules = await rule_cache.get_rules()
+        with tracer.start_as_current_span("fetch_rules"):
+            rules = await rule_cache.get_rules()
 
         # First-match evaluation via RuleMatcher
-        result = rule_matcher.match(
-            tool_name=request.tool_name,
-            tool_args=request.tool_args,
-            agent_roles=agent_roles,
-            rules=rules,
-        )
+        with tracer.start_as_current_span(
+            "rule_match",
+            attributes={
+                "agentpep.tool_name": request.tool_name,
+                "agentpep.rule_count": len(rules),
+            },
+        ):
+            result = rule_matcher.match(
+                tool_name=request.tool_name,
+                tool_args=request.tool_args,
+                agent_roles=agent_roles,
+                rules=rules,
+            )
 
         elapsed_ms = int((time.monotonic() - start) * 1000)
 
@@ -412,11 +454,15 @@ class PolicyEvaluator:
 
         # --- Taint check (APEP-043) ---
         if matched_rule.taint_check and request.taint_node_ids:
-            taint_decision, taint_flags = self._check_taint(
-                request.session_id, request.taint_node_ids
-            )
-            if taint_decision is not None:
-                decision = taint_decision
+            with tracer.start_as_current_span(
+                "taint_check",
+                attributes={"agentpep.taint_node_count": len(request.taint_node_ids)},
+            ):
+                taint_decision, taint_flags = self._check_taint(
+                    request.session_id, request.taint_node_ids
+                )
+                if taint_decision is not None:
+                    decision = taint_decision
 
         # --- Risk scoring (APEP-070) ---
         risk_score = 0.0
@@ -536,10 +582,19 @@ class PolicyEvaluator:
         uses _enqueue_audit() via AsyncAuditLogWriter (APEP-184).
         """
         db = db_module.get_database()
+        """Write an audit decision record to MongoDB."""
+        with tracer.start_as_current_span(
+            "audit_log_write",
+            attributes={
+                "agentpep.decision_id": str(response.request_id),
+                "agentpep.decision": response.decision.value,
+            },
+        ):
+            db = db_module.get_database()
 
-        args_hash = hashlib.sha256(
-            json.dumps(request.tool_args, sort_keys=True).encode()
-        ).hexdigest()
+            args_hash = hashlib.sha256(
+                json.dumps(request.tool_args, sort_keys=True).encode()
+            ).hexdigest()
 
         audit = AuditDecision(
             session_id=request.session_id,
@@ -574,6 +629,35 @@ class PolicyEvaluator:
             await kafka_producer.publish_decision(audit)
         except Exception:
             logger.debug("Kafka publish skipped for request %s", request.request_id)
+            audit = AuditDecision(
+                session_id=request.session_id,
+                agent_id=request.agent_id,
+                agent_role="unknown",
+                tool_name=request.tool_name,
+                tool_args_hash=args_hash,
+                delegation_chain=request.delegation_chain,
+                matched_rule_id=response.matched_rule_id,
+                decision=response.decision,
+                risk_score=response.risk_score,
+                taint_flags=response.taint_flags,
+                latency_ms=response.latency_ms,
+            )
+
+            audit_start = time.monotonic()
+            try:
+                await db[db_module.AUDIT_DECISIONS].insert_one(
+                    audit.model_dump(mode="json")
+                )
+                AUDIT_WRITE_TOTAL.labels(status="success").inc()
+            except Exception:
+                AUDIT_WRITE_TOTAL.labels(status="failure").inc()
+                logger.warning(
+                    "audit_write_failed",
+                    decision_id=str(response.request_id),
+                    session_id=request.session_id,
+                )
+            finally:
+                AUDIT_WRITE_LATENCY.observe(time.monotonic() - audit_start)
 
 
 # Module-level singleton

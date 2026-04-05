@@ -5,7 +5,6 @@ type: application
 version: 0.1.0
 appVersion: "0.1.0"
 <<<<<<< HEAD
-=======
 keywords:
   - ai
   - authorization
@@ -13,4 +12,9 @@ keywords:
   - agent-security
 maintainers:
   - name: AgentPEP Team
->>>>>>> origin/claude/implement-sprint-25-0mN1o
+=======
+keywords:
+  - ai-safety
+  - authorization
+  - observability
+>>>>>>> origin/claude/implement-sprint-26-iWTKz

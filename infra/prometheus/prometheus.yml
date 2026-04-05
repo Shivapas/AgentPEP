@@ -1,0 +1,28 @@
+# Prometheus configuration for AgentPEP (Sprint 26)
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alerting_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: "agentpep-backend"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["backend:8000"]
+        labels:
+          service: agentpep
+          component: backend
+
+  - job_name: "otel-collector"
+    static_configs:
+      - targets: ["otel-collector:8889"]
+        labels:
+          service: agentpep
+          component: otel-collector
