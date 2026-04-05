@@ -505,6 +505,35 @@ class AuditQueryRequest(BaseModel):
     offset: int = Field(default=0, ge=0)
 
 
+# --- MCP Proxy Configuration (APEP-102) ---
+
+
+class MCPProxyConfig(BaseModel):
+    """MCP proxy configuration for an agent (APEP-102).
+
+    Defines how the MCP intercept proxy connects to the upstream MCP server
+    for this agent and what policy controls apply.
+    """
+
+    enabled: bool = Field(default=False, description="Whether MCP proxy is enabled for this agent")
+    upstream_url: str = Field(
+        default="", description="URL of the target MCP server (e.g. http://localhost:3000/mcp)"
+    )
+    allowed_tools: list[str] = Field(
+        default_factory=list,
+        description="Glob patterns of MCP tools this agent can invoke (empty = use profile-level)",
+    )
+    timeout_s: float = Field(
+        default=30.0, gt=0, description="Timeout for upstream MCP server requests in seconds"
+    )
+    max_concurrent_sessions: int = Field(
+        default=10, ge=1, description="Max concurrent MCP proxy sessions for this agent"
+    )
+    taint_tracking_enabled: bool = Field(
+        default=True, description="Whether taint tracking is active for MCP sessions"
+    )
+
+
 # --- Agent Profile ---
 
 
@@ -518,6 +547,10 @@ class AgentProfile(BaseModel):
     risk_budget: float = Field(default=1.0, ge=0.0, le=1.0)
     max_delegation_depth: int = Field(default=5, ge=1)
     session_limit: int = Field(default=100, ge=1)
+    mcp_proxy: MCPProxyConfig = Field(
+        default_factory=MCPProxyConfig,
+        description="MCP proxy configuration (APEP-102)",
+    )
     enabled: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

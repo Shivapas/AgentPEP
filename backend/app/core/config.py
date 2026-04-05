@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     # Audit Engine (Sprint 10)
     audit_capped_collection_size: int = 1_073_741_824  # 1 GB default
     audit_capped_collection_max_docs: int = 10_000_000  # 10M docs max
+    # MCP Proxy (Sprint 12)
+    mcp_proxy_enabled: bool = False
+    mcp_proxy_default_timeout_s: float = 30.0
 
     model_config = {"env_prefix": "AGENTPEP_"}
 
