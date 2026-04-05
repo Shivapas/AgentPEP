@@ -1,0 +1,151 @@
+# AgentPEP — GCP Marketplace Listing Configuration
+# Reference: https://cloud.google.com/marketplace/docs/partners/kubernetes/create-app
+
+product:
+  name: "AgentPEP — Agent Policy Enforcement Point"
+  short_description: >
+    Deterministic runtime authorization engine for AI agent systems.
+    Intercepts every tool call and evaluates it against RBAC, taint tracking,
+    and confused-deputy detection policies.
+  long_description: >
+    AgentPEP is a deterministic authorization engine purpose-built for AI agent
+    systems. It sits at the execution boundary — after the LLM decides but
+    before any action is taken — and enforces hard policy limits that cannot be
+    bypassed by adversarial prompt engineering.
+
+    Key capabilities:
+    - Intercept API (REST + gRPC) for real-time policy decisions
+    - Role-based access control with risk-adaptive scoring
+    - Session-scoped taint tracking with sanitisation gates
+    - Confused-deputy detection across multi-agent delegation chains
+    - Python SDK with LangChain and LangGraph integrations
+    - Sub-5ms median decision latency at 10K+ decisions/second
+
+  product_category: "Security & Identity"
+  solution_type: "Kubernetes Application"
+  search_keywords:
+    - ai agent security
+    - llm authorization
+    - agent policy enforcement
+    - rbac for ai agents
+    - taint tracking
+    - confused deputy detection
+    - agentic ai guardrails
+
+  icon_url: "gs://agentpep-marketplace-assets/logo-256x256.png"
+  tagline: "The deterministic last line of defense for AI agent systems"
+
+publisher:
+  name: "TrustFabric"
+  id: "trustfabric"
+  contact_email: "gcp-marketplace@trustfabric.example.com"
+  support_url: "https://support.trustfabric.example.com"
+
+fulfillment:
+  type: "KUBERNETES"
+  delivery:
+    gcr_repository: "gcr.io/trustfabric-prod/agentpep"
+    image_tags:
+      - "1.0.0"
+      - "latest"
+    deployer_image: "gcr.io/trustfabric-prod/agentpep/deployer:1.0.0"
+
+  architecture:
+    - "x86_64"
+    - "arm64"
+
+  deployment:
+    supported_services:
+      - "Google Kubernetes Engine (GKE)"
+      - "GKE Autopilot"
+      - "Anthos"
+    requirements:
+      - "MongoDB 7.0+ (MongoDB Atlas on GCP compatible)"
+      - "Kafka 3.x+ (Confluent Cloud on GCP compatible)"
+      - "GKE 1.28+ or Anthos"
+
+  application_config:
+    parameters:
+      - name: "AGENTPEP_MONGODB_URL"
+        title: "MongoDB Connection String"
+        description: "MongoDB or DocumentDB connection string"
+        type: "string"
+        required: true
+      - name: "AGENTPEP_AUTH_ENABLED"
+        title: "Enable API Key Authentication"
+        description: "Require X-API-Key header on all requests"
+        type: "boolean"
+        default: true
+      - name: "AGENTPEP_GRPC_ENABLED"
+        title: "Enable gRPC Interface"
+        description: "Enable the gRPC policy decision endpoint"
+        type: "boolean"
+        default: false
+      - name: "replicas"
+        title: "Replica Count"
+        description: "Number of AgentPEP backend replicas"
+        type: "integer"
+        default: 3
+
+pricing:
+  model: "USAGE_BASED"
+  metrics:
+    - name: "agentpep_decisions"
+      display_name: "Policy Decisions"
+      metric_kind: "DELTA"
+      value_type: "INT64"
+      unit: "decisions"
+      description: "Number of intercept API calls processed"
+
+  plans:
+    - name: "team"
+      display_name: "Team"
+      description: "Up to 500K decisions/month, 25 agents"
+      price_monthly_usd: 499
+      included_decisions: 500000
+      overage_per_1000: 1.50
+
+    - name: "business"
+      display_name: "Business"
+      description: "Up to 5M decisions/month, 100 agents"
+      price_monthly_usd: 2499
+      included_decisions: 5000000
+      overage_per_1000: 0.75
+
+    - name: "enterprise"
+      display_name: "Enterprise"
+      description: "Unlimited decisions, dedicated support"
+      price_monthly_usd: null  # custom pricing
+      included_decisions: null  # unlimited
+
+  free_trial:
+    enabled: true
+    duration_days: 30
+    plan: "business"
+
+support:
+  tiers:
+    - name: "Standard"
+      included_in: ["team", "business"]
+      response_time: "48 hours (Team) / 8 hours (Business)"
+      channels: ["email", "support portal"]
+    - name: "Premium"
+      included_in: ["enterprise"]
+      response_time: "1 hour (P0)"
+      channels: ["email", "support portal", "dedicated Slack", "phone"]
+
+regions:
+  initial_launch:
+    - "us-central1"
+    - "us-east1"
+    - "europe-west1"
+  planned:
+    - "asia-southeast1"
+    - "europe-west3"
+    - "asia-northeast1"
+
+compliance:
+  certifications:
+    - "SOC 2 Type II"
+  data_residency: "Tenant data remains in the deployment region."
+  gdpr: "Data Processing Addendum available."
