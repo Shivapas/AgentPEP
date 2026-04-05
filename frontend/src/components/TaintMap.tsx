@@ -5,7 +5,7 @@
 import * as d3 from "d3";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTaintMap } from "../hooks/useTaintMap";
-import type { VisualisationNode } from "../types/taint";
+import type { VisualisationNode, TaintVisEdge } from "../types/taint";
 
 const TAINT_COLORS: Record<string, string> = {
   TRUSTED: "#22c55e",
@@ -105,7 +105,7 @@ export function TaintMap() {
     const height = svgRef.current.clientHeight || 500;
 
     // Build simulation data
-    const simNodes: SimNode[] = data.nodes.map((n) => ({
+    const simNodes: SimNode[] = data.nodes.map((n: VisualisationNode) => ({
       id: n.id,
       label: n.label,
       taint_level: n.taint_level,
@@ -117,8 +117,8 @@ export function TaintMap() {
     const nodeMap = new Map(simNodes.map((n) => [n.id, n]));
 
     const simLinks: SimLink[] = data.edges
-      .filter((e) => nodeMap.has(e.source) && nodeMap.has(e.target))
-      .map((e) => ({
+      .filter((e: TaintVisEdge) => nodeMap.has(e.source) && nodeMap.has(e.target))
+      .map((e: TaintVisEdge) => ({
         source: e.source,
         target: e.target,
         label: e.label,
@@ -230,7 +230,7 @@ export function TaintMap() {
 
     // Click handler for drill-down (APEP-149)
     node.on("click", (_event, d) => {
-      const original = data.nodes.find((n) => n.id === d.id);
+      const original = data.nodes.find((n: VisualisationNode) => n.id === d.id);
       if (original) setSelectedNode(original);
     });
 
@@ -286,7 +286,7 @@ export function TaintMap() {
                 className="mr-1 inline-block h-2.5 w-2.5 rounded-full"
                 style={{ backgroundColor: TAINT_COLORS[lvl] || "#999" }}
               />
-              {lvl}: {cnt}
+              {lvl}: {cnt as number}
             </span>
           ))}
         </div>
