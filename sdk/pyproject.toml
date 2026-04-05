@@ -1,7 +1,7 @@
 [project]
 name = "agentpep-sdk"
 version = "0.1.0"
-description = "AgentPEP Python SDK — Enforce decorator, LangChain integration, taint labelling"
+description = "AgentPEP Python SDK — Enforce decorator, LangChain, CrewAI, Semantic Kernel integration, taint labelling"
 requires-python = ">=3.11"
 dependencies = [
     "httpx>=0.27.0",
@@ -17,6 +17,12 @@ openai-agents = [
 ]
 autogen = [
     "pyautogen>=0.2.0",
+]
+crewai = [
+    "crewai>=0.80.0",
+]
+semantic-kernel = [
+    "semantic-kernel>=1.0.0",
 ]
 fastapi = [
     "starlette>=0.40.0",
