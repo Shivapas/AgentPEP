@@ -13,6 +13,7 @@ import threading
 from datetime import datetime, timedelta
 from uuid import UUID
 
+from app.core.observability import ESCALATION_BACKLOG
 from app.models.policy import EscalationStatus, EscalationTicket
 
 logger = logging.getLogger(__name__)
@@ -92,12 +93,18 @@ class EscalationManager:
             ticket = self._tickets.get(ticket_id)
             if ticket is None:
                 return None
+            # Atomic check-and-set: only resolve if still PENDING
             if ticket.status != EscalationStatus.PENDING:
-                return ticket  # already resolved
+                return ticket  # already resolved — no-op
+            # Atomically update under the lock (equivalent to findOneAndUpdate
+            # with state=PENDING condition for in-memory store)
             ticket.status = action
             ticket.resolution_comment = comment
             ticket.resolved_by = resolved_by
             ticket.resolved_at = datetime.utcnow()
+            # Store the updated ticket back to guarantee atomic visibility
+            self._tickets[ticket_id] = ticket
+        ESCALATION_BACKLOG.dec()
         self._broadcast({
             "type": "ticket_resolved",
             "ticket_id": str(ticket_id),
@@ -125,6 +132,7 @@ class EscalationManager:
                     ticket.resolved_at = datetime.utcnow()
                     resolved.append(ticket)
         if resolved:
+            ESCALATION_BACKLOG.dec(len(resolved))
             self._broadcast({
                 "type": "bulk_approved",
                 "count": len(resolved),
@@ -145,6 +153,8 @@ class EscalationManager:
                     ticket.resolved_by = "system"
                     ticket.resolved_at = now
                     expired.append(ticket)
+        if expired:
+            ESCALATION_BACKLOG.dec(len(expired))
         for ticket in expired:
             self._broadcast({
                 "type": "sla_expired",

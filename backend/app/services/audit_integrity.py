@@ -124,6 +124,16 @@ class AuditIntegrityVerifier:
         broken_links: list[dict[str, Any]] = []
         records_checked = 0
 
+        # Fetch the corresponding audit records so we can recompute chain hashes
+        decision_ids = [e["decision_id"] for e in entries]
+        audit_records_by_id: dict[str, dict[str, Any]] = {}
+        if decision_ids:
+            audit_cursor = db[db_module.AUDIT_DECISIONS].find(
+                {"decision_id": {"$in": decision_ids}}
+            )
+            async for arec in audit_cursor:
+                audit_records_by_id[str(arec.get("decision_id", ""))] = arec
+
         for i, entry in enumerate(entries):
             records_checked += 1
 
@@ -138,6 +148,26 @@ class AuditIntegrityVerifier:
                             "expected_previous": "GENESIS",
                             "actual_previous": entry["previous_hash"],
                         })
+                # Recompute chain_hash for the first entry as well
+                prev_hash = entry.get("previous_hash", "GENESIS")
+                audit_rec = audit_records_by_id.get(entry["decision_id"], {})
+                recomputed = self.compute_record_hash(
+                    previous_hash=prev_hash,
+                    decision_id=str(audit_rec.get("decision_id", entry["decision_id"])),
+                    session_id=str(audit_rec.get("session_id", "")),
+                    agent_id=str(audit_rec.get("agent_id", "")),
+                    tool_name=str(audit_rec.get("tool_name", "")),
+                    decision=str(audit_rec.get("decision", "")),
+                    timestamp=str(audit_rec.get("timestamp", "")),
+                )
+                if entry["chain_hash"] != recomputed:
+                    broken_links.append({
+                        "sequence": entry["sequence"],
+                        "decision_id": entry["decision_id"],
+                        "expected_chain_hash": recomputed,
+                        "actual_chain_hash": entry["chain_hash"],
+                        "reason": "chain_hash does not match recomputed value",
+                    })
                 continue
 
             # Verify that this entry's previous_hash matches the prior entry's chain_hash
@@ -148,6 +178,26 @@ class AuditIntegrityVerifier:
                     "decision_id": entry["decision_id"],
                     "expected_previous": prev_entry["chain_hash"],
                     "actual_previous": entry["previous_hash"],
+                })
+
+            # Recompute chain_hash from the audit record to detect content tampering
+            audit_rec = audit_records_by_id.get(entry["decision_id"], {})
+            recomputed = self.compute_record_hash(
+                previous_hash=entry["previous_hash"],
+                decision_id=str(audit_rec.get("decision_id", entry["decision_id"])),
+                session_id=str(audit_rec.get("session_id", "")),
+                agent_id=str(audit_rec.get("agent_id", "")),
+                tool_name=str(audit_rec.get("tool_name", "")),
+                decision=str(audit_rec.get("decision", "")),
+                timestamp=str(audit_rec.get("timestamp", "")),
+            )
+            if entry["chain_hash"] != recomputed:
+                broken_links.append({
+                    "sequence": entry["sequence"],
+                    "decision_id": entry["decision_id"],
+                    "expected_chain_hash": recomputed,
+                    "actual_chain_hash": entry["chain_hash"],
+                    "reason": "chain_hash does not match recomputed value",
                 })
 
         verified = len(broken_links) == 0

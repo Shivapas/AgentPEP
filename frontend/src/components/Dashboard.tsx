@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { apiFetch } from "../lib/api";
 
 interface DashboardStats {
   policy_rules: number;
@@ -25,7 +26,7 @@ export function Dashboard() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const resp = await fetch("/api/v1/stats");
+      const resp = await apiFetch("/v1/stats");
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = (await resp.json()) as DashboardStats;
       setStats(data);
@@ -127,7 +128,7 @@ function RecentDecisions() {
   useEffect(() => {
     const load = async () => {
       try {
-        const resp = await fetch("/api/v1/audit?limit=10");
+        const resp = await apiFetch("/v1/audit?limit=10");
         if (!resp.ok) return;
         const data = (await resp.json()) as { items: AuditEntry[] };
         setDecisions(data.items ?? []);

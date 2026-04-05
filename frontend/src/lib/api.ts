@@ -4,6 +4,106 @@ const BASE =
   (import.meta.env.VITE_API_URL as string | undefined) ??
   `http://${window.location.hostname}:8000`;
 
+const TOKEN_KEY = "agentpep_access_token";
+const REFRESH_KEY = "agentpep_refresh_token";
+
+let _accessToken: string | null = null;
+let _refreshToken: string | null = null;
+let _onAuthFailure: (() => void) | null = null;
+
+export function getAccessToken(): string | null {
+  return _accessToken;
+}
+
+export function loadTokens(): void {
+  _accessToken = localStorage.getItem(TOKEN_KEY);
+  _refreshToken = localStorage.getItem(REFRESH_KEY);
+}
+
+export function clearTokens(): void {
+  _accessToken = null;
+  _refreshToken = null;
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_KEY);
+}
+
+function saveTokens(access: string, refresh: string): void {
+  _accessToken = access;
+  _refreshToken = refresh;
+  localStorage.setItem(TOKEN_KEY, access);
+  localStorage.setItem(REFRESH_KEY, refresh);
+}
+
+export function setOnAuthFailure(cb: () => void): void {
+  _onAuthFailure = cb;
+}
+
+/** Authenticated fetch wrapper that attaches Authorization + X-API-Key headers. */
+export async function apiFetch(
+  path: string,
+  init?: RequestInit,
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init?.headers as Record<string, string> | undefined),
+  };
+  if (_accessToken) {
+    headers["Authorization"] = `Bearer ${_accessToken}`;
+    headers["X-API-Key"] = _accessToken;
+  }
+  const res = await fetch(`${BASE}${path}`, { ...init, headers });
+  if (res.status === 401 && _refreshToken) {
+    // Attempt token refresh
+    const refreshRes = await fetch(`${BASE}/v1/console/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: _refreshToken }),
+    });
+    if (refreshRes.ok) {
+      const data = await refreshRes.json();
+      saveTokens(data.access_token, data.refresh_token);
+      headers["Authorization"] = `Bearer ${data.access_token}`;
+      headers["X-API-Key"] = data.access_token;
+      return fetch(`${BASE}${path}`, { ...init, headers });
+    }
+    clearTokens();
+    _onAuthFailure?.();
+  }
+  return res;
+}
+
+export async function login(
+  username: string,
+  password: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${BASE}/v1/console/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { success: false, error: body.detail ?? `HTTP ${res.status}` };
+    }
+    const data = await res.json();
+    saveTokens(data.access_token, data.refresh_token);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
+export async function logout(): Promise<void> {
+  if (_accessToken) {
+    await fetch(`${BASE}/v1/console/logout`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${_accessToken}` },
+    }).catch(() => {});
+  }
+  clearTokens();
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { "Content-Type": "application/json" },

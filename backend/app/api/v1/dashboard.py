@@ -17,7 +17,7 @@ from typing import Any
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
-from app.db.mongodb import AUDIT_DECISIONS, get_database
+from app.db.mongodb import AUDIT_DECISIONS, API_KEYS, get_database
 
 logger = logging.getLogger(__name__)
 
@@ -392,6 +392,26 @@ async def dashboard_ws(websocket: WebSocket) -> None:
     Clients connect and receive periodic dashboard summary pushes,
     or can send a JSON message with {"window": "1h"} to change their window.
     """
+    # Authenticate before accepting the connection
+    token = websocket.query_params.get("token")
+    api_key = websocket.query_params.get("api_key")
+    if api_key:
+        db = get_database()
+        key_record = await db[API_KEYS].find_one({"key": api_key, "enabled": True})
+        if not key_record:
+            await websocket.close(code=4003, reason="Invalid API key")
+            return
+    elif token:
+        from app.services.jwt_auth import decode_token
+
+        payload = decode_token(token)
+        if payload is None or payload.get("type") != "access":
+            await websocket.close(code=4001, reason="Invalid or expired token")
+            return
+    else:
+        await websocket.close(code=4001, reason="Authentication required: provide token or api_key query param")
+        return
+
     await websocket.accept()
     _ws_connections.add(websocket)
     try:
@@ -435,7 +455,7 @@ async def broadcast_dashboard_update(window: TimeWindow = TimeWindow.TWENTY_FOUR
     )
     data = summary.model_dump()
     dead: set[WebSocket] = set()
-    for ws in _ws_connections:
+    for ws in list(_ws_connections):
         try:
             await ws.send_json(data)
         except Exception:

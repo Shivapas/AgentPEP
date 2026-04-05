@@ -16,9 +16,7 @@ from agentpep.models import PolicyDecision
 logger = logging.getLogger(__name__)
 
 try:
-    from semantic_kernel.filters import FunctionInvocationContext
     from semantic_kernel.filters.filter_types import FilterTypes  # noqa: F401
-    from semantic_kernel.functions import KernelFunction
 
     _HAS_SK = True
 except ImportError:  # pragma: no cover

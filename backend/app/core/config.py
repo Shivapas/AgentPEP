@@ -1,13 +1,17 @@
 """Application configuration loaded from environment variables."""
 
+import logging
+
 from pydantic_settings import BaseSettings
+
+_config_logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
     """AgentPEP backend configuration."""
 
     app_name: str = "AgentPEP"
-    app_version: str = "0.1.0"
+    app_version: str = "1.0.0"
     debug: bool = False
 
     # MongoDB
@@ -109,3 +113,9 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+if settings.jwt_secret == "change-me-in-production":
+    _config_logger.warning(
+        "JWT secret is set to the insecure default value. "
+        "Set AGENTPEP_JWT_SECRET to a strong random string before deploying to production."
+    )

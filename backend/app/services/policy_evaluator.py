@@ -80,7 +80,7 @@ class AsyncAuditLogWriter:
     ) -> None:
         self._batch_size = batch_size or settings.audit_log_batch_size
         self._flush_interval_s = flush_interval_s or settings.audit_log_flush_interval_s
-        self._queue: asyncio.Queue[dict] = asyncio.Queue()
+        self._queue: asyncio.Queue[dict] = asyncio.Queue(maxsize=10000)
         self._task: asyncio.Task | None = None  # type: ignore[type-arg]
         self._running = False
 
@@ -311,7 +311,11 @@ class PolicyEvaluator:
         """Core evaluation logic: resolve roles, fetch cached rules, match, decide."""
 
         # --- Global per-tenant rate limit (APEP-092) ---
-        global_rl = await rate_limiter.check_global_rate_limit(request.tenant_id)
+        # NOTE: tenant_id should be validated from the auth context (middleware).
+        # If an authenticated tenant_id is available, prefer it over the
+        # client-supplied value to prevent tenant ID spoofing.
+        tenant_id = getattr(request, "_authenticated_tenant_id", None) or request.tenant_id
+        global_rl = await rate_limiter.check_global_rate_limit(tenant_id)
         if not global_rl.allowed:
             elapsed_ms = int((time.monotonic() - start) * 1000)
             decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
@@ -413,23 +417,9 @@ class PolicyEvaluator:
         matched_rule = result.rule
         assert matched_rule is not None
 
-        # --- Validator pipeline (APEP-093/094/095/096) ---
-        if matched_rule.arg_validators:
-            validation = validator_pipeline.validate(
-                request.tool_args, matched_rule.arg_validators
-            )
-            if not validation.passed:
-                elapsed_ms = int((time.monotonic() - start) * 1000)
-                decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
-                return PolicyDecisionResponse(
-                    request_id=request.request_id,
-                    decision=decision,
-                    matched_rule_id=matched_rule.rule_id,
-                    reason=f"Validator pipeline failed: {validation.reason}",
-                    latency_ms=elapsed_ms,
-                )
-
         # --- Per-rule rate limit check (APEP-090/091) ---
+        # Rate limiting runs BEFORE the validator pipeline to prevent
+        # resource exhaustion via repeated invalid requests.
         if matched_rule.rate_limit is not None:
             # Use the first matching agent role for the rate limit key
             rl_role = agent_roles[0] if agent_roles else request.agent_id
@@ -446,6 +436,22 @@ class PolicyEvaluator:
                     decision=decision,
                     matched_rule_id=matched_rule.rule_id,
                     reason=rl_result.reason,
+                    latency_ms=elapsed_ms,
+                )
+
+        # --- Validator pipeline (APEP-093/094/095/096) ---
+        if matched_rule.arg_validators:
+            validation = validator_pipeline.validate(
+                request.tool_args, matched_rule.arg_validators
+            )
+            if not validation.passed:
+                elapsed_ms = int((time.monotonic() - start) * 1000)
+                decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
+                return PolicyDecisionResponse(
+                    request_id=request.request_id,
+                    decision=decision,
+                    matched_rule_id=matched_rule.rule_id,
+                    reason=f"Validator pipeline failed: {validation.reason}",
                     latency_ms=elapsed_ms,
                 )
 

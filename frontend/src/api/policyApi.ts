@@ -24,6 +24,14 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     const text = await res.text().catch(() => "");
     throw new Error(`API ${res.status}: ${text}`);
   }
+  // 204 No Content or empty body — nothing to parse
+  if (
+    res.status === 204 ||
+    res.headers.get("content-length") === "0" ||
+    !res.headers.get("content-type")?.includes("application/json")
+  ) {
+    return undefined as unknown as T;
+  }
   return res.json() as Promise<T>;
 }
 

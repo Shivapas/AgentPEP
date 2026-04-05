@@ -127,9 +127,14 @@ async def me(user: dict = Depends(get_current_user)):
 async def seed_admin():
     """Create a default admin user if none exists. For development only."""
     db = db_module.get_database()
-    existing = await db[CONSOLE_USERS].find_one({"username": "admin"})
-    if existing:
-        return {"message": "Admin user already exists"}
+
+    # First-run protection: only allow seeding when no admin users exist at all
+    admin_count = await db[CONSOLE_USERS].count_documents({"roles": "Admin"})
+    if admin_count > 0:
+        raise HTTPException(
+            status_code=403,
+            detail="Seed endpoint is only available when no admin users exist",
+        )
 
     await db[CONSOLE_USERS].insert_one(
         {

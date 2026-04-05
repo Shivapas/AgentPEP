@@ -77,17 +77,21 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if "Server" in response.headers:
             del response.headers["Server"]
 
-        # CSRF: Set CSRF token cookie for browser-based console
+        # CSRF: Set CSRF token cookie for browser-based console.
+        # Only set the cookie if not already present to prevent an attacker
+        # from forcing a fresh token on every GET request (CSRF bypass vector).
         if request.url.path.startswith("/v1/") and request.method in ("GET", "HEAD"):
-            csrf_token = secrets.token_hex(32)
-            response.set_cookie(
-                key="agentpep_csrf",
-                value=csrf_token,
-                httponly=False,  # JS needs to read it
-                samesite="strict",
-                secure=True,
-                max_age=3600,
-            )
+            existing_csrf = request.cookies.get("agentpep_csrf")
+            if not existing_csrf:
+                csrf_token = secrets.token_hex(32)
+                response.set_cookie(
+                    key="agentpep_csrf",
+                    value=csrf_token,
+                    httponly=False,  # JS needs to read it
+                    samesite="strict",
+                    secure=True,
+                    max_age=3600,
+                )
 
         return response
 

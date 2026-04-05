@@ -57,14 +57,19 @@ async def intercept(request: ToolCallRequest) -> PolicyDecisionResponse:
         POLICY_EVALUATIONS.labels(result=decision_val).inc()
 
         # Record Sprint 26 enhanced metrics (APEP-204)
+        # Use bounded label values to prevent unbounded cardinality from
+        # high-cardinality fields like agent_id and tool_name.  Replace
+        # raw values with "other" if they are not in a known allowlist,
+        # or omit them entirely.  For now, use only the decision label
+        # which has a small fixed set of values.
         DECISION_TOTAL.labels(
             decision=response.decision.value,
-            agent_id=request.agent_id,
-            tool_name=request.tool_name,
+            agent_id="__all__",
+            tool_name="__all__",
         ).inc()
         DECISION_LATENCY.labels(
-            agent_id=request.agent_id,
-            tool_name=request.tool_name,
+            agent_id="__all__",
+            tool_name="__all__",
         ).observe(elapsed)
 
         # Enrich span with decision outcome

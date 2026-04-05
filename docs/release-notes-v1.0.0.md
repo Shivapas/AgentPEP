@@ -114,7 +114,7 @@ All configuration via environment variables with the `AGENTPEP_` prefix:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `AGENTPEP_MONGODB_URL` | `mongodb://localhost:27017` | MongoDB connection string |
-| `AGENTPEP_AUTH_ENABLED` | `true` | Enable API key authentication |
+| `AGENTPEP_AUTH_ENABLED` | `false` | Enable API key authentication (recommended to enable in production) |
 | `AGENTPEP_MTLS_ENABLED` | `false` | Enable mTLS for service-to-service |
 | `AGENTPEP_GRPC_ENABLED` | `false` | Enable gRPC interface |
 | `AGENTPEP_METRICS_ENABLED` | `true` | Enable Prometheus metrics |

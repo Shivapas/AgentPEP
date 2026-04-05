@@ -55,36 +55,36 @@ jobs:
 
       - name: Run simulation test vectors via pytest
         env:
-          MONGODB_URL: mongodb://localhost:27017
-          MONGODB_DB_NAME: agentpep_ci
-          AUTH_ENABLED: "false"
-          MTLS_ENABLED: "false"
+          AGENTPEP_MONGODB_URL: mongodb://localhost:27017
+          AGENTPEP_MONGODB_DB_NAME: agentpep_ci
+          AGENTPEP_AUTH_ENABLED: "false"
+          AGENTPEP_MTLS_ENABLED: "false"
         run: |
           cd backend
           python -m pytest tests/test_sprint19_simulation.py -v --tb=short
 
       - name: Run simulation API health check
         env:
-          MONGODB_URL: mongodb://localhost:27017
-          MONGODB_DB_NAME: agentpep_ci
-          AUTH_ENABLED: "false"
-          MTLS_ENABLED: "false"
+          AGENTPEP_MONGODB_URL: mongodb://localhost:27017
+          AGENTPEP_MONGODB_DB_NAME: agentpep_ci
+          AGENTPEP_AUTH_ENABLED: "false"
+          AGENTPEP_MTLS_ENABLED: "false"
         run: |
           cd backend
           python -c "
-          import asyncio
-          from app.services.simulation_engine import simulation_engine
-          from app.models.policy import ToolCallRequest
-          req = ToolCallRequest(
-              session_id='ci-test',
-              agent_id='ci-agent',
-              tool_name='test.tool',
-              dry_run=True,
-          )
-          result = asyncio.run(simulation_engine.simulate(req))
-          print(f'Simulation decision: {result.decision.value}')
-          print(f'Steps: {len(result.steps)}')
-          print('CI simulation health check passed')
+import asyncio
+from app.services.simulation_engine import simulation_engine
+from app.models.policy import ToolCallRequest
+req = ToolCallRequest(
+    session_id='ci-test',
+    agent_id='ci-agent',
+    tool_name='test.tool',
+    dry_run=True,
+)
+result = asyncio.run(simulation_engine.simulate(req))
+print(f'Simulation decision: {result.decision.value}')
+print(f'Steps: {len(result.steps)}')
+print('CI simulation health check passed')
           "
 
       - name: Post simulation results as PR comment

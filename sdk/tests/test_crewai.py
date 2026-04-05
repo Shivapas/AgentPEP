@@ -10,7 +10,6 @@ Covers:
 import pytest
 import httpx
 import respx
-from unittest.mock import MagicMock
 
 from agentpep.client import AgentPEPClient
 from agentpep.exceptions import PolicyDeniedError

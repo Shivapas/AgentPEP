@@ -60,7 +60,17 @@ class RuleCache:
             )
             # Test connectivity
             await self._redis.ping()
-            logger.info("Redis policy cache connected: %s", settings.redis_url)
+            # Redact credentials from the URL before logging to avoid leaking secrets
+            from urllib.parse import urlparse
+            parsed_url = urlparse(settings.redis_url)
+            if parsed_url.password:
+                redacted_url = parsed_url._replace(
+                    netloc=f"{parsed_url.username or ''}:***@{parsed_url.hostname}"
+                    + (f":{parsed_url.port}" if parsed_url.port else "")
+                ).geturl()
+            else:
+                redacted_url = settings.redis_url
+            logger.info("Redis policy cache connected: %s", redacted_url)
         except Exception:
             logger.warning("Redis unavailable — falling back to in-memory only")
             self._redis = None

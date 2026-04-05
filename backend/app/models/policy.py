@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # --- Enums ---
@@ -344,6 +344,34 @@ class NotificationConfig(BaseModel):
     slack_webhook_url: str | None = None
     slack_channel: str | None = None
     enabled: bool = True
+
+    @field_validator("email_webhook_url", "slack_webhook_url", mode="before")
+    @classmethod
+    def _validate_webhook_url(cls, v: str | None) -> str | None:
+        """Only allow HTTPS URLs and block private/internal IP ranges to prevent SSRF."""
+        if v is None or v == "":
+            return v
+        from urllib.parse import urlparse
+        import ipaddress
+
+        parsed = urlparse(v)
+        if parsed.scheme != "https":
+            raise ValueError(f"Webhook URL must use HTTPS scheme, got '{parsed.scheme}'")
+
+        hostname = parsed.hostname or ""
+        # Block private/internal IP ranges
+        try:
+            addr = ipaddress.ip_address(hostname)
+            if addr.is_private or addr.is_loopback or addr.is_reserved or addr.is_link_local:
+                raise ValueError(
+                    f"Webhook URL must not point to private/internal IP: {hostname}"
+                )
+        except ValueError as exc:
+            if "private" in str(exc) or "HTTPS" in str(exc):
+                raise
+            # hostname is not an IP literal — that's fine (it's a domain name)
+
+        return v
 
 
 class SecurityAlertEvent(BaseModel):

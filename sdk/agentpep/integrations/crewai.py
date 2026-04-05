@@ -16,11 +16,10 @@ from agentpep.models import PolicyDecision
 logger = logging.getLogger(__name__)
 
 try:
-    from crewai.tools import BaseTool as CrewAIBaseTool
+    from crewai.tools import BaseTool as _CrewAIBaseTool  # noqa: F401
 
     _HAS_CREWAI = True
 except ImportError:  # pragma: no cover
-    CrewAIBaseTool = None  # type: ignore[assignment,misc]
     _HAS_CREWAI = False
 
 

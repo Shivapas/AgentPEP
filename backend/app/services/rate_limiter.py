@@ -64,34 +64,40 @@ class RateLimiter:
         now = datetime.now(timezone.utc)
         window_start = now - timedelta(seconds=rate_limit.window_s)
 
-        # Count existing invocations within the window
-        count = await collection.count_documents(
+        # Atomic increment: use findOneAndUpdate with upsert to atomically
+        # insert/increment a counter for this window, avoiding the race
+        # condition of a separate count-then-insert.
+        bucket_key = f"{key}:{int(now.timestamp())}"
+        result = await collection.find_one_and_update(
             {"key": key, "window_start": {"$gte": window_start}},
+            {
+                "$inc": {"count": 1},
+                "$setOnInsert": {
+                    "key": key,
+                    "window_start": now,
+                    "expires_at": now + timedelta(seconds=rate_limit.window_s),
+                },
+            },
+            upsert=True,
+            return_document=True,
         )
 
-        if count >= rate_limit.count:
+        current_count = result.get("count", 1) if result else 1
+
+        if current_count > rate_limit.count:
             return RateLimitResult(
                 allowed=False,
                 reason=(
                     f"Sliding window rate limit exceeded for role={agent_role} "
-                    f"tool={tool_name}: {count}/{rate_limit.count} in {rate_limit.window_s}s"
+                    f"tool={tool_name}: {current_count}/{rate_limit.count} in {rate_limit.window_s}s"
                 ),
-                current_count=count,
+                current_count=current_count,
                 limit=rate_limit.count,
             )
 
-        # Record this invocation
-        await collection.insert_one(
-            {
-                "key": key,
-                "window_start": now,
-                "expires_at": now + timedelta(seconds=rate_limit.window_s),
-            }
-        )
-
         return RateLimitResult(
             allowed=True,
-            current_count=count + 1,
+            current_count=current_count,
             limit=rate_limit.count,
         )
 

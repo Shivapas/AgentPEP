@@ -10,10 +10,11 @@ import hashlib
 import io
 import json
 import logging
+import re
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from app.db import mongodb as db_module
@@ -47,7 +48,7 @@ def _build_filter(
     if agent_id:
         f["agent_id"] = agent_id
     if tool_name:
-        f["tool_name"] = {"$regex": tool_name, "$options": "i"}
+        f["tool_name"] = {"$regex": re.escape(tool_name), "$options": "i"}
     if decision:
         f["decision"] = decision.value
     if risk_min is not None or risk_max is not None:
@@ -65,11 +66,12 @@ def _build_filter(
             ts["$lte"] = end_time
         f["timestamp"] = ts
     if search:
+        escaped_search = re.escape(search)
         f["$or"] = [
-            {"agent_id": {"$regex": search, "$options": "i"}},
-            {"tool_name": {"$regex": search, "$options": "i"}},
-            {"decision": {"$regex": search, "$options": "i"}},
-            {"session_id": {"$regex": search, "$options": "i"}},
+            {"agent_id": {"$regex": escaped_search, "$options": "i"}},
+            {"tool_name": {"$regex": escaped_search, "$options": "i"}},
+            {"decision": {"$regex": escaped_search, "$options": "i"}},
+            {"session_id": {"$regex": escaped_search, "$options": "i"}},
         ]
     return f
 
@@ -142,7 +144,7 @@ async def get_decision(decision_id: str) -> dict[str, Any]:
     col = db[db_module.AUDIT_DECISIONS]
     doc = await col.find_one({"decision_id": decision_id})
     if doc is None:
-        return {"error": "Decision not found"}
+        raise HTTPException(status_code=404, detail="Decision not found")
     return _serialize_doc(doc)
 
 

@@ -148,31 +148,75 @@ class MCPMessageParser:
         )
 
     def _parse_notification(self, message: dict[str, Any]) -> ParsedMCPMessage:
-        """Parse a JSON-RPC notification (has 'method' but no 'id')."""
+        """Parse a JSON-RPC notification (has 'method' but no 'id').
+
+        Notifications are also classified and may carry tool call information
+        so that policy can be evaluated for notification messages as well,
+        not just requests.
+        """
         method = message["method"]
         params = message.get("params", {})
 
         if not isinstance(method, str):
             raise MCPParseError("JSON-RPC method must be a string")
 
+        raw_params = params if isinstance(params, dict) else {}
+
+        # Classify the method so that tool-call notifications are subject
+        # to policy evaluation (prevents notification-based policy bypass).
+        message_type = self._classify_method(method)
+        tool_name: str | None = None
+        tool_args: dict[str, Any] = {}
+
+        if message_type == MCPMessageType.TOOL_CALL and isinstance(params, dict):
+            tool_name = params.get("name")
+            if tool_name and isinstance(tool_name, str):
+                tool_args = params.get("arguments", {})
+                if not isinstance(tool_args, dict):
+                    tool_args = {}
+
+        # Fall back to NOTIFICATION type if the method isn't a known tool method
+        if message_type == MCPMessageType.UNKNOWN:
+            message_type = MCPMessageType.NOTIFICATION
+
         return ParsedMCPMessage(
-            message_type=MCPMessageType.NOTIFICATION,
+            message_type=message_type,
             method=method,
+            tool_name=tool_name,
+            tool_args=tool_args,
             is_notification=True,
-            raw_params=params if isinstance(params, dict) else {},
+            raw_params=raw_params,
         )
 
     def _parse_response(self, message: dict[str, Any]) -> ParsedMCPMessage:
-        """Parse a JSON-RPC response (has 'result' or 'error' with 'id')."""
-        request_id = message["id"]
-        is_error = "error" in message
+        """Parse a JSON-RPC response (has 'result' or 'error' with 'id').
 
-        return ParsedMCPMessage(
-            message_type=MCPMessageType.RESPONSE,
-            request_id=request_id,
-            is_response=True,
-            raw_params=message.get("result", {}) if not is_error else {},
-        )
+        Wraps parsing in try/except so that non-object results (e.g. a bare
+        string or number in the ``result`` field) do not cause a 500 error.
+        """
+        try:
+            request_id = message["id"]
+            is_error = "error" in message
+            raw_result = message.get("result", {}) if not is_error else {}
+
+            # Ensure raw_params is always a dict to satisfy the model
+            if not isinstance(raw_result, dict):
+                raw_result = {"value": raw_result}
+
+            return ParsedMCPMessage(
+                message_type=MCPMessageType.RESPONSE,
+                request_id=request_id,
+                is_response=True,
+                raw_params=raw_result,
+            )
+        except Exception as exc:
+            # Return a generic error response rather than letting a 500 propagate
+            return ParsedMCPMessage(
+                message_type=MCPMessageType.RESPONSE,
+                request_id=message.get("id"),
+                is_response=True,
+                raw_params={"_parse_error": str(exc)},
+            )
 
     @staticmethod
     def _classify_method(method: str) -> MCPMessageType:

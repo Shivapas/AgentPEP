@@ -148,9 +148,8 @@ async def list_agents(
     if enabled is not None:
         query["enabled"] = enabled
 
-    direction = 1 if sort_dir == "asc" else -1
     total = await db[AGENT_PROFILES].count_documents(query)
-    cursor = db[AGENT_PROFILES].find(query).sort(sort_by, direction).skip(offset).limit(limit)
+    cursor = db[AGENT_PROFILES].find(query).skip(offset).limit(limit)
     docs = await cursor.to_list(length=limit)
 
     # Gather decision counts per agent
@@ -158,6 +157,13 @@ async def list_agents(
     for doc in docs:
         count = await db[AUDIT_DECISIONS].count_documents({"agent_id": doc["agent_id"]})
         agents.append(_doc_to_response(doc, count))
+
+    # Sort after decision_count is computed so that sort_by=decision_count works
+    direction = 1 if sort_dir == "asc" else -1
+    if sort_by == "decision_count":
+        agents.sort(key=lambda a: a.decision_count, reverse=(direction == -1))
+    else:
+        agents.sort(key=lambda a: getattr(a, sort_by, ""), reverse=(direction == -1))
 
     return AgentListResponse(agents=agents, total=total)
 
@@ -214,11 +220,17 @@ async def update_agent(agent_id: str, body: AgentUpdateRequest) -> AgentResponse
 
 @router.delete("/{agent_id}", status_code=204)
 async def delete_agent(agent_id: str) -> None:
-    """Delete agent profile."""
+    """Delete agent profile and revoke all associated API keys."""
     db = get_database()
     result = await db[AGENT_PROFILES].delete_one({"agent_id": agent_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+
+    # Disable all API keys belonging to this agent
+    await db[API_KEYS].update_many(
+        {"agent_id": agent_id},
+        {"$set": {"enabled": False}},
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -41,10 +41,10 @@ async def get_dashboard_kpis(user: dict = Depends(get_current_user)):
 
     # Active agents (distinct agent_ids in last 24h)
     one_day_ago = now - timedelta(days=1)
-    active_agents_cursor = db["audit_decisions"].distinct(
+    active_agent_ids = await db["audit_decisions"].distinct(
         "agent_id", {"timestamp": {"$gte": one_day_ago}}
     )
-    active_agents = len(await active_agents_cursor) if hasattr(active_agents_cursor, '__len__') else len(active_agents_cursor)
+    active_agents = len(active_agent_ids)
 
     # Total policy rules
     total_rules = await db["policy_rules"].count_documents({"enabled": True})

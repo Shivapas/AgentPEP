@@ -277,7 +277,12 @@ export function RuleBuilderForm({
             <input
               type="checkbox"
               checked={showValidators}
-              onChange={(e) => setShowValidators(e.target.checked)}
+              onChange={(e) => {
+                setShowValidators(e.target.checked);
+                if (!e.target.checked) {
+                  setForm({ ...form, arg_validators: [] });
+                }
+              }}
             />
             Argument Validators
           </label>

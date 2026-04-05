@@ -98,8 +98,10 @@ class MCPProxy:
                 message=str(exc),
             )
 
-        # Only intercept tools/call requests; forward everything else
-        if parsed.message_type == MCPMessageType.TOOL_CALL and parsed.is_request:
+        # Intercept tools/call requests AND notifications carrying tool calls
+        # (notifications without an 'id' field must also be evaluated against
+        # policy to prevent notification-based policy bypass).
+        if parsed.message_type == MCPMessageType.TOOL_CALL and (parsed.is_request or parsed.is_notification):
             return await self._handle_tool_call(message, parsed)
 
         # Forward non-tool-call messages transparently
@@ -120,6 +122,12 @@ class MCPProxy:
         assert parsed.tool_name is not None
 
         # Build an Intercept API request
+        # TODO: taint_node_ids should be populated from the session context's
+        # taint graph (e.g. tracking which tool outputs fed into this call's
+        # arguments).  Currently get_taint_node_ids_for_args may return an
+        # empty list if the session taint graph hasn't been wired up, which
+        # means taint-based policy checks won't fire.  Wire up the MCP
+        # session tracker to propagate taint labels from prior tool outputs.
         intercept_request = ToolCallRequest(
             session_id=self.session_id,
             agent_id=self.agent_id,
