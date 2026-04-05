@@ -70,7 +70,7 @@ export function UXSurvey() {
     const score = calculateSUS(state.responses as number[]);
 
     try {
-      await fetch("/api/v1/ux-survey", {
+      await fetch(`${(import.meta.env.VITE_API_URL as string | undefined) ?? `http://${window.location.hostname}:8000`}/v1/ux-survey`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

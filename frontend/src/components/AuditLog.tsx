@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api";
 
 interface AuditEntry {
   decision_id: string;
@@ -25,7 +26,7 @@ export function AuditLog() {
         if (decisionFilter !== "ALL") {
           params.set("decision", decisionFilter);
         }
-        const resp = await fetch(`/api/v1/audit?${params.toString()}`);
+        const resp = await apiFetch(`/v1/audit?${params.toString()}`);
         if (!resp.ok) return;
         const data = (await resp.json()) as { items: AuditEntry[] };
         setEntries(data.items ?? []);

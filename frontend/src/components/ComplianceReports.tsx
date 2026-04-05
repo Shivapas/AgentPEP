@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 interface ComplianceReport {
   report_id: string;
@@ -60,7 +61,7 @@ export function ComplianceReports() {
     setLoading(true);
     setError(null);
     try {
-      const resp = await fetch("/api/v1/compliance/reports?limit=50");
+      const resp = await apiFetch("/v1/compliance/reports?limit=50");
       if (!resp.ok) throw new Error(`Failed to fetch reports: ${resp.status}`);
       const data: ReportListResponse = await resp.json();
       setReports(data.reports);
@@ -82,7 +83,7 @@ export function ComplianceReports() {
     setGenerating(true);
     setError(null);
     try {
-      const resp = await fetch("/api/v1/compliance/reports", {
+      const resp = await apiFetch("/v1/compliance/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -103,8 +104,8 @@ export function ComplianceReports() {
   };
 
   const handleDownload = async (reportId: string) => {
-    const resp = await fetch(
-      `/api/v1/compliance/reports/${reportId}/download`,
+    const resp = await apiFetch(
+      `/v1/compliance/reports/${reportId}/download`,
     );
     if (!resp.ok) return;
     const blob = await resp.blob();

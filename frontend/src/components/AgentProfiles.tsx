@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api";
 
 interface AgentProfile {
   agent_id: string;
@@ -17,7 +18,7 @@ export function AgentProfiles() {
   useEffect(() => {
     const load = async () => {
       try {
-        const resp = await fetch("/api/v1/agents");
+        const resp = await apiFetch("/v1/console/agents");
         if (!resp.ok) return;
         const data = (await resp.json()) as { items: AgentProfile[] };
         setAgents(data.items ?? []);

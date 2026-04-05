@@ -1,8 +1,8 @@
 /**
  * API client for policy CRUD operations.
  *
- * All functions call `/api/v1/...` which the Vite dev-server proxies to the backend.
- * Responses are typed to match the domain models in `types/policy.ts`.
+ * Uses the centralized apiFetch client from lib/api.ts which handles
+ * authentication headers and token refresh automatically.
  */
 
 import type {
@@ -13,13 +13,10 @@ import type {
   RuleConflict,
 } from "@/types/policy";
 
-const BASE = "/api/v1";
+import { apiFetch } from "@/lib/api";
 
-async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    headers: { "Content-Type": "application/json", ...init?.headers },
-    ...init,
-  });
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await apiFetch(path, init);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`API ${res.status}: ${text}`);
@@ -38,11 +35,11 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 // --- Roles ---
 
 export function fetchRoles(): Promise<AgentRole[]> {
-  return request(`${BASE}/roles`);
+  return request(`/v1/roles`);
 }
 
 export function createRole(role: Partial<AgentRole>): Promise<AgentRole> {
-  return request(`${BASE}/roles`, {
+  return request(`/v1/roles`, {
     method: "POST",
     body: JSON.stringify(role),
   });
@@ -52,24 +49,24 @@ export function updateRole(
   roleId: string,
   patch: Partial<AgentRole>,
 ): Promise<AgentRole> {
-  return request(`${BASE}/roles/${roleId}`, {
+  return request(`/v1/roles/${roleId}`, {
     method: "PATCH",
     body: JSON.stringify(patch),
   });
 }
 
 export function deleteRole(roleId: string): Promise<void> {
-  return request(`${BASE}/roles/${roleId}`, { method: "DELETE" });
+  return request(`/v1/roles/${roleId}`, { method: "DELETE" });
 }
 
 // --- Rules ---
 
 export function fetchRules(): Promise<PolicyRule[]> {
-  return request(`${BASE}/rules`);
+  return request(`/v1/rules`);
 }
 
 export function createRule(rule: Partial<PolicyRule>): Promise<PolicyRule> {
-  return request(`${BASE}/rules`, {
+  return request(`/v1/rules`, {
     method: "POST",
     body: JSON.stringify(rule),
   });
@@ -79,20 +76,20 @@ export function updateRule(
   ruleId: string,
   patch: Partial<PolicyRule>,
 ): Promise<PolicyRule> {
-  return request(`${BASE}/rules/${ruleId}`, {
+  return request(`/v1/rules/${ruleId}`, {
     method: "PATCH",
     body: JSON.stringify(patch),
   });
 }
 
 export function deleteRule(ruleId: string): Promise<void> {
-  return request(`${BASE}/rules/${ruleId}`, { method: "DELETE" });
+  return request(`/v1/rules/${ruleId}`, { method: "DELETE" });
 }
 
 export function reorderRules(
   ruleIds: string[],
 ): Promise<{ ok: boolean }> {
-  return request(`${BASE}/rules/reorder`, {
+  return request(`/v1/rules/reorder`, {
     method: "POST",
     body: JSON.stringify({ rule_ids: ruleIds }),
   });
@@ -101,18 +98,18 @@ export function reorderRules(
 // --- Policy Sets (version history) ---
 
 export function fetchPolicySets(): Promise<PolicySet[]> {
-  return request(`${BASE}/policy-sets`);
+  return request(`/v1/policy-sets`);
 }
 
 export function fetchPolicySet(id: string): Promise<PolicySet> {
-  return request(`${BASE}/policy-sets/${id}`);
+  return request(`/v1/policy-sets/${id}`);
 }
 
 export function createPolicyVersion(
   setId: string,
   version: Partial<PolicyVersion>,
 ): Promise<PolicyVersion> {
-  return request(`${BASE}/policy-sets/${setId}/versions`, {
+  return request(`/v1/policy-sets/${setId}/versions`, {
     method: "POST",
     body: JSON.stringify(version),
   });
@@ -122,7 +119,7 @@ export function restoreVersion(
   setId: string,
   versionId: string,
 ): Promise<PolicyVersion> {
-  return request(`${BASE}/policy-sets/${setId}/versions/${versionId}/restore`, {
+  return request(`/v1/policy-sets/${setId}/versions/${versionId}/restore`, {
     method: "POST",
   });
 }
@@ -132,7 +129,7 @@ export function updateVersionStatus(
   versionId: string,
   status: string,
 ): Promise<PolicyVersion> {
-  return request(`${BASE}/policy-sets/${setId}/versions/${versionId}/status`, {
+  return request(`/v1/policy-sets/${setId}/versions/${versionId}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
   });
@@ -140,17 +137,16 @@ export function updateVersionStatus(
 
 // --- YAML Import/Export ---
 
-export function exportPolicyYaml(setId: string): Promise<string> {
-  return fetch(`${BASE}/policy-sets/${setId}/export/yaml`).then((res) => {
-    if (!res.ok) throw new Error(`Export failed: ${res.status}`);
-    return res.text();
-  });
+export async function exportPolicyYaml(setId: string): Promise<string> {
+  const res = await apiFetch(`/v1/policy-sets/${setId}/export/yaml`);
+  if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+  return res.text();
 }
 
 export function importPolicyYaml(
   yaml: string,
 ): Promise<PolicySet> {
-  return request(`${BASE}/policy-sets/import/yaml`, {
+  return request(`/v1/policy-sets/import/yaml`, {
     method: "POST",
     headers: { "Content-Type": "text/yaml" },
     body: yaml,
@@ -160,5 +156,5 @@ export function importPolicyYaml(
 // --- Conflict Detection ---
 
 export function detectConflicts(): Promise<RuleConflict[]> {
-  return request(`${BASE}/rules/conflicts`);
+  return request(`/v1/rules/conflicts`);
 }

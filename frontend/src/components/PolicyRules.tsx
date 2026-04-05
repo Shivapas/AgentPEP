@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api";
 
 interface PolicyRule {
   rule_id: string;
@@ -20,7 +21,7 @@ export function PolicyRules() {
   useEffect(() => {
     const load = async () => {
       try {
-        const resp = await fetch("/api/v1/rules");
+        const resp = await apiFetch("/v1/rules");
         if (!resp.ok) return;
         const data = (await resp.json()) as { items: PolicyRule[] };
         setRules(data.items ?? []);
