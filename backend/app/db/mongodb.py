@@ -65,6 +65,7 @@ CONSOLE_USERS = "console_users"
 ESCALATION_TICKETS = "escalation_tickets"
 COMPLIANCE_REPORTS = "compliance_reports"
 REPORT_SCHEDULES = "report_schedules"
+AUDIT_HASH_CHAIN = "audit_hash_chain"
 
 
 async def init_collections() -> None:
@@ -201,6 +202,13 @@ async def init_collections() -> None:
                 [("created_at", ASCENDING)],
                 expireAfterSeconds=86400 * 30,  # 30-day TTL
             ),
+    # Audit Hash Chain (APEP-191 — Sprint 24)
+    audit_hash_chain = db[AUDIT_HASH_CHAIN]
+    await audit_hash_chain.create_indexes(
+        [
+            IndexModel([("sequence", ASCENDING)], unique=True),
+            IndexModel([("decision_id", ASCENDING)]),
+            IndexModel([("timestamp", DESCENDING)]),
         ]
     )
 

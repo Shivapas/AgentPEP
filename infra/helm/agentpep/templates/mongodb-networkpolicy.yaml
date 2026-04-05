@@ -1,0 +1,25 @@
+{{- if .Values.mongodb.network.networkPolicy.enabled }}
+# APEP-192: Restrict MongoDB network access to agentpep-api pods only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-mongodb-netpol
+  labels:
+    app: mongodb
+spec:
+  podSelector:
+    matchLabels:
+      app: mongodb
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- range $key, $value := .Values.mongodb.network.networkPolicy.allowedLabels }}
+              {{ $key }}: {{ $value | quote }}
+              {{- end }}
+      ports:
+        - protocol: TCP
+          port: 27017
+{{- end }}

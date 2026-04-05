@@ -17,6 +17,7 @@ from app.api.v1.console_dashboard import router as console_dashboard_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.escalation import router as escalation_router
 from app.api.v1.compliance import router as compliance_router
+from app.api.v1.audit import router as audit_router
 from app.api.v1.health import router as health_router
 from app.api.v1.intercept import router as intercept_router
 from app.api.v1.mcp import router as mcp_router
@@ -28,6 +29,11 @@ from app.db.mongodb import close_client, init_collections
 from app.middleware.auth import APIKeyAuthMiddleware, MTLSMiddleware
 from app.services.audit_logger import audit_logger
 from app.services.kafka_producer import kafka_producer
+from app.middleware.security import (
+    CSRFMiddleware,
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +127,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Middleware (order matters: mTLS first, then API key)
+# Middleware (order matters — outermost runs first)
+# APEP-195: Rate limiting (outermost — reject early before auth overhead)
+app.add_middleware(RateLimitMiddleware, default_limit=100, intercept_limit=1000)
+# APEP-193: Security headers (XSS, clickjacking, HSTS, CSP)
+app.add_middleware(SecurityHeadersMiddleware)
+# APEP-193: CSRF protection for browser-based Policy Console
+app.add_middleware(CSRFMiddleware)
+# Auth middleware
 app.add_middleware(APIKeyAuthMiddleware)
 app.add_middleware(MTLSMiddleware)
 
@@ -132,12 +145,15 @@ app.include_router(intercept_router)
 app.include_router(simulate_router)
 app.include_router(taint_router)
 app.include_router(audit_router)
+<<<<<<< HEAD
 app.include_router(escalation_router)
 app.include_router(mcp_router)
 app.include_router(console_auth_router)
 app.include_router(console_dashboard_router)
 app.include_router(dashboard_router)
 app.include_router(compliance_router)
+=======
+>>>>>>> origin/claude/implement-sprint-24-SmFQK
 
 # Observability
 if settings.metrics_enabled:

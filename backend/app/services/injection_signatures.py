@@ -262,6 +262,82 @@ _SIGNATURES: list[InjectionSignature] = [
         description="'Do Anything Now' jailbreak phrase",
     ),
 
+    # ── indirect_injection (APEP-189: red-team findings) ────────────────
+    InjectionSignature(
+        signature_id="INJ-041",
+        category="indirect_injection",
+        pattern=r"(?i)\btool_call\s*\(|function_call\s*\(",
+        severity="HIGH",
+        description="Embedded tool/function call syntax in data (indirect injection)",
+    ),
+    InjectionSignature(
+        signature_id="INJ-042",
+        category="indirect_injection",
+        pattern=r"(?i)execute\s+the\s+following\s+(tool|function|command|action)",
+        severity="HIGH",
+        description="Instruction to execute tool/command embedded in data",
+    ),
+    InjectionSignature(
+        signature_id="INJ-043",
+        category="indirect_injection",
+        pattern=r"(?i)\{\s*\"(tool_name|function_name|action)\"\s*:",
+        severity="MEDIUM",
+        description="JSON-structured tool call payload in untrusted data",
+    ),
+    InjectionSignature(
+        signature_id="INJ-044",
+        category="indirect_injection",
+        pattern=r"(?i)call\s+(the\s+)?api\s+(endpoint|function)\b",
+        severity="MEDIUM",
+        description="Instruction to call API embedded in data",
+    ),
+
+    # ── multi_turn_attack (APEP-189: red-team findings) ───────────────
+    InjectionSignature(
+        signature_id="INJ-045",
+        category="multi_turn_attack",
+        pattern=r"(?i)in\s+your\s+next\s+(response|message|turn)\s*(,\s*)?(please\s+)?(do|execute|run|call|perform)",
+        severity="HIGH",
+        description="Deferred execution instruction spanning turns",
+    ),
+    InjectionSignature(
+        signature_id="INJ-046",
+        category="multi_turn_attack",
+        pattern=r"(?i)remember\s+this\s+for\s+later\s*:.*(?:password|secret|key|token)",
+        severity="CRITICAL",
+        description="Credential exfiltration via deferred memory injection",
+    ),
+    InjectionSignature(
+        signature_id="INJ-047",
+        category="multi_turn_attack",
+        pattern=r"(?i)when\s+(asked|prompted|queried)\s+about\b.*\b(respond|say|reply)\s+with\b",
+        severity="HIGH",
+        description="Conditional response override across turns",
+    ),
+
+    # ── privilege_probe (APEP-189: red-team findings) ─────────────────
+    InjectionSignature(
+        signature_id="INJ-048",
+        category="privilege_probe",
+        pattern=r"(?i)what\s+(tools?|functions?|capabilities|permissions?)\s+(do\s+you|are\s+you|can\s+you)\s+(have|allowed|able)",
+        severity="MEDIUM",
+        description="Capability discovery probe (tool enumeration)",
+    ),
+    InjectionSignature(
+        signature_id="INJ-049",
+        category="privilege_probe",
+        pattern=r"(?i)list\s+(all\s+)?(available|accessible)\s+(tools?|functions?|commands?|endpoints?)",
+        severity="MEDIUM",
+        description="Tool listing request for privilege mapping",
+    ),
+    InjectionSignature(
+        signature_id="INJ-050",
+        category="privilege_probe",
+        pattern=r"(?i)(show|display|print|reveal)\s+(your\s+)?(system\s+prompt|instructions|config)",
+        severity="CRITICAL",
+        description="System prompt extraction attempt",
+    ),
+
     # ── encoding_bypass ────────────────────────────────────────────────
     InjectionSignature(
         signature_id="INJ-032",

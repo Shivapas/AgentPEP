@@ -38,6 +38,7 @@ from app.models.policy import (
     ToolCallRequest,
 )
 from app.services.audit_logger import audit_logger
+from app.services.audit_integrity import audit_integrity_verifier
 from app.services.confused_deputy import confused_deputy_detector
 from app.services.kafka_producer import kafka_producer
 from app.services.rate_limiter import rate_limiter
@@ -557,6 +558,13 @@ class PolicyEvaluator:
         try:
             # APEP-081/082: Append with SHA-256 hash chain
             audit = await audit_logger.append(audit)
+            audit_dict = audit.model_dump(mode="json")
+            await db[db_module.AUDIT_DECISIONS].insert_one(audit_dict)
+            # APEP-191: Extend hash chain for integrity verification
+            try:
+                await audit_integrity_verifier.seal_record(audit_dict)
+            except Exception:
+                logger.warning("Failed to seal audit record in hash chain")
         except Exception:
             # Audit write failure should not block the decision
             logger.exception("Audit append failed for request %s", request.request_id)

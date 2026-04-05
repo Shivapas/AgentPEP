@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-mongodb
+  labels:
+    app: mongodb
+spec:
+  serviceName: {{ .Release.Name }}-mongodb
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:7
+          ports:
+            - containerPort: 27017
+          {{- if .Values.mongodb.auth.enabled }}
+          envFrom:
+            - secretRef:
+                name: {{ .Release.Name }}-mongodb-auth
+          {{- end }}
+          args:
+            {{- if not .Values.mongodb.network.bindIpAll }}
+            - "--bind_ip"
+            - "localhost,$(POD_IP)"
+            {{- end }}
+            {{- if .Values.mongodb.auth.enabled }}
+            - "--auth"
+            {{- end }}
+            {{- if .Values.mongodb.encryption.enabled }}
+            - "--enableEncryption"
+            - "--encryptionKeyFile"
+            - {{ .Values.mongodb.encryption.keyFile | quote }}
+            {{- end }}
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          {{- if .Values.mongodb.persistence.enabled }}
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+            {{- if .Values.mongodb.encryption.enabled }}
+            - name: encryption-key
+              mountPath: /etc/mongodb
+              readOnly: true
+            {{- end }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.mongodb.resources | nindent 12 }}
+      {{- if .Values.mongodb.encryption.enabled }}
+      volumes:
+        - name: encryption-key
+          secret:
+            secretName: {{ .Release.Name }}-mongodb-encryption-key
+      {{- end }}
+  {{- if .Values.mongodb.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- if .Values.mongodb.persistence.storageClass }}
+        storageClassName: {{ .Values.mongodb.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.mongodb.persistence.size }}
+  {{- end }}

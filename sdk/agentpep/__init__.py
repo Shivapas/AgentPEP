@@ -12,6 +12,7 @@ from agentpep.models import (
     TaintSource,
     ToolCallRequest,
 )
+from agentpep.tamper_detection import TamperDetector, tamper_detector
 
 __all__ = [
     "AgentPEPClient",
@@ -22,4 +23,6 @@ __all__ = [
     "TaintNodeResponse",
     "TaintSource",
     "ToolCallRequest",
+    "TamperDetector",
+    "tamper_detector",
 ]
