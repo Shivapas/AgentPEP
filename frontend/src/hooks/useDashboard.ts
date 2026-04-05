@@ -2,10 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DashboardSummary, TimeWindow } from "../types/dashboard";
-
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  `http://${window.location.hostname}:8000`;
+import { apiFetch, getAccessToken } from "../lib/api";
 
 function wsUrl(): string {
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -13,7 +10,9 @@ function wsUrl(): string {
     (import.meta.env.VITE_API_URL as string | undefined)
       ?.replace(/^https?:\/\//, "")
     ?? `${window.location.hostname}:8000`;
-  return `${proto}//${host}/v1/dashboard/ws`;
+  const token = getAccessToken();
+  const params = token ? `?token=${encodeURIComponent(token)}` : "";
+  return `${proto}//${host}/v1/dashboard/ws${params}`;
 }
 
 export function useDashboard(window: TimeWindow) {
@@ -25,7 +24,7 @@ export function useDashboard(window: TimeWindow) {
   const fetchSummary = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${BASE}/v1/dashboard/summary?window=${window}`);
+      const res = await apiFetch(`/v1/dashboard/summary?window=${window}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json: DashboardSummary = await res.json();
       setData(json);

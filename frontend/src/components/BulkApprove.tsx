@@ -2,6 +2,7 @@
  * Bulk approve dialog for same-pattern pending escalations (APEP-146).
  */
 import { useState } from "react";
+import { apiFetch } from "../lib/api";
 
 interface BulkApproveProps {
   toolPattern: string;
@@ -22,9 +23,8 @@ export function BulkApprove({
   const handleBulkApprove = async () => {
     setLoading(true);
     try {
-      await fetch("/v1/escalations/bulk-approve", {
+      await apiFetch("/v1/escalations/bulk-approve", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tool_pattern: toolPattern,
           resolved_by: "console_user",
