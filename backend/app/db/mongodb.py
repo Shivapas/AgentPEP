@@ -48,6 +48,7 @@ APPROVER_GROUPS = "approver_groups"
 APPROVAL_MEMORY = "approval_memory"
 RATE_LIMIT_COUNTERS = "rate_limit_counters"
 MCP_PROXY_SESSIONS = "mcp_proxy_sessions"
+CONSOLE_USERS = "console_users"
 
 
 async def init_collections() -> None:
@@ -258,5 +259,16 @@ async def init_collections() -> None:
                 [("started_at", ASCENDING)],
                 expireAfterSeconds=86400 * 30,  # 30-day TTL
             ),
+        ]
+    )
+
+    # Console Users (APEP-105 — Sprint 13)
+    console_users = db[CONSOLE_USERS]
+    await console_users.create_indexes(
+        [
+            IndexModel([("username", ASCENDING)], unique=True),
+            IndexModel([("email", ASCENDING)], unique=True),
+            IndexModel([("tenant_id", ASCENDING)]),
+            IndexModel([("roles", ASCENDING)]),
         ]
     )
