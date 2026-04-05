@@ -7,8 +7,12 @@ export type EscalationStatus =
   | "ESCALATED_UP"
   | "AUTO_DECIDED";
 
+export type Decision = "ALLOW" | "DENY" | "ESCALATE" | "DRY_RUN" | "TIMEOUT";
+
 export interface EscalationTicket {
   ticket_id: string;
+  escalation_id: string;
+  request_id: string;
   session_id: string;
   agent_id: string;
   agent_role: string;
@@ -25,6 +29,8 @@ export interface EscalationTicket {
   resolved_by: string | null;
   sla_deadline: string;
   sla_seconds: number;
+  auto_decision: Decision;
+  escalated_to: string | null;
   created_at: string;
   resolved_at: string | null;
 }
