@@ -341,6 +341,14 @@ class SecurityAlertEmitter:
         )
         self._buffer.append(alert)
 
+        # Sprint 26 (APEP-204): increment security alert Prometheus counter
+        from app.core.observability import SECURITY_ALERT_TOTAL
+
+        SECURITY_ALERT_TOTAL.labels(
+            alert_type=alert.alert_type.value,
+            severity=alert.severity,
+        ).inc()
+
         db = db_module.get_database()
         try:
             await db[SECURITY_ALERTS].insert_one(alert.model_dump(mode="json"))

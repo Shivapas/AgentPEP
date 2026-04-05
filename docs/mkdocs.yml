@@ -1,0 +1,76 @@
+site_name: AgentPEP Documentation
+site_description: Deterministic Authorization Engine for AI Agent Systems
+site_url: https://docs.agentpep.io
+
+repo_name: agentpep
+repo_url: https://github.com/Shivapas/agentpep
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quickstart: getting-started/quickstart.md
+      - Installation: getting-started/installation.md
+      - First Policy: getting-started/first-policy.md
+  - SDK Reference:
+      - Overview: sdk/overview.md
+      - Client: sdk/client.md
+      - Decorator: sdk/decorator.md
+      - Middleware: sdk/middleware.md
+      - Offline Mode: sdk/offline.md
+      - Integrations:
+          - LangChain: sdk/integrations/langchain.md
+          - LangGraph: sdk/integrations/langgraph.md
+  - API Reference:
+      - Conventions: api/conventions.md
+      - Intercept: api/intercept.md
+      - Taint: api/taint.md
+      - Health: api/health.md
+      - Console: api/console.md
+  - Guides:
+      - Policy Patterns: guides/policy-patterns.md
+      - Taint Tracking: guides/taint-tracking.md
+      - Delegation Model: guides/delegation-model.md
+      - Deployment: guides/deployment.md
+  - Architecture:
+      - ADR-001 Monorepo: architecture/adr-001.md
+      - Contributing: architecture/contributing.md
+
+plugins:
+  - search

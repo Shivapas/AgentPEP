@@ -12,8 +12,12 @@ services:
       - AGENTPEP_MONGODB_DB_NAME=agentpep
       - AGENTPEP_DEBUG=true
       - AGENTPEP_OTLP_ENDPOINT=http://otel-collector:4317
+      - AGENTPEP_REDIS_URL=redis://redis:6379/0
+      - AGENTPEP_REDIS_ENABLED=true
     depends_on:
       - mongodb
+      - redis
+      - otel-collector
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -36,6 +40,13 @@ services:
     volumes:
       - mongo_data:/data/db
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.7.0
     environment:
@@ -56,5 +67,64 @@ services:
     depends_on:
       - zookeeper
 
+  # --- Observability Stack (Sprint 26) ---
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus exporter
+    volumes:
+      - ./infra/otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml
+    depends_on:
+      - tempo
+
+  tempo:
+    image: grafana/tempo:2.4.1
+    ports:
+      - "3200:3200"   # Tempo HTTP API
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./infra/tempo/tempo.yaml:/etc/tempo.yaml
+      - tempo_data:/var/tempo
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.56
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "14268:14268" # Collector HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+
+  grafana:
+    image: grafana/grafana:10.4.1
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: agentpep-admin
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - tempo
+
 volumes:
   mongo_data:
+  redis_data:
+  tempo_data:
+  prometheus_data:
+  grafana_data:

@@ -1,0 +1,423 @@
+# AgentPEP Helm chart values — APEP-192: Security-hardened defaults
+
+# --------------------------------------------------------------------------
+# MongoDB — hardened configuration
+# --------------------------------------------------------------------------
+mongodb:
+  # Authentication (APEP-192)
+  auth:
+    enabled: true
+    rootUser: agentpep-admin
+    # rootPassword should be supplied via --set or a Secret; never commit
+    rootPassword: ""
+    # Application-level credentials
+    database: agentpep
+    username: agentpep
+    # password should be supplied via --set or a Secret
+    password: ""
+
+  # Encryption at rest (APEP-192)
+  encryption:
+    enabled: true
+    # Path to the encryption key file inside the MongoDB container.
+    # In production, mount from a Kubernetes Secret backed by a KMS provider.
+    keyFile: /etc/mongodb/encryption-key
+
+  # Network restriction (APEP-192)
+  network:
+    # Bind only to the pod IP, not 0.0.0.0
+    bindIpAll: false
+    # NetworkPolicy: only allow traffic from agentpep-api pods
+    networkPolicy:
+      enabled: true
+      allowedLabels:
+        app: agentpep-api
+
+  # TLS
+  tls:
+    enabled: false
+    # certSecretName: mongodb-tls-cert
+
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+
+# Default values for AgentPEP Helm chart (APEP-211)
+
+tenant:
+  id: "default"
+  environment: "beta"
+
+backend:
+  replicas: 2
+  image:
+    repository: gcr.io/agentpep/backend
+    tag: beta
+    pullPolicy: IfNotPresent
+  port: 8000
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# --------------------------------------------------------------------------
+# AgentPEP API
+# --------------------------------------------------------------------------
+api:
+  replicaCount: 2
+  image:
+    repository: agentpep/api
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  port: 8000
+# -- Global settings
+global:
+  # -- Image pull policy for all containers
+  imagePullPolicy: IfNotPresent
+  # -- Image pull secrets for private registries (air-gapped deployments)
+  imagePullSecrets: []
+  # -- Storage class for persistent volumes (empty = cluster default)
+  storageClass: ""
+
+# -- AgentPEP API configuration
+api:
+  replicaCount: 2
+  image:
+    repository: agentpep/agentpep-api
+    tag: "0.1.0"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+# --------------------------------------------------------------------------
+# AgentPEP Policy Console (frontend)
+# --------------------------------------------------------------------------
+console:
+  replicaCount: 1
+  image:
+    repository: agentpep/console
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  port: 5173
+  service:
+    type: ClusterIP
+    port: 8000
+    grpcPort: 50051
+  # -- Environment variable overrides
+  env:
+    debug: "false"
+    defaultFailMode: "FAIL_CLOSED"
+    authEnabled: "false"
+    mtlsEnabled: "false"
+    grpcEnabled: "false"
+    metricsEnabled: "true"
+    auditRetentionDays: "365"
+    evaluationTimeoutS: "5.0"
+    otlpEndpoint: "http://localhost:4317"
+  # -- Liveness probe configuration
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 3
+  # -- Readiness probe configuration
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
+  # -- Pod annotations
+  podAnnotations: {}
+  # -- Node selector
+  nodeSelector: {}
+  # -- Tolerations
+  tolerations: []
+  # -- Affinity rules
+  affinity: {}
+  # -- Service account
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+
+# -- Horizontal Pod Autoscaler for API
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  # -- Target requests per second per pod
+  targetRPS: 100
+  # -- Target CPU utilization percentage (fallback metric)
+  targetCPUUtilizationPercentage: 70
+
+# -- AgentPEP Console (frontend) configuration
+console:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: agentpep/agentpep-console
+    tag: "0.1.0"
+  env:
+    debug: "false"
+    authEnabled: "true"
+    failMode: "FAIL_CLOSED"
+    evaluationTimeout: "5.0"
+  livenessProbe:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 15
+  readinessProbe:
+    path: /ready
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+frontend:
+  replicas: 1
+  image:
+    repository: gcr.io/agentpep/frontend
+    tag: beta
+    pullPolicy: IfNotPresent
+  port: 5173
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  service:
+    type: ClusterIP
+    port: 5173
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -- Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: agentpep.local
+      paths:
+        - path: /v1
+          pathType: Prefix
+          service: api
+        - path: /
+          pathType: Prefix
+          service: console
+  tls: []
+
+# -- MongoDB configuration
+mongodb:
+  enabled: true
+  image:
+    repository: mongo
+    tag: "7"
+  replicaCount: 1
+  auth:
+    enabled: false
+    # -- Set these when auth.enabled=true
+    rootUsername: ""
+    rootPassword: ""
+    existingSecret: ""
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  service:
+    port: 27017
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -- Kafka configuration
+kafka:
+  enabled: true
+  image:
+    repository: confluentinc/cp-kafka
+    tag: "7.7.0"
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+  service:
+    port: 9092
+    internalPort: 29092
+  config:
+    offsetsTopicReplicationFactor: 1
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -- Zookeeper configuration (required by Kafka)
+zookeeper:
+  enabled: true
+  image:
+    repository: confluentinc/cp-zookeeper
+    tag: "7.7.0"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: ""
+  service:
+    port: 2181
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -- MongoDB backup CronJob
+backup:
+  enabled: false
+  schedule: "0 2 * * *"
+  image:
+    repository: mongo
+    tag: "7"
+  s3:
+    endpoint: ""
+    bucket: "agentpep-backups"
+    prefix: "mongodb"
+    accessKeyId: ""
+    secretAccessKey: ""
+    existingSecret: ""
+  retention:
+    days: 30
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+# Default values for AgentPEP Helm chart (Sprint 26)
+
+replicaCount: 2
+
+image:
+  repository: agentpep/backend
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+  grpcPort: 50051
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+env:
+  AGENTPEP_MONGODB_URL: "mongodb://mongodb:27017"
+  AGENTPEP_MONGODB_DB_NAME: "agentpep"
+  AGENTPEP_OTLP_ENDPOINT: "http://otel-collector:4317"
+  AGENTPEP_METRICS_ENABLED: "true"
+  AGENTPEP_AUTH_ENABLED: "false"
+
+# --- Observability Stack (Sprint 26) ---
+
+otelCollector:
+  enabled: true
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: "0.96.0"
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+tempo:
+  enabled: true
+  image:
+    repository: grafana/tempo
+    tag: "2.4.1"
+  persistence:
+    size: 10Gi
+
+jaeger:
+  enabled: true
+  image:
+    repository: jaegertracing/all-in-one
+    tag: "1.56"
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+prometheus:
+  enabled: true
+  image:
+    repository: prom/prometheus
+    tag: "v2.51.0"
+  retention: 15d
+  persistence:
+    size: 50Gi
+
+grafana:
+  enabled: true
+  image:
+    repository: grafana/grafana
+    tag: "10.4.1"
+  adminPassword: "agentpep-admin"
+      cpu: 250m
+      memory: 256Mi
+
+mongodb:
+  url: "mongodb://mongodb-headless.mongodb.svc.cluster.local:27017"
+  database: "agentpep"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit-connections: "10"
+    nginx.ingress.kubernetes.io/rate-limit-rps: "50"
+  host: ""  # Set per-tenant: <tenant>.beta.agentpep.io
+
+observability:
+  otlpEndpoint: "http://otel-collector.monitoring.svc.cluster.local:4317"
+  metricsEnabled: true
+
+serviceAccount:
+  create: true
+  annotations: {}

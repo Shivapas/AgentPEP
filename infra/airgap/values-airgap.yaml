@@ -1,0 +1,39 @@
+# Air-gapped deployment values overlay.
+# Usage:
+#   helm install agentpep ./infra/helm/agentpep \
+#     -f ./infra/airgap/values-airgap.yaml \
+#     --set global.imagePullSecrets[0].name=my-registry-secret
+
+global:
+  # Always pull from local registry (images pre-loaded)
+  imagePullPolicy: IfNotPresent
+  # Uncomment and set your private registry pull secret
+  # imagePullSecrets:
+  #   - name: my-registry-secret
+
+# Override image repositories to point to your private registry.
+# Replace "registry.internal:5000" with your actual registry URL.
+api:
+  image:
+    repository: registry.internal:5000/agentpep/agentpep-api
+    tag: "0.1.0"
+
+console:
+  image:
+    repository: registry.internal:5000/agentpep/agentpep-console
+    tag: "0.1.0"
+
+mongodb:
+  image:
+    repository: registry.internal:5000/mongo
+    tag: "7"
+
+kafka:
+  image:
+    repository: registry.internal:5000/confluentinc/cp-kafka
+    tag: "7.7.0"
+
+zookeeper:
+  image:
+    repository: registry.internal:5000/confluentinc/cp-zookeeper
+    tag: "7.7.0"

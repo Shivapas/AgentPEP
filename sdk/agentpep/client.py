@@ -21,6 +21,7 @@ from agentpep.models import (
     TaintSource,
     ToolCallRequest,
 )
+from agentpep.tamper_detection import tamper_detector
 
 logger = logging.getLogger(__name__)
 
@@ -101,11 +102,14 @@ class AgentPEPClient:
                 json=request.model_dump(mode="json"),
             )
             resp.raise_for_status()
+            # APEP-190: Record successful intercept for tamper detection
+            tamper_detector.record_intercept(tool_name, agent_id)
             return PolicyDecisionResponse.model_validate(resp.json())
 
         except httpx.TimeoutException as exc:
             if self.fail_open:
                 logger.warning("AgentPEP timeout — fail_open=True, allowing tool call")
+                tamper_detector.record_intercept(tool_name, agent_id)
                 return PolicyDecisionResponse(
                     request_id=request.request_id,
                     decision=PolicyDecision.ALLOW,
@@ -116,6 +120,7 @@ class AgentPEPClient:
         except httpx.ConnectError as exc:
             if self.fail_open:
                 logger.warning("AgentPEP unreachable — fail_open=True, allowing tool call")
+                tamper_detector.record_intercept(tool_name, agent_id)
                 return PolicyDecisionResponse(
                     request_id=request.request_id,
                     decision=PolicyDecision.ALLOW,
@@ -199,6 +204,21 @@ class AgentPEPClient:
         resp.raise_for_status()
         return TaintNodeResponse.model_validate(resp.json())
 
+    async def health_check(self) -> dict[str, str]:
+        """Check server health. Returns {"status": "ok", "version": "..."}.
+
+        Raises AgentPEPConnectionError if the server is unreachable.
+        """
+        try:
+            client = await self._get_async_client()
+            resp = await client.get("/health")
+            resp.raise_for_status()
+            return resp.json()  # type: ignore[no-any-return]
+        except httpx.ConnectError as exc:
+            raise AgentPEPConnectionError(f"Cannot connect to AgentPEP: {exc}") from exc
+        except httpx.TimeoutException as exc:
+            raise AgentPEPTimeoutError(f"Health check timed out: {exc}") from exc
+
     async def aclose(self) -> None:
         """Close the underlying async HTTP client."""
         if self._async_client and not self._async_client.is_closed:
@@ -243,11 +263,14 @@ class AgentPEPClient:
                 json=request.model_dump(mode="json"),
             )
             resp.raise_for_status()
+            # APEP-190: Record successful intercept for tamper detection
+            tamper_detector.record_intercept(tool_name, agent_id)
             return PolicyDecisionResponse.model_validate(resp.json())
 
         except httpx.TimeoutException as exc:
             if self.fail_open:
                 logger.warning("AgentPEP timeout — fail_open=True, allowing tool call")
+                tamper_detector.record_intercept(tool_name, agent_id)
                 return PolicyDecisionResponse(
                     request_id=request.request_id,
                     decision=PolicyDecision.ALLOW,
@@ -258,6 +281,7 @@ class AgentPEPClient:
         except httpx.ConnectError as exc:
             if self.fail_open:
                 logger.warning("AgentPEP unreachable — fail_open=True, allowing tool call")
+                tamper_detector.record_intercept(tool_name, agent_id)
                 return PolicyDecisionResponse(
                     request_id=request.request_id,
                     decision=PolicyDecision.ALLOW,
@@ -334,6 +358,21 @@ class AgentPEPClient:
         resp = client.post("/v1/taint/propagate", json=payload)
         resp.raise_for_status()
         return TaintNodeResponse.model_validate(resp.json())
+
+    def health_check_sync(self) -> dict[str, str]:
+        """Check server health (sync). Returns {"status": "ok", "version": "..."}.
+
+        Raises AgentPEPConnectionError if the server is unreachable.
+        """
+        try:
+            client = self._get_sync_client()
+            resp = client.get("/health")
+            resp.raise_for_status()
+            return resp.json()  # type: ignore[no-any-return]
+        except httpx.ConnectError as exc:
+            raise AgentPEPConnectionError(f"Cannot connect to AgentPEP: {exc}") from exc
+        except httpx.TimeoutException as exc:
+            raise AgentPEPTimeoutError(f"Health check timed out: {exc}") from exc
 
     def close(self) -> None:
         """Close the underlying sync HTTP client."""

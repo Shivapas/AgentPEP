@@ -1,6 +1,6 @@
 [project]
 name = "agentpep-backend"
-version = "0.1.0"
+version = "1.0.0"
 description = "AgentPEP — Deterministic Authorization Engine for AI Agent Systems"
 requires-python = ">=3.11"
 dependencies = [
@@ -18,7 +18,11 @@ dependencies = [
     "grpcio-tools>=1.68.0",
     "grpcio-reflection>=1.68.0",
     "jsonschema>=4.23.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-jose[cryptography]>=3.3.0",
     "reportlab>=4.1.0",
+    "httpx>=0.27.0",
+    "redis>=5.0.0",
 ]
 
 [project.optional-dependencies]

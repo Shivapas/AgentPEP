@@ -8,6 +8,12 @@ pip install agentpep-sdk
 # With LangChain integration
 pip install agentpep-sdk[langchain]
 
+# With CrewAI integration
+pip install agentpep-sdk[crewai]
+
+# With Semantic Kernel integration
+pip install agentpep-sdk[semantic-kernel]
+
 # With FastAPI middleware
 pip install agentpep-sdk[fastapi]
 ```

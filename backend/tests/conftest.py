@@ -60,10 +60,45 @@ def mock_mongodb(monkeypatch):
     except ImportError:
         pass
 
+    # Clear Sprint 9 singletons
+    try:
+        from app.services.escalation_manager import escalation_manager
+        from app.models.policy import NotificationConfig
+
+        escalation_manager._pending_futures.clear()
+        escalation_manager._notification_config = NotificationConfig()
+        escalation_manager._websocket_callback = None
+    except ImportError:
+        pass
+
     # Clear Sprint 10 singletons
     try:
         from app.services.audit_logger import audit_logger
 
         audit_logger.reset()
+    except ImportError:
+        pass
+
+    # Clear Sprint 11 global rate limit state by resetting config
+    try:
+        from app.core.config import settings
+
+        settings.global_rate_limit_enabled = False
+    except ImportError:
+        pass
+
+    # Clear Sprint 12 MCP singletons
+    try:
+        from app.services.mcp_session_tracker import mcp_session_tracker
+
+        for sid in list(mcp_session_tracker._sessions.keys()):
+            mcp_session_tracker._sessions.pop(sid, None)
+    except ImportError:
+        pass
+
+    try:
+        from app.api.v1.mcp import clear_active_proxies
+
+        clear_active_proxies()
     except ImportError:
         pass

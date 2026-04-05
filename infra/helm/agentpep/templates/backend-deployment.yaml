@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "agentpep.fullname" . }}-backend
+  labels:
+    {{- include "agentpep.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      {{- include "agentpep.backend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "agentpep.backend.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "agentpep.fullname" . }}
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+              protocol: TCP
+          env:
+            - name: AGENTPEP_MONGODB_URL
+              value: {{ .Values.mongodb.url }}
+            - name: AGENTPEP_MONGODB_DB_NAME
+              value: {{ .Values.mongodb.database }}
+            - name: AGENTPEP_DEBUG
+              value: {{ .Values.backend.env.debug | quote }}
+            - name: AGENTPEP_AUTH_ENABLED
+              value: {{ .Values.backend.env.authEnabled | quote }}
+            - name: AGENTPEP_DEFAULT_FAIL_MODE
+              value: {{ .Values.backend.env.failMode }}
+            - name: AGENTPEP_EVALUATION_TIMEOUT_S
+              value: {{ .Values.backend.env.evaluationTimeout | quote }}
+            - name: AGENTPEP_OTLP_ENDPOINT
+              value: {{ .Values.observability.otlpEndpoint }}
+            - name: AGENTPEP_METRICS_ENABLED
+              value: {{ .Values.observability.metricsEnabled | quote }}
+            - name: AGENTPEP_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "agentpep.fullname" . }}-secrets
+                  key: api-key
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.backend.livenessProbe.path }}
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: {{ .Values.backend.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.backend.livenessProbe.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.backend.readinessProbe.path }}
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: {{ .Values.backend.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.backend.readinessProbe.periodSeconds }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}

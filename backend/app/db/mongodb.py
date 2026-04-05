@@ -1,4 +1,9 @@
-"""MongoDB connection management and collection initialization."""
+"""MongoDB connection management and collection initialization.
+
+Sprint 23 (APEP-182): Connection pooling — the Motor client is configured
+with min/max pool sizes, idle timeouts, and connection timeouts for
+high-throughput workloads.
+"""
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo import ASCENDING, DESCENDING, IndexModel
@@ -12,7 +17,15 @@ _db: AsyncIOMotorDatabase | None = None  # type: ignore[type-arg]
 def get_client() -> AsyncIOMotorClient:  # type: ignore[type-arg]
     global _client
     if _client is None:
-        _client = AsyncIOMotorClient(settings.mongodb_url)
+        _client = AsyncIOMotorClient(
+            settings.mongodb_url,
+            # APEP-182: Connection pool settings
+            minPoolSize=settings.mongodb_min_pool_size,
+            maxPoolSize=settings.mongodb_max_pool_size,
+            maxIdleTimeMS=settings.mongodb_max_idle_time_ms,
+            connectTimeoutMS=settings.mongodb_connect_timeout_ms,
+            serverSelectionTimeoutMS=settings.mongodb_server_selection_timeout_ms,
+        )
     return _client
 
 
@@ -43,6 +56,16 @@ TAINT_GRAPHS = "taint_graphs"
 TAINT_AUDIT_EVENTS = "taint_audit_events"
 SECURITY_ALERTS = "security_alerts"
 RISK_MODEL_CONFIGS = "risk_model_configs"
+ESCALATION_TICKETS = "escalation_tickets"
+APPROVER_GROUPS = "approver_groups"
+APPROVAL_MEMORY = "approval_memory"
+RATE_LIMIT_COUNTERS = "rate_limit_counters"
+MCP_PROXY_SESSIONS = "mcp_proxy_sessions"
+CONSOLE_USERS = "console_users"
+ESCALATION_TICKETS = "escalation_tickets"
+COMPLIANCE_REPORTS = "compliance_reports"
+REPORT_SCHEDULES = "report_schedules"
+AUDIT_HASH_CHAIN = "audit_hash_chain"
 
 
 async def init_collections() -> None:
@@ -165,6 +188,33 @@ async def init_collections() -> None:
         ]
     )
 
+    # Escalation Tickets (Sprint 18 — APEP-143)
+    escalation_tickets = db[ESCALATION_TICKETS]
+    await escalation_tickets.create_indexes(
+        [
+            IndexModel([("ticket_id", ASCENDING)], unique=True),
+            IndexModel([("session_id", ASCENDING)]),
+            IndexModel([("status", ASCENDING)]),
+            IndexModel([("tool_name", ASCENDING)]),
+            IndexModel([("agent_id", ASCENDING)]),
+            IndexModel([("created_at", DESCENDING)]),
+            IndexModel(
+                [("created_at", ASCENDING)],
+                expireAfterSeconds=86400 * 30,  # 30-day TTL
+            ),
+        ]
+    )
+
+    # Audit Hash Chain (APEP-191 — Sprint 24)
+    audit_hash_chain = db[AUDIT_HASH_CHAIN]
+    await audit_hash_chain.create_indexes(
+        [
+            IndexModel([("sequence", ASCENDING)], unique=True),
+            IndexModel([("decision_id", ASCENDING)]),
+            IndexModel([("timestamp", DESCENDING)]),
+        ]
+    )
+
     # Security Alerts (APEP-059 — Sprint 7)
     security_alerts = db[SECURITY_ALERTS]
     await security_alerts.create_indexes(
@@ -187,5 +237,103 @@ async def init_collections() -> None:
         [
             IndexModel([("model_id", ASCENDING)], unique=True),
             IndexModel([("enabled", ASCENDING)]),
+        ]
+    )
+
+    # Escalation Tickets (Sprint 9 — APEP-072)
+    escalation_tickets = db[ESCALATION_TICKETS]
+    await escalation_tickets.create_indexes(
+        [
+            IndexModel([("ticket_id", ASCENDING)], unique=True),
+            IndexModel([("request_id", ASCENDING)]),
+            IndexModel([("session_id", ASCENDING)]),
+            IndexModel([("agent_id", ASCENDING)]),
+            IndexModel([("state", ASCENDING)]),
+            IndexModel([("assigned_to", ASCENDING)]),
+        ]
+    )
+
+    # Compliance Reports (Sprint 22 — APEP-172..174)
+    compliance_reports = db[COMPLIANCE_REPORTS]
+    await compliance_reports.create_indexes(
+        [
+            IndexModel([("report_id", ASCENDING)], unique=True),
+            IndexModel([("report_type", ASCENDING)]),
+            IndexModel([("status", ASCENDING)]),
+            IndexModel([("created_at", DESCENDING)]),
+        ]
+    )
+
+    # Approver Groups (Sprint 9 — APEP-076)
+    approver_groups = db[APPROVER_GROUPS]
+    await approver_groups.create_indexes(
+        [
+            IndexModel([("group_id", ASCENDING)], unique=True),
+            IndexModel([("enabled", ASCENDING)]),
+        ]
+    )
+
+    # Approval Memory (Sprint 9 — APEP-077)
+    approval_memory = db[APPROVAL_MEMORY]
+    await approval_memory.create_indexes(
+        [
+            IndexModel([("entry_id", ASCENDING)], unique=True),
+            IndexModel([("agent_id", ASCENDING), ("tool_name", ASCENDING),
+                        ("tool_args_hash", ASCENDING)]),
+            IndexModel(
+                [("created_at", ASCENDING)],
+                expireAfterSeconds=86400 * 7,  # 7-day TTL for approval memory
+            ),
+        ]
+    )
+
+    # Rate Limit Counters (APEP-090/091/092 — Sprint 11)
+    rate_limit_counters = db[RATE_LIMIT_COUNTERS]
+    await rate_limit_counters.create_indexes(
+        [
+            IndexModel(
+                [("key", ASCENDING), ("window_start", ASCENDING)],
+                unique=True,
+            ),
+            IndexModel(
+                [("expires_at", ASCENDING)],
+                expireAfterSeconds=0,  # TTL: auto-delete when expires_at is reached
+            ),
+        ]
+    )
+
+    # MCP Proxy Sessions (APEP-101 — Sprint 12)
+    mcp_proxy_sessions = db[MCP_PROXY_SESSIONS]
+    await mcp_proxy_sessions.create_indexes(
+        [
+            IndexModel([("session_id", ASCENDING)], unique=True),
+            IndexModel([("agent_id", ASCENDING)]),
+            IndexModel([("status", ASCENDING)]),
+            IndexModel(
+                [("started_at", ASCENDING)],
+                expireAfterSeconds=86400 * 30,  # 30-day TTL
+            ),
+        ]
+    )
+
+    # Console Users (APEP-105 — Sprint 13)
+    console_users = db[CONSOLE_USERS]
+    await console_users.create_indexes(
+        [
+            IndexModel([("username", ASCENDING)], unique=True),
+            IndexModel([("email", ASCENDING)], unique=True),
+            IndexModel([("tenant_id", ASCENDING)]),
+            IndexModel([("roles", ASCENDING)]),
+        ]
+    )
+
+    # Report Schedules (Sprint 22 — APEP-177)
+    report_schedules = db[REPORT_SCHEDULES]
+    await report_schedules.create_indexes(
+        [
+            IndexModel([("schedule_id", ASCENDING)], unique=True),
+            IndexModel([("report_type", ASCENDING)]),
+            IndexModel([("enabled", ASCENDING)]),
+            IndexModel([("next_run_at", ASCENDING)]),
         ]
     )

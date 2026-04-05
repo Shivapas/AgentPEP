@@ -42,6 +42,10 @@ class RuleMatcher:
         """Evaluate rules in priority order; return first match or deny-by-default.
 
         Rules must already be sorted by priority (ascending = highest priority first).
+
+        Note (Sprint 11): Argument validation has moved to the ValidatorPipeline
+        (APEP-096) which runs post-match in PolicyEvaluator. Rule matching now
+        only considers role and tool pattern.
         """
         for rule in rules:
             if not rule.enabled:
@@ -53,15 +57,6 @@ class RuleMatcher:
 
             # Check tool name match
             if not self.tool_matches(tool_name, rule.tool_pattern):
-                continue
-
-            # Check argument validators (blocklist, allowlist, regex, JSON schema)
-            arg_valid, arg_reason = self.validate_args(tool_args, rule.arg_validators)
-            if not arg_valid:
-                logger.debug(
-                    "Rule %s matched tool %s but args failed: %s",
-                    rule.name, tool_name, arg_reason,
-                )
                 continue
 
             return MatchResult(

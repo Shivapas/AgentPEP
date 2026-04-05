@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # --- Enums ---
@@ -82,9 +82,20 @@ class AgentRole(BaseModel):
 # --- Policy Rule ---
 
 
+class RateLimitType(str, Enum):
+    """Rate limiting algorithm type (APEP-090/091)."""
+
+    SLIDING_WINDOW = "SLIDING_WINDOW"
+    FIXED_WINDOW = "FIXED_WINDOW"
+
+
 class RateLimit(BaseModel):
     count: int = Field(..., gt=0, description="Max invocations per window")
     window_s: int = Field(..., gt=0, description="Window duration in seconds")
+    limiter_type: RateLimitType = Field(
+        default=RateLimitType.SLIDING_WINDOW,
+        description="Rate limiting algorithm: SLIDING_WINDOW or FIXED_WINDOW",
+    )
 
 
 class ArgValidator(BaseModel):
@@ -232,6 +243,137 @@ class SecurityAlertType(str, Enum):
     AUTHORITY_VIOLATION = "AUTHORITY_VIOLATION"
 
 
+# --- Escalation Ticket (Sprint 9 — Human Escalation Manager) ---
+
+
+class EscalationState(str, Enum):
+    """State machine for escalation tickets (APEP-072)."""
+
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    DENIED = "DENIED"
+    TIMEOUT = "TIMEOUT"
+
+
+class ApproverRoutingStrategy(str, Enum):
+    """Routing strategy for selecting approvers (APEP-076)."""
+
+    ROUND_ROBIN = "ROUND_ROBIN"
+    SPECIFIC_USER = "SPECIFIC_USER"
+    ON_CALL = "ON_CALL"
+
+
+class EscalationTicket(BaseModel):
+    """Human escalation ticket with full lifecycle (APEP-072).
+
+    State machine: PENDING -> APPROVED | DENIED | TIMEOUT
+    """
+
+    ticket_id: UUID = Field(default_factory=uuid4)
+    request_id: UUID = Field(..., description="Original ToolCallRequest.request_id")
+    session_id: str
+    agent_id: str
+    tool_name: str
+    tool_args_hash: str = Field(default="", description="SHA-256 of tool arguments")
+    risk_score: float = Field(default=0.0, ge=0.0, le=1.0)
+    reason: str = Field(default="", description="Why escalation was triggered")
+    state: EscalationState = EscalationState.PENDING
+    assigned_to: str | None = Field(
+        default=None, description="Approver user/group assigned to this ticket"
+    )
+    routing_strategy: ApproverRoutingStrategy = ApproverRoutingStrategy.ROUND_ROBIN
+    decided_by: str | None = Field(
+        default=None, description="User who approved/denied the ticket"
+    )
+    decision_reason: str = Field(default="", description="Approver's reason for decision")
+    timeout_seconds: int = Field(default=300, ge=1, description="Timeout before auto-resolution")
+    timeout_action: EscalationState = Field(
+        default=EscalationState.DENIED,
+        description="Action on timeout: APPROVED or DENIED",
+    )
+    taint_flags: list[str] = Field(default_factory=list)
+    delegation_chain: list[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    resolved_at: datetime | None = None
+
+
+class ApproverGroup(BaseModel):
+    """Group of approvers for escalation routing (APEP-076)."""
+
+    group_id: str = Field(..., description="Unique group identifier")
+    name: str
+    members: list[str] = Field(default_factory=list, description="User IDs in this group")
+    strategy: ApproverRoutingStrategy = ApproverRoutingStrategy.ROUND_ROBIN
+    on_call_user: str | None = Field(
+        default=None, description="Current on-call user (for ON_CALL strategy)"
+    )
+    last_assigned_index: int = Field(
+        default=0, description="Last assigned index for round-robin"
+    )
+    enabled: bool = True
+
+
+class ApprovalMemoryEntry(BaseModel):
+    """Cached approval pattern to skip re-escalation (APEP-077)."""
+
+    entry_id: UUID = Field(default_factory=uuid4)
+    agent_id: str
+    tool_name: str
+    tool_args_hash: str = Field(..., description="SHA-256 of tool arguments pattern")
+    approved_by: str
+    original_ticket_id: UUID
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class EscalationResolveRequest(BaseModel):
+    """Request to resolve (approve/deny) an escalation ticket."""
+
+    ticket_id: UUID
+    state: EscalationState = Field(
+        ..., description="Must be APPROVED or DENIED"
+    )
+    decided_by: str
+    decision_reason: str = ""
+
+
+class NotificationConfig(BaseModel):
+    """Configuration for escalation notifications (APEP-078/079)."""
+
+    email_webhook_url: str | None = None
+    email_recipients: list[str] = Field(default_factory=list)
+    slack_webhook_url: str | None = None
+    slack_channel: str | None = None
+    enabled: bool = True
+
+    @field_validator("email_webhook_url", "slack_webhook_url", mode="before")
+    @classmethod
+    def _validate_webhook_url(cls, v: str | None) -> str | None:
+        """Only allow HTTPS URLs and block private/internal IP ranges to prevent SSRF."""
+        if v is None or v == "":
+            return v
+        from urllib.parse import urlparse
+        import ipaddress
+
+        parsed = urlparse(v)
+        if parsed.scheme != "https":
+            raise ValueError(f"Webhook URL must use HTTPS scheme, got '{parsed.scheme}'")
+
+        hostname = parsed.hostname or ""
+        # Block private/internal IP ranges
+        try:
+            addr = ipaddress.ip_address(hostname)
+            if addr.is_private or addr.is_loopback or addr.is_reserved or addr.is_link_local:
+                raise ValueError(
+                    f"Webhook URL must not point to private/internal IP: {hostname}"
+                )
+        except ValueError as exc:
+            if "private" in str(exc) or "HTTPS" in str(exc):
+                raise
+            # hostname is not an IP literal — that's fine (it's a domain name)
+
+        return v
+
+
 class SecurityAlertEvent(BaseModel):
     """Security alert generated when delegation violations are detected (APEP-059)."""
 
@@ -302,6 +444,30 @@ class InjectionSignature(BaseModel):
     description: str = Field(default="", description="Human-readable description")
 
 
+# --- Validator Pipeline Result (APEP-096) ---
+
+
+class ValidationFailure(BaseModel):
+    """A single validation failure from the validator pipeline."""
+
+    validator_type: str = Field(..., description="Type: json_schema, regex, allowlist, blocklist")
+    arg_name: str
+    reason: str
+
+
+class ValidationResult(BaseModel):
+    """Result of running the full validator pipeline (APEP-096)."""
+
+    passed: bool = True
+    failures: list[ValidationFailure] = Field(default_factory=list)
+
+    @property
+    def reason(self) -> str:
+        if self.passed:
+            return ""
+        return "; ".join(f"[{f.validator_type}] {f.arg_name}: {f.reason}" for f in self.failures)
+
+
 # --- Audit Decision Log ---
 
 
@@ -367,6 +533,35 @@ class AuditQueryRequest(BaseModel):
     offset: int = Field(default=0, ge=0)
 
 
+# --- MCP Proxy Configuration (APEP-102) ---
+
+
+class MCPProxyConfig(BaseModel):
+    """MCP proxy configuration for an agent (APEP-102).
+
+    Defines how the MCP intercept proxy connects to the upstream MCP server
+    for this agent and what policy controls apply.
+    """
+
+    enabled: bool = Field(default=False, description="Whether MCP proxy is enabled for this agent")
+    upstream_url: str = Field(
+        default="", description="URL of the target MCP server (e.g. http://localhost:3000/mcp)"
+    )
+    allowed_tools: list[str] = Field(
+        default_factory=list,
+        description="Glob patterns of MCP tools this agent can invoke (empty = use profile-level)",
+    )
+    timeout_s: float = Field(
+        default=30.0, gt=0, description="Timeout for upstream MCP server requests in seconds"
+    )
+    max_concurrent_sessions: int = Field(
+        default=10, ge=1, description="Max concurrent MCP proxy sessions for this agent"
+    )
+    taint_tracking_enabled: bool = Field(
+        default=True, description="Whether taint tracking is active for MCP sessions"
+    )
+
+
 # --- Agent Profile ---
 
 
@@ -380,6 +575,10 @@ class AgentProfile(BaseModel):
     risk_budget: float = Field(default=1.0, ge=0.0, le=1.0)
     max_delegation_depth: int = Field(default=5, ge=1)
     session_limit: int = Field(default=100, ge=1)
+    mcp_proxy: MCPProxyConfig = Field(
+        default_factory=MCPProxyConfig,
+        description="MCP proxy configuration (APEP-102)",
+    )
     enabled: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -392,6 +591,7 @@ class ToolCallRequest(BaseModel):
     request_id: UUID = Field(default_factory=uuid4)
     session_id: str
     agent_id: str
+    tenant_id: str = Field(default="default", description="Tenant identifier for global rate limits (APEP-092)")
     tool_name: str
     tool_args: dict[str, Any] = Field(default_factory=dict)
     delegation_chain: list[str] = Field(default_factory=list)
@@ -415,3 +615,61 @@ class PolicyDecisionResponse(BaseModel):
     reason: str = ""
     escalation_id: UUID | None = None
     latency_ms: int = 0
+
+
+# --- Escalation Ticket (Sprint 18 — APEP-143..APEP-147) ---
+
+
+class EscalationStatus(str, Enum):
+    """Lifecycle states for an escalation ticket."""
+
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    DENIED = "DENIED"
+    ESCALATED_UP = "ESCALATED_UP"
+    AUTO_DECIDED = "AUTO_DECIDED"
+
+
+class EscalationTicket(BaseModel):
+    """A pending escalation awaiting human review (APEP-143)."""
+
+    ticket_id: UUID = Field(default_factory=uuid4)
+    session_id: str
+    agent_id: str
+    agent_role: str = ""
+    tool_name: str
+    tool_args: dict[str, Any] = Field(default_factory=dict)
+    tool_args_hash: str = Field(default="", description="SHA-256 of tool args for pattern matching")
+    risk_score: float = Field(default=0.0, ge=0.0, le=1.0)
+    taint_flags: list[str] = Field(default_factory=list)
+    delegation_chain: list[str] = Field(default_factory=list)
+    matched_rule_id: UUID | None = None
+    reason: str = ""
+    status: EscalationStatus = EscalationStatus.PENDING
+    resolution_comment: str = ""
+    resolved_by: str | None = None
+    sla_deadline: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="Deadline before auto-decision applies",
+    )
+    sla_seconds: int = Field(default=300, description="SLA window in seconds")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    resolved_at: datetime | None = None
+
+
+class EscalationAction(BaseModel):
+    """Request body for approving, denying, or escalating-up a ticket (APEP-145)."""
+
+    action: EscalationStatus = Field(
+        ..., description="APPROVED, DENIED, or ESCALATED_UP"
+    )
+    comment: str = Field(default="", description="Reviewer comment")
+    resolved_by: str = Field(default="console_user", description="Who resolved this")
+
+
+class BulkApproveRequest(BaseModel):
+    """Bulk approve tickets matching a tool pattern (APEP-146)."""
+
+    tool_pattern: str = Field(..., description="Glob pattern to match tool_name")
+    comment: str = Field(default="", description="Reviewer comment for all approvals")
+    resolved_by: str = Field(default="console_user")
