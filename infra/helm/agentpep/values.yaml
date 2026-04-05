@@ -43,6 +43,19 @@ mongodb:
     size: 10Gi
     storageClass: ""
 
+# Default values for AgentPEP Helm chart (APEP-211)
+
+tenant:
+  id: "default"
+  environment: "beta"
+
+backend:
+  replicas: 2
+  image:
+    repository: gcr.io/agentpep/backend
+    tag: beta
+    pullPolicy: IfNotPresent
+  port: 8000
   resources:
     requests:
       cpu: 250m
@@ -156,6 +169,27 @@ console:
   image:
     repository: agentpep/agentpep-console
     tag: "0.1.0"
+  env:
+    debug: "false"
+    authEnabled: "true"
+    failMode: "FAIL_CLOSED"
+    evaluationTimeout: "5.0"
+  livenessProbe:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 15
+  readinessProbe:
+    path: /ready
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+frontend:
+  replicas: 1
+  image:
+    repository: gcr.io/agentpep/frontend
+    tag: beta
+    pullPolicy: IfNotPresent
+  port: 80
   resources:
     requests:
       cpu: 100m
@@ -291,7 +325,6 @@ backup:
     limits:
       cpu: 500m
       memory: 512Mi
-=======
 # Default values for AgentPEP Helm chart (Sprint 26)
 
 replicaCount: 2
@@ -366,4 +399,28 @@ grafana:
     repository: grafana/grafana
     tag: "10.4.1"
   adminPassword: "agentpep-admin"
->>>>>>> origin/claude/implement-sprint-26-iWTKz
+=======
+      cpu: 250m
+      memory: 256Mi
+
+mongodb:
+  url: "mongodb://mongodb-headless.mongodb.svc.cluster.local:27017"
+  database: "agentpep"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit-connections: "10"
+    nginx.ingress.kubernetes.io/rate-limit-rps: "50"
+  host: ""  # Set per-tenant: <tenant>.beta.agentpep.io
+
+observability:
+  otlpEndpoint: "http://otel-collector.monitoring.svc.cluster.local:4317"
+  metricsEnabled: true
+
+serviceAccount:
+  create: true
+  annotations: {}
+>>>>>>> origin/claude/implement-sprint-27-oRGXS

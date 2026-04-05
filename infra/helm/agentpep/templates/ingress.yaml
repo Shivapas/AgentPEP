@@ -1,4 +1,5 @@
 {{- if .Values.ingress.enabled }}
+{{- if .Values.ingress.enabled -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -44,4 +45,44 @@ spec:
                 {{- end }}
           {{- end }}
     {{- end }}
+  annotations:
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host | default (printf "%s.beta.agentpep.io" .Values.tenant.id) }}
+      secretName: {{ include "agentpep.fullname" . }}-tls
+  rules:
+    - host: {{ .Values.ingress.host | default (printf "%s.beta.agentpep.io" .Values.tenant.id) }}
+      http:
+        paths:
+          - path: /v1
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "agentpep.fullname" . }}-backend
+                port:
+                  number: {{ .Values.backend.port }}
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "agentpep.fullname" . }}-backend
+                port:
+                  number: {{ .Values.backend.port }}
+          - path: /ready
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "agentpep.fullname" . }}-backend
+                port:
+                  number: {{ .Values.backend.port }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "agentpep.fullname" . }}-frontend
+                port:
+                  number: 80
 {{- end }}

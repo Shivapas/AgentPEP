@@ -12,9 +12,11 @@ keywords:
   - agent-security
 maintainers:
   - name: AgentPEP Team
-=======
 keywords:
   - ai-safety
   - authorization
   - observability
->>>>>>> origin/claude/implement-sprint-26-iWTKz
+=======
+maintainers:
+  - name: AgentPEP Team
+>>>>>>> origin/claude/implement-sprint-27-oRGXS

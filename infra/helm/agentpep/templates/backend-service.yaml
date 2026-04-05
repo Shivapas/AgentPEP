@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "agentpep.fullname" . }}-backend
+  labels:
+    {{- include "agentpep.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.backend.port }}
+      targetPort: {{ .Values.backend.port }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "agentpep.backend.selectorLabels" . | nindent 4 }}

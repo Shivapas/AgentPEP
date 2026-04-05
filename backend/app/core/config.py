@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 7
+    # CORS (APEP-215)
+    cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
     # gRPC
     grpc_enabled: bool = False

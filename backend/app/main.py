@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.agents import router as agents_router
 from app.api.v1.audit import router as audit_router
@@ -17,6 +18,7 @@ from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.escalation import router as escalation_router
 from app.api.v1.compliance import router as compliance_router
 from app.api.v1.audit import router as audit_router
+from app.api.v1.console import router as console_router
 from app.api.v1.health import router as health_router
 from app.api.v1.intercept import router as intercept_router
 from app.api.v1.mcp import router as mcp_router
@@ -140,6 +142,16 @@ app.add_middleware(SecurityHeadersMiddleware)
 # APEP-193: CSRF protection for browser-based Policy Console
 app.add_middleware(CSRFMiddleware)
 # Auth middleware
+# CORS middleware (APEP-215 friction #6)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Middleware (order matters: mTLS first, then API key)
 app.add_middleware(APIKeyAuthMiddleware)
 app.add_middleware(MTLSMiddleware)
 
@@ -157,8 +169,9 @@ app.include_router(console_auth_router)
 app.include_router(console_dashboard_router)
 app.include_router(dashboard_router)
 app.include_router(compliance_router)
-=======
 >>>>>>> origin/claude/implement-sprint-24-SmFQK
+=======
+app.include_router(console_router)
 
 # Observability
 if settings.metrics_enabled:
