@@ -16,8 +16,8 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.models.policy import RateLimitType, ValidationFailure, ValidationResult
-from app.services.rate_limiter import RateLimiter, rate_limiter
-from app.services.validator_pipeline import ValidatorPipeline, validator_pipeline
+from app.services.rate_limiter import rate_limiter
+from app.services.validator_pipeline import validator_pipeline
 
 
 @pytest.fixture

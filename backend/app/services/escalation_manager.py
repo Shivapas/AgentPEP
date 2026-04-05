@@ -10,7 +10,7 @@ import asyncio
 import fnmatch
 import logging
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 from uuid import UUID
 
 from app.core.observability import ESCALATION_BACKLOG
@@ -56,7 +56,7 @@ class EscalationManager:
         sla_seconds: int | None = None,
     ) -> EscalationTicket:
         sla = sla_seconds if sla_seconds is not None else self._default_sla_seconds
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         ticket = EscalationTicket(
             session_id=session_id,
             agent_id=agent_id,
@@ -111,7 +111,7 @@ class EscalationManager:
             ticket.status = action
             ticket.resolution_comment = comment
             ticket.resolved_by = resolved_by
-            ticket.resolved_at = datetime.utcnow()
+            ticket.resolved_at = datetime.now(UTC)
             # Store the updated ticket back to guarantee atomic visibility
             self._tickets[ticket_id] = ticket
         ESCALATION_BACKLOG.dec()
@@ -139,7 +139,7 @@ class EscalationManager:
                     ticket.status = EscalationStatus.APPROVED
                     ticket.resolution_comment = comment
                     ticket.resolved_by = resolved_by
-                    ticket.resolved_at = datetime.utcnow()
+                    ticket.resolved_at = datetime.now(UTC)
                     resolved.append(ticket)
         if resolved:
             ESCALATION_BACKLOG.dec(len(resolved))
@@ -153,7 +153,7 @@ class EscalationManager:
 
     def check_sla_expirations(self) -> list[EscalationTicket]:
         """Auto-decide any PENDING tickets whose SLA deadline has passed (APEP-147)."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         expired: list[EscalationTicket] = []
         with self._lock:
             for ticket in self._tickets.values():

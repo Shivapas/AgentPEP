@@ -8,20 +8,15 @@ Supports running the same request against two policy versions and diffing result
 """
 
 import asyncio
-import hashlib
-import json
 import logging
 import time
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from app.core.config import settings
-from app.db import mongodb as db_module
 from app.models.policy import (
     Decision,
-    DelegationHop,
     PolicyRule,
-    TaintLevel,
     ToolCallRequest,
 )
 from app.services.confused_deputy import confused_deputy_detector
@@ -220,7 +215,7 @@ class SimulationEngine:
             chain_result = result.get("chain_result", {})
             resolved_roles = result.get("resolved_roles", [])
             reason = result.get("reason", "")
-        except asyncio.TimeoutError:
+        except TimeoutError:
             steps.append(SimulationStepResult(
                 "timeout", False, "Policy evaluation timed out",
             ))

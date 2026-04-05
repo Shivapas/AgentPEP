@@ -16,17 +16,15 @@ import uuid
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+import app.db.mongodb as db_module
 from app.models.policy import Decision, PolicyRule, TaintLevel, TaintSource
 from app.services.taint_graph import (
-    INJECTION_SIGNATURES,
     UNTRUSTED_SOURCES,
     SessionGraphManager,
     TaintGraph,
     check_injection_signatures,
     session_graph_manager,
 )
-
-import app.db.mongodb as db_module
 
 
 @pytest.fixture

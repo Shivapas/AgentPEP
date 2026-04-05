@@ -8,7 +8,7 @@ reports and optionally emailing them to configured recipients.
 import asyncio
 import logging
 import smtplib
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from email.message import EmailMessage
 from uuid import UUID
 
@@ -118,7 +118,7 @@ async def delete_schedule(schedule_id: UUID) -> bool:
 
 def _compute_next_run(frequency: ScheduleFrequency) -> datetime:
     """Compute the next run time from now."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if frequency == ScheduleFrequency.WEEKLY:
         return now + timedelta(weeks=1)
     return now + timedelta(days=30)
@@ -126,7 +126,7 @@ def _compute_next_run(frequency: ScheduleFrequency) -> datetime:
 
 def _compute_period(frequency: ScheduleFrequency) -> tuple[datetime, datetime]:
     """Compute the reporting period ending now."""
-    end = datetime.now(timezone.utc)
+    end = datetime.now(UTC)
     if frequency == ScheduleFrequency.WEEKLY:
         start = end - timedelta(weeks=1)
     else:
@@ -161,7 +161,7 @@ async def run_due_schedules() -> list[ComplianceReport]:
     """Check and execute any schedules that are due. Returns generated reports."""
     db = get_database()
     coll = db[REPORT_SCHEDULES]
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     due_schedules = coll.find({
         "enabled": True,

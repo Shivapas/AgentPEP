@@ -22,19 +22,16 @@ from app.main import app
 from app.models.policy import (
     Decision,
     PolicyRule,
-    TaintLevel,
     TaintSource,
 )
 from app.services.policy_evaluator import (
     AsyncAuditLogWriter,
-    RiskScorer,
     audit_log_writer,
     policy_evaluator,
     risk_scorer,
 )
 from app.services.rule_cache import RuleCache, rule_cache
-from app.services.taint_graph import TaintGraph, session_graph_manager, taint_audit_logger
-
+from app.services.taint_graph import TaintGraph, session_graph_manager
 
 # ---------------------------------------------------------------------------
 # APEP-180: Intercept hot path — verify response includes risk_score

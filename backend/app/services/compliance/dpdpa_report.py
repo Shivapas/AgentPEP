@@ -6,7 +6,7 @@ specified time period.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 
 from app.db.mongodb import (
     AUDIT_DECISIONS,
@@ -143,7 +143,7 @@ async def generate_dpdpa_report(
             "deny_log": deny_log,
         }
         report.status = ReportStatus.COMPLETED
-        report.generated_at = datetime.utcnow()
+        report.generated_at = datetime.now(UTC)
 
     except Exception as exc:
         logger.exception("Failed to generate DPDPA report")

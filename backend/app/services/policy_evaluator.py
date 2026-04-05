@@ -41,11 +41,10 @@ from app.models.policy import (
     Decision,
     PolicyDecisionResponse,
     PolicyRule,
-    TaintLevel,
     ToolCallRequest,
 )
-from app.services.audit_logger import audit_logger
 from app.services.audit_integrity import audit_integrity_verifier
+from app.services.audit_logger import audit_logger
 from app.services.confused_deputy import confused_deputy_detector
 from app.services.kafka_producer import kafka_producer
 from app.services.rate_limiter import rate_limiter
@@ -115,7 +114,7 @@ class AsyncAuditLogWriter:
                         self._queue.get(), timeout=self._flush_interval_s
                     )
                     batch.append(item)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     pass
 
                 # Drain up to batch_size
@@ -260,7 +259,7 @@ class PolicyEvaluator:
                 self._evaluate_internal(request, start),
                 timeout=timeout,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             elapsed_ms = int((time.monotonic() - start) * 1000)
             if settings.default_fail_mode == "FAIL_OPEN":
                 decision = Decision.ALLOW
@@ -292,7 +291,11 @@ class PolicyEvaluator:
             tool_name=request.tool_name,
             decision=decision_response.decision.value,
             latency_ms=decision_response.latency_ms,
-            matched_rule_id=str(decision_response.matched_rule_id) if decision_response.matched_rule_id else None,
+            matched_rule_id=(
+                str(decision_response.matched_rule_id)
+                if decision_response.matched_rule_id
+                else None
+            ),
             reason=decision_response.reason,
         )
 

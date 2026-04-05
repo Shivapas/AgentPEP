@@ -9,8 +9,6 @@ shared workspace writes, and emits SECURITY_ALERT events on violations.
 
 import fnmatch
 import logging
-from datetime import datetime
-from uuid import UUID
 
 from app.db import mongodb as db_module
 from app.models.policy import (
@@ -459,7 +457,11 @@ class ConfusedDeputyDetector:
                     delegation_chain=chain_agents,
                     tool_name=tool_name,
                     detail=auth_reason,
-                    severity="CRITICAL" if alert_type == SecurityAlertType.PRIVILEGE_ESCALATION else "HIGH",
+                    severity=(
+                        "CRITICAL"
+                        if alert_type == SecurityAlertType.PRIVILEGE_ESCALATION
+                        else "HIGH"
+                    ),
                 )
             )
             return False, auth_reason

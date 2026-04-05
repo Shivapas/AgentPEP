@@ -8,28 +8,22 @@ Covers:
 
 import json
 import logging
-from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.core.observability import (
-    AUDIT_WRITE_LATENCY,
     AUDIT_WRITE_TOTAL,
     DECISION_LATENCY,
     DECISION_TOTAL,
-    ESCALATION_BACKLOG,
-    INTERCEPT_LATENCY,
     INTERCEPT_REQUESTS,
-    POLICY_EVALUATIONS,
     SECURITY_ALERT_TOTAL,
     TAINT_EVENT_TOTAL,
 )
 from app.core.structured_logging import StructuredJsonFormatter, StructuredLogger, get_logger
 from app.main import app
-from app.models.policy import Decision, TaintEventType
-
+from app.models.policy import TaintEventType
 
 # ---------------------------------------------------------------------------
 # Helpers

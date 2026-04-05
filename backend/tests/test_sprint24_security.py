@@ -143,8 +143,8 @@ class TestAuditIntegrity:
 
     @pytest.mark.asyncio
     async def test_chain_verification_passes_for_valid_chain(self):
-        from app.services.audit_integrity import audit_integrity_verifier
         from app.db.mongodb import get_database
+        from app.services.audit_integrity import audit_integrity_verifier
 
         db = get_database()
         # Clear any existing chain entries
@@ -167,8 +167,8 @@ class TestAuditIntegrity:
 
     @pytest.mark.asyncio
     async def test_chain_verification_detects_tampering(self):
-        from app.services.audit_integrity import audit_integrity_verifier
         from app.db.mongodb import get_database
+        from app.services.audit_integrity import audit_integrity_verifier
 
         db = get_database()
         await db["audit_hash_chain"].delete_many({})

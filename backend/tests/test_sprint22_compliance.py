@@ -10,17 +10,16 @@ Validates:
 - Compliance API endpoints
 """
 
-import asyncio
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.db.mongodb import AUDIT_DECISIONS, SECURITY_ALERTS, TAINT_AUDIT_EVENTS, get_database
+from app.db.mongodb import AUDIT_DECISIONS, SECURITY_ALERTS, TAINT_AUDIT_EVENTS
 from app.main import app
-from app.models.compliance import ReportStatus, ReportType, ScheduleFrequency
+from app.models.compliance import ReportSchedule, ReportStatus, ReportType, ScheduleFrequency
 from app.services.compliance.certin_report import generate_certin_bom_report
 from app.services.compliance.dpdpa_report import generate_dpdpa_report
 from app.services.compliance.elastic_writer import ElasticsearchConfig, ElasticsearchWriter
@@ -34,14 +33,12 @@ from app.services.compliance.report_scheduler import (
     list_schedules,
 )
 from app.services.compliance.splunk_forwarder import SplunkHECConfig, SplunkHECForwarder
-from app.models.compliance import ReportSchedule
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-NOW = datetime.now(timezone.utc)
+NOW = datetime.now(UTC)
 PERIOD_START = NOW - timedelta(days=7)
 PERIOD_END = NOW
 

@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 from app.models.policy import Decision, DelegationHop, PolicyRule
 
-
 # --- Simulation Request / Response ---
 
 

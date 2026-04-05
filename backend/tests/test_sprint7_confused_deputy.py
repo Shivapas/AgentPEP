@@ -10,15 +10,14 @@ APEP-060: PolicyEvaluator integration
 APEP-061: Attack simulation tests
 """
 
-import pytest
 from uuid import uuid4
 
+import pytest
 from httpx import ASGITransport, AsyncClient
 
 import app.db.mongodb as db_module
 from app.main import app
 from app.models.policy import (
-    Decision,
     DelegationChain,
     DelegationHop,
     SecurityAlertEvent,
@@ -31,10 +30,7 @@ from app.services.confused_deputy import (
     DelegationChainWalker,
     ImplicitDelegationDetector,
     SecurityAlertEmitter,
-    confused_deputy_detector,
-    security_alert_emitter,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

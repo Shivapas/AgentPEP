@@ -4,7 +4,6 @@ Provides the same policy evaluation as the REST endpoint but over gRPC.
 Uses grpcio for the server implementation with generated protobuf stubs.
 """
 
-import asyncio
 import logging
 from concurrent import futures
 

@@ -9,7 +9,7 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 
@@ -81,7 +81,7 @@ class ElasticsearchWriter:
         if "@timestamp" not in doc:
             doc["@timestamp"] = doc.get(
                 "timestamp",
-                datetime.now(timezone.utc).isoformat(),
+                datetime.now(UTC).isoformat(),
             )
         return doc
 

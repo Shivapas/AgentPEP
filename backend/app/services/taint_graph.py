@@ -26,7 +26,7 @@ import hashlib
 import logging
 import re
 import threading
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -54,16 +54,28 @@ TAINT_AUDIT_EVENTS = "taint_audit_events"
 # remain for backward compatibility with existing tests and consumers.
 _LEGACY_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"ignore\s+(all\s+)?(previous|prior|above)\s+(instructions|prompts)", re.IGNORECASE),
-    re.compile(r"disregard\s+(all\s+)?(previous|prior|above)\s+(instructions|prompts)", re.IGNORECASE),
+    re.compile(
+        r"disregard\s+(all\s+)?(previous|prior|above)\s+(instructions|prompts)",
+        re.IGNORECASE,
+    ),
     re.compile(r"you\s+are\s+now\s+(a|an)\s+", re.IGNORECASE),
-    re.compile(r"forget\s+(all\s+)?(your\s+)?(previous|prior)\s+(instructions|rules|constraints)", re.IGNORECASE),
+    re.compile(
+        r"forget\s+(all\s+)?(your\s+)?(previous|prior)\s+(instructions|rules|constraints)",
+        re.IGNORECASE,
+    ),
     re.compile(r"new\s+instructions?\s*:", re.IGNORECASE),
     re.compile(r"system\s*:\s*(you\s+are|your\s+new\s+role)", re.IGNORECASE),
     re.compile(r"\[SYSTEM\]", re.IGNORECASE),
     re.compile(r"<\s*system\s*>", re.IGNORECASE),
     re.compile(r"ADMIN\s+OVERRIDE", re.IGNORECASE),
-    re.compile(r"do\s+not\s+follow\s+(any|the)\s+(previous|original)\s+(instructions|rules)", re.IGNORECASE),
-    re.compile(r"pretend\s+(that\s+)?you\s+(are|have)\s+no\s+(restrictions|rules|limits)", re.IGNORECASE),
+    re.compile(
+        r"do\s+not\s+follow\s+(any|the)\s+(previous|original)\s+(instructions|rules)",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"pretend\s+(that\s+)?you\s+(are|have)\s+no\s+(restrictions|rules|limits)",
+        re.IGNORECASE,
+    ),
     re.compile(r"act\s+as\s+if\s+(there\s+are\s+)?no\s+(rules|restrictions|safety)", re.IGNORECASE),
     re.compile(r"jailbreak", re.IGNORECASE),
     re.compile(r"DAN\s+mode", re.IGNORECASE),
@@ -93,7 +105,7 @@ _TAINT_ORDER = {
 
 def _highest_taint(*levels: TaintLevel) -> TaintLevel:
     """Return the most restrictive taint level."""
-    return max(levels, key=lambda l: _TAINT_ORDER[l])
+    return max(levels, key=lambda lvl: _TAINT_ORDER[lvl])
 
 
 def _hash_value(value: Any) -> str:
@@ -395,7 +407,7 @@ class TaintGraph:
         self._nodes: dict[UUID, TaintNode] = {}
         self._children: dict[UUID, list[UUID]] = {}  # parent -> children edges
         self._lock = threading.Lock()
-        self.created_at = datetime.utcnow()
+        self.created_at = datetime.now(UTC)
         self._audit_logger = audit_logger or taint_audit_logger
         # APEP-183: Bounded node limit with LRU eviction
         self._max_nodes = max_nodes or settings.taint_graph_max_nodes_per_session
@@ -980,7 +992,7 @@ class SessionGraphManager:
 
         db = db_module.get_database()
         doc = graph.to_dict()
-        doc["persisted_at"] = datetime.utcnow()
+        doc["persisted_at"] = datetime.now(UTC)
 
         try:
             await db[db_module.TAINT_GRAPHS].replace_one(

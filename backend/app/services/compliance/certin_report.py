@@ -6,7 +6,7 @@ accessed, security alerts, and risk posture for the reporting period.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 
 from app.db.mongodb import (
     AGENT_PROFILES,
@@ -39,7 +39,10 @@ async def generate_certin_bom_report(
     db = get_database()
     report = ComplianceReport(
         report_type=ReportType.CERT_IN_BOM,
-        title=f"CERT-In BOM Agent Activity Report ({period_start:%Y-%m-%d} to {period_end:%Y-%m-%d})",
+        title=(
+            f"CERT-In BOM Agent Activity Report"
+            f" ({period_start:%Y-%m-%d} to {period_end:%Y-%m-%d})"
+        ),
         status=ReportStatus.GENERATING,
         period_start=period_start,
         period_end=period_end,
@@ -153,7 +156,7 @@ async def generate_certin_bom_report(
             "incident_timeline": incident_timeline,
         }
         report.status = ReportStatus.COMPLETED
-        report.generated_at = datetime.utcnow()
+        report.generated_at = datetime.now(UTC)
 
     except Exception as exc:
         logger.exception("Failed to generate CERT-In BOM report")

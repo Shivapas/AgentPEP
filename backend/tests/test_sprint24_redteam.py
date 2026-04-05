@@ -309,7 +309,7 @@ async def test_rt11_nonexistent_agent_denied(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_rt12_role_restricted_tool_denied_for_wrong_role(client: AsyncClient):
     """RT-12: Agent with ReaderAgent role trying to use a WriterAgent-only tool."""
-    from app.db.mongodb import get_database, POLICY_RULES, AGENT_PROFILES
+    from app.db.mongodb import AGENT_PROFILES, POLICY_RULES, get_database
 
     db = get_database()
     await db[AGENT_PROFILES].insert_one({
@@ -342,7 +342,7 @@ async def test_rt12_role_restricted_tool_denied_for_wrong_role(client: AsyncClie
 @pytest.mark.asyncio
 async def test_rt13_disabled_agent_denied(client: AsyncClient):
     """RT-13: Disabled agent should effectively have no roles and be denied."""
-    from app.db.mongodb import get_database, AGENT_PROFILES
+    from app.db.mongodb import AGENT_PROFILES, get_database
 
     db = get_database()
     await db[AGENT_PROFILES].insert_one({
@@ -364,7 +364,7 @@ async def test_rt13_disabled_agent_denied(client: AsyncClient):
 async def test_rt14_wildcard_role_cannot_override_explicit_deny(client: AsyncClient):
     """RT-14: An explicit DENY rule should override a wildcard ALLOW rule
     when DENY has higher priority."""
-    from app.db.mongodb import get_database, POLICY_RULES
+    from app.db.mongodb import POLICY_RULES, get_database
 
     db = get_database()
     deny_rule = {
@@ -410,9 +410,9 @@ async def test_rt14_wildcard_role_cannot_override_explicit_deny(client: AsyncCli
 async def test_rt15_taint_escalation_for_untrusted_web_data(client: AsyncClient):
     """RT-15: Tool call with tainted (UNTRUSTED) data on a taint-checked rule
     should trigger ESCALATE."""
-    from app.db.mongodb import get_database, POLICY_RULES
-    from app.services.taint_graph import session_graph_manager
+    from app.db.mongodb import POLICY_RULES, get_database
     from app.models.policy import TaintLevel, TaintSource
+    from app.services.taint_graph import session_graph_manager
 
     db = get_database()
     rule_id = str(uuid.uuid4())
@@ -455,9 +455,9 @@ async def test_rt15_taint_escalation_for_untrusted_web_data(client: AsyncClient)
 @pytest.mark.asyncio
 async def test_rt16_quarantined_data_always_denied(client: AsyncClient):
     """RT-16: QUARANTINE-tainted data should always result in DENY."""
-    from app.db.mongodb import get_database, POLICY_RULES
-    from app.services.taint_graph import session_graph_manager
+    from app.db.mongodb import POLICY_RULES, get_database
     from app.models.policy import TaintLevel, TaintSource
+    from app.services.taint_graph import session_graph_manager
 
     db = get_database()
     await db[POLICY_RULES].insert_one({
@@ -497,9 +497,9 @@ async def test_rt16_quarantined_data_always_denied(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_rt17_taint_without_check_still_allows(client: AsyncClient):
     """RT-17: When taint_check is False, tainted data should not block ALLOW."""
-    from app.db.mongodb import get_database, POLICY_RULES
-    from app.services.taint_graph import session_graph_manager
+    from app.db.mongodb import POLICY_RULES, get_database
     from app.models.policy import TaintLevel, TaintSource
+    from app.services.taint_graph import session_graph_manager
 
     db = get_database()
     await db[POLICY_RULES].insert_one({

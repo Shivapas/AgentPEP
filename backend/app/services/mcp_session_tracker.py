@@ -12,8 +12,7 @@ data lineage across tool calls within that session. The tracker:
 from __future__ import annotations
 
 import logging
-from datetime import datetime
-from typing import Any
+from datetime import datetime, timezone, UTC
 from uuid import UUID
 
 from app.models.policy import TaintLevel, TaintSource
@@ -34,7 +33,7 @@ class MCPSessionTracker:
         self._sessions[session_id] = MCPSessionState(
             session_id=session_id,
             agent_id=agent_id,
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(UTC),
         )
         logger.info("MCP session started: session_id=%s agent_id=%s", session_id, agent_id)
 

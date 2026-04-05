@@ -24,7 +24,6 @@ import httpx
 
 from app.models.policy import Decision, ToolCallRequest
 from app.services.mcp_message_parser import (
-    MCPMessageParser,
     MCPMessageType,
     MCPParseError,
     ParsedMCPMessage,
@@ -101,7 +100,8 @@ class MCPProxy:
         # Intercept tools/call requests AND notifications carrying tool calls
         # (notifications without an 'id' field must also be evaluated against
         # policy to prevent notification-based policy bypass).
-        if parsed.message_type == MCPMessageType.TOOL_CALL and (parsed.is_request or parsed.is_notification):
+        is_tool_call = parsed.message_type == MCPMessageType.TOOL_CALL
+        if is_tool_call and (parsed.is_request or parsed.is_notification):
             return await self._handle_tool_call(message, parsed)
 
         # Forward non-tool-call messages transparently
