@@ -58,7 +58,9 @@ class StructuredLogger:
     def __init__(self, logger: logging.Logger) -> None:
         self._logger = logger
 
-    def _log(self, level: int, event: str, **fields: Any) -> None:
+    def _log(self, level: int, event: str, *args: Any, **fields: Any) -> None:
+        if args:
+            event = event % args
         record = self._logger.makeRecord(
             name=self._logger.name,
             level=level,
@@ -71,25 +73,42 @@ class StructuredLogger:
         record._structured_fields = fields  # type: ignore[attr-defined]
         self._logger.handle(record)
 
-    def debug(self, event: str, **fields: Any) -> None:
+    def debug(self, event: str, *args: Any, **fields: Any) -> None:
         if self._logger.isEnabledFor(logging.DEBUG):
-            self._log(logging.DEBUG, event, **fields)
+            self._log(logging.DEBUG, event, *args, **fields)
 
-    def info(self, event: str, **fields: Any) -> None:
+    def info(self, event: str, *args: Any, **fields: Any) -> None:
         if self._logger.isEnabledFor(logging.INFO):
-            self._log(logging.INFO, event, **fields)
+            self._log(logging.INFO, event, *args, **fields)
 
-    def warning(self, event: str, **fields: Any) -> None:
+    def warning(self, event: str, *args: Any, **fields: Any) -> None:
         if self._logger.isEnabledFor(logging.WARNING):
-            self._log(logging.WARNING, event, **fields)
+            self._log(logging.WARNING, event, *args, **fields)
 
-    def error(self, event: str, **fields: Any) -> None:
+    def error(self, event: str, *args: Any, **fields: Any) -> None:
         if self._logger.isEnabledFor(logging.ERROR):
-            self._log(logging.ERROR, event, **fields)
+            self._log(logging.ERROR, event, *args, **fields)
 
-    def critical(self, event: str, **fields: Any) -> None:
+    def critical(self, event: str, *args: Any, **fields: Any) -> None:
         if self._logger.isEnabledFor(logging.CRITICAL):
-            self._log(logging.CRITICAL, event, **fields)
+            self._log(logging.CRITICAL, event, *args, **fields)
+
+    def exception(self, event: str, *args: Any, **fields: Any) -> None:
+        """Log at ERROR level with exception info."""
+        if args:
+            event = event % args
+        if self._logger.isEnabledFor(logging.ERROR):
+            record = self._logger.makeRecord(
+                name=self._logger.name,
+                level=logging.ERROR,
+                fn="",
+                lno=0,
+                msg=event,
+                args=(),
+                exc_info=True,
+            )
+            record._structured_fields = fields  # type: ignore[attr-defined]
+            self._logger.handle(record)
 
 
 _configured = False

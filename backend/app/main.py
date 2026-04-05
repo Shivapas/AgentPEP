@@ -169,7 +169,6 @@ app.include_router(intercept_router)
 app.include_router(mcp_router)
 app.include_router(simulate_router)
 app.include_router(taint_router)
-app.include_router(escalation_router)
 
 # Observability
 if settings.metrics_enabled:

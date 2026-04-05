@@ -27,6 +27,16 @@ class EscalationManager:
         self._tickets: dict[UUID, EscalationTicket] = {}
         self._subscribers: list[asyncio.Queue[dict[str, object]]] = []
         self._default_sla_seconds = default_sla_seconds
+        self._websocket_callback = None
+        self._notification_config = None
+
+    def set_websocket_callback(self, callback) -> None:
+        """Set an async callback to invoke when tickets are created/resolved."""
+        self._websocket_callback = callback
+
+    def set_notification_config(self, config) -> None:
+        """Set notification configuration for escalation alerts."""
+        self._notification_config = config
 
     # --- Ticket CRUD ---
 

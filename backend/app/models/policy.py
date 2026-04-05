@@ -263,8 +263,8 @@ class ApproverRoutingStrategy(str, Enum):
     ON_CALL = "ON_CALL"
 
 
-class EscalationTicket(BaseModel):
-    """Human escalation ticket with full lifecycle (APEP-072).
+class EscalationTicketV1(BaseModel):
+    """Sprint 9 escalation ticket model (APEP-072). Superseded by EscalationTicket (Sprint 18).
 
     State machine: PENDING -> APPROVED | DENIED | TIMEOUT
     """

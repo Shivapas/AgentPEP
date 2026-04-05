@@ -206,7 +206,7 @@ class TestAuditQueryAPI:
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 0
-        assert data["records"] == []
+        assert data["items"] == []
 
     async def test_get_decisions_returns_records(self, client, mock_mongodb):
         """GET /v1/audit/decisions returns seeded records."""
@@ -216,7 +216,7 @@ class TestAuditQueryAPI:
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 3
-        assert len(data["records"]) == 3
+        assert len(data["items"]) == 3
 
     async def test_filter_by_agent_id(self, client, mock_mongodb):
         """Filtering by agent_id returns only matching records."""
@@ -225,7 +225,7 @@ class TestAuditQueryAPI:
         resp = await client.get("/v1/audit/decisions", params={"agent_id": "agent-0"})
         assert resp.status_code == 200
         data = resp.json()
-        for rec in data["records"]:
+        for rec in data["items"]:
             assert rec["agent_id"] == "agent-0"
 
     async def test_filter_by_decision(self, client, mock_mongodb):
@@ -234,7 +234,7 @@ class TestAuditQueryAPI:
 
         resp = await client.get("/v1/audit/decisions", params={"decision": "DENY"})
         assert resp.status_code == 200
-        for rec in resp.json()["records"]:
+        for rec in resp.json()["items"]:
             assert rec["decision"] == "DENY"
 
     async def test_filter_by_tool_name(self, client, mock_mongodb):
@@ -243,17 +243,17 @@ class TestAuditQueryAPI:
 
         resp = await client.get("/v1/audit/decisions", params={"tool_name": "tool_2"})
         assert resp.status_code == 200
-        for rec in resp.json()["records"]:
+        for rec in resp.json()["items"]:
             assert rec["tool_name"] == "tool_2"
 
     async def test_pagination(self, client, mock_mongodb):
-        """Limit and offset work correctly for pagination."""
+        """Page size and page number work correctly for pagination."""
         await _seed_audit_records(10)
 
-        resp = await client.get("/v1/audit/decisions", params={"limit": 3, "offset": 0})
+        resp = await client.get("/v1/audit/decisions", params={"page_size": 3, "page": 1})
         assert resp.status_code == 200
         data = resp.json()
-        assert data["returned"] == 3
+        assert len(data["items"]) == 3
         assert data["total"] == 10
 
 
@@ -275,7 +275,7 @@ class TestComplianceExport:
         data = resp.json()
         assert data["template"] == "DPDPA"
         assert "DPDPA" in data["title"]
-        assert len(data["records"]) == 3
+        assert len(data["items"]) == 3
 
     async def test_export_json_gdpr(self, client, mock_mongodb):
         """JSON export with GDPR template returns structured report."""

@@ -28,17 +28,13 @@ from app.models.policy import (
     ApproverRoutingStrategy,
     EscalationResolveRequest,
     EscalationState,
-    EscalationTicket,
+    EscalationTicketV1 as EscalationTicket,
     NotificationConfig,
 )
-from app.services.escalation_manager import (
-    APPROVAL_MEMORY,
-    APPROVER_GROUPS,
-    ESCALATION_TICKETS,
-    escalation_manager,
-)
+from app.services.escalation_manager import escalation_manager
 from app.services.escalation_ws import escalation_ws_manager
 from app.db import mongodb as db_module
+from app.db.mongodb import APPROVAL_MEMORY, APPROVER_GROUPS, ESCALATION_TICKETS
 
 
 # ---------- Fixtures ----------
