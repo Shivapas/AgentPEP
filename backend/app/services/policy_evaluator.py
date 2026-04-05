@@ -8,6 +8,9 @@ Sprint 7: integrates confused-deputy detector (APEP-060) — validates delegatio
 chains, enforces depth limits, and detects implicit delegation.
 Sprint 8: integrates risk scoring engine (APEP-070) — computes [0–1] risk score
 per tool call and ESCALATES when score exceeds the configured threshold.
+Sprint 11: integrates rate limiter (APEP-090/091/092) and validator pipeline
+(APEP-093/094/095/096) — rate limits per-role per-tool with sliding/fixed window;
+global per-tenant ceiling; sequential validator pipeline where any failure → DENY.
 """
 
 import asyncio
@@ -29,11 +32,13 @@ from app.models.policy import (
 from app.services.audit_logger import audit_logger
 from app.services.confused_deputy import confused_deputy_detector
 from app.services.kafka_producer import kafka_producer
+from app.services.rate_limiter import rate_limiter
 from app.services.risk_scoring import risk_engine
 from app.services.role_resolver import role_resolver
 from app.services.rule_cache import rule_cache
 from app.services.rule_matcher import rule_matcher
 from app.services.taint_graph import session_graph_manager
+from app.services.validator_pipeline import validator_pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +83,18 @@ class PolicyEvaluator:
         self, request: ToolCallRequest, start: float
     ) -> PolicyDecisionResponse:
         """Core evaluation logic: resolve roles, fetch cached rules, match, decide."""
+
+        # --- Global per-tenant rate limit (APEP-092) ---
+        global_rl = await rate_limiter.check_global_rate_limit(request.tenant_id)
+        if not global_rl.allowed:
+            elapsed_ms = int((time.monotonic() - start) * 1000)
+            decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
+            return PolicyDecisionResponse(
+                request_id=request.request_id,
+                decision=decision,
+                reason=global_rl.reason,
+                latency_ms=elapsed_ms,
+            )
 
         # --- Confused-deputy check (APEP-060) ---
         if request.delegation_hops:
@@ -153,6 +170,42 @@ class PolicyEvaluator:
 
         matched_rule = result.rule
         assert matched_rule is not None
+
+        # --- Validator pipeline (APEP-093/094/095/096) ---
+        if matched_rule.arg_validators:
+            validation = validator_pipeline.validate(
+                request.tool_args, matched_rule.arg_validators
+            )
+            if not validation.passed:
+                elapsed_ms = int((time.monotonic() - start) * 1000)
+                decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
+                return PolicyDecisionResponse(
+                    request_id=request.request_id,
+                    decision=decision,
+                    matched_rule_id=matched_rule.rule_id,
+                    reason=f"Validator pipeline failed: {validation.reason}",
+                    latency_ms=elapsed_ms,
+                )
+
+        # --- Per-rule rate limit check (APEP-090/091) ---
+        if matched_rule.rate_limit is not None:
+            # Use the first matching agent role for the rate limit key
+            rl_role = agent_roles[0] if agent_roles else request.agent_id
+            rl_result = await rate_limiter.check(
+                agent_role=rl_role,
+                tool_name=request.tool_name,
+                rate_limit=matched_rule.rate_limit,
+            )
+            if not rl_result.allowed:
+                elapsed_ms = int((time.monotonic() - start) * 1000)
+                decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
+                return PolicyDecisionResponse(
+                    request_id=request.request_id,
+                    decision=decision,
+                    matched_rule_id=matched_rule.rule_id,
+                    reason=rl_result.reason,
+                    latency_ms=elapsed_ms,
+                )
 
         decision = matched_rule.action
         taint_flags: list[str] = []

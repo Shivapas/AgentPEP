@@ -46,6 +46,7 @@ RISK_MODEL_CONFIGS = "risk_model_configs"
 ESCALATION_TICKETS = "escalation_tickets"
 APPROVER_GROUPS = "approver_groups"
 APPROVAL_MEMORY = "approval_memory"
+RATE_LIMIT_COUNTERS = "rate_limit_counters"
 
 
 async def init_collections() -> None:
@@ -184,6 +185,7 @@ async def init_collections() -> None:
         ]
     )
 
+<<<<<<< HEAD
     # Risk Model Configs (APEP-063 — Sprint 8)
     risk_model_configs = db[RISK_MODEL_CONFIGS]
     await risk_model_configs.create_indexes(
@@ -226,6 +228,21 @@ async def init_collections() -> None:
             IndexModel(
                 [("created_at", ASCENDING)],
                 expireAfterSeconds=86400 * 7,  # 7-day TTL for approval memory
+            ),
+        ]
+    )
+
+    # Rate Limit Counters (APEP-090/091/092 — Sprint 11)
+    rate_limit_counters = db[RATE_LIMIT_COUNTERS]
+    await rate_limit_counters.create_indexes(
+        [
+            IndexModel(
+                [("key", ASCENDING), ("window_start", ASCENDING)],
+                unique=True,
+            ),
+            IndexModel(
+                [("expires_at", ASCENDING)],
+                expireAfterSeconds=0,  # TTL: auto-delete when expires_at is reached
             ),
         ]
     )
