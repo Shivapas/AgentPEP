@@ -6,6 +6,7 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AppShell } from "./components/layout/AppShell";
 import { DashboardPage } from "./components/dashboard/DashboardPage";
 import { Placeholder } from "./components/common/Placeholder";
+import { PolicyAuthoringPage } from "./components/policy/PolicyAuthoringPage";
 
 export function App() {
   return (
@@ -26,6 +27,10 @@ export function App() {
                 <Route
                   path="/policies"
                   element={<Placeholder title="Policies" />}
+                />
+                <Route
+                  path="/policy"
+                  element={<PolicyAuthoringPage />}
                 />
                 <Route
                   path="/agents"
