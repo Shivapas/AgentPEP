@@ -1,106 +1,116 @@
-/** Thin API client with JWT auto-refresh (APEP-106). */
+/** API client for AgentPEP audit endpoints. */
 
-const API_BASE = "/api";
+const BASE = "/api/v1/audit";
 
-let accessToken: string | null = null;
-let refreshToken: string | null = null;
-let onAuthFailure: (() => void) | null = null;
-
-export function setTokens(access: string, refresh: string) {
-  accessToken = access;
-  refreshToken = refresh;
-  localStorage.setItem("access_token", access);
-  localStorage.setItem("refresh_token", refresh);
+export interface AuditDecision {
+  decision_id: string;
+  session_id: string;
+  agent_id: string;
+  agent_role: string;
+  tool_name: string;
+  tool_args_hash: string;
+  taint_flags: string[];
+  risk_score: number;
+  delegation_chain: string[];
+  matched_rule_id: string | null;
+  decision: string;
+  escalation_id: string | null;
+  latency_ms: number;
+  timestamp: string;
+  chain_hash?: string | null;
 }
 
-export function loadTokens() {
-  accessToken = localStorage.getItem("access_token");
-  refreshToken = localStorage.getItem("refresh_token");
+export interface PaginatedResponse {
+  items: AuditDecision[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 }
 
-export function clearTokens() {
-  accessToken = null;
-  refreshToken = null;
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
+export interface IntegrityRecord {
+  decision_id: string;
+  status: "VERIFIED" | "TAMPERED" | "UNLINKED";
+  expected_hash: string;
+  stored_hash: string | null;
 }
 
-export function getAccessToken() {
-  return accessToken;
+export interface IntegrityResult {
+  status: "VERIFIED" | "TAMPERED" | "NO_RECORDS";
+  total_records: number;
+  verified: number;
+  tampered: number;
+  records: IntegrityRecord[];
 }
 
-export function setOnAuthFailure(cb: () => void) {
-  onAuthFailure = cb;
+export interface DecisionFilters {
+  page?: number;
+  page_size?: number;
+  sort_field?: string;
+  sort_order?: "asc" | "desc";
+  session_id?: string;
+  agent_id?: string;
+  tool_name?: string;
+  decision?: string;
+  risk_min?: number;
+  risk_max?: number;
+  start_time?: string;
+  end_time?: string;
+  search?: string;
 }
 
-async function tryRefresh(): Promise<boolean> {
-  if (!refreshToken) return false;
-  try {
-    const res = await fetch(`${API_BASE}/v1/console/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-    if (!res.ok) return false;
-    const data = await res.json();
-    setTokens(data.access_token, data.refresh_token);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export async function apiFetch(
-  path: string,
-  init: RequestInit = {},
-): Promise<Response> {
-  const headers = new Headers(init.headers);
-  if (accessToken) {
-    headers.set("Authorization", `Bearer ${accessToken}`);
-  }
-  if (!headers.has("Content-Type") && init.body) {
-    headers.set("Content-Type", "application/json");
-  }
-
-  let res = await fetch(`${API_BASE}${path}`, { ...init, headers });
-
-  if (res.status === 401 && refreshToken) {
-    const refreshed = await tryRefresh();
-    if (refreshed) {
-      headers.set("Authorization", `Bearer ${accessToken}`);
-      res = await fetch(`${API_BASE}${path}`, { ...init, headers });
-    } else {
-      clearTokens();
-      onAuthFailure?.();
+function toParams(filters: Record<string, unknown>): URLSearchParams {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters)) {
+    if (v !== undefined && v !== null && v !== "") {
+      p.set(k, String(v));
     }
   }
-
-  return res;
+  return p;
 }
 
-export async function login(
-  username: string,
-  password: string,
-): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE}/v1/console/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    return { success: false, error: err.detail || "Login failed" };
-  }
-  const data = await res.json();
-  setTokens(data.access_token, data.refresh_token);
-  return { success: true };
+export async function fetchDecisions(
+  filters: DecisionFilters,
+): Promise<PaginatedResponse> {
+  const url = `${BASE}/decisions?${toParams(filters as Record<string, unknown>)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch decisions: ${res.status}`);
+  return res.json() as Promise<PaginatedResponse>;
 }
 
-export async function logout() {
-  try {
-    await apiFetch("/v1/console/logout", { method: "POST" });
-  } catch {
-    // ignore
-  }
-  clearTokens();
+export async function fetchDecisionDetail(
+  decisionId: string,
+): Promise<AuditDecision> {
+  const res = await fetch(`${BASE}/decisions/${decisionId}`);
+  if (!res.ok) throw new Error(`Failed to fetch decision: ${res.status}`);
+  return res.json() as Promise<AuditDecision>;
+}
+
+export async function fetchSessionTimeline(
+  sessionId: string,
+): Promise<AuditDecision[]> {
+  const res = await fetch(`${BASE}/sessions/${sessionId}/timeline`);
+  if (!res.ok) throw new Error(`Failed to fetch timeline: ${res.status}`);
+  return res.json() as Promise<AuditDecision[]>;
+}
+
+export function exportUrl(
+  format: "csv" | "json",
+  filters: DecisionFilters,
+): string {
+  const params = toParams(filters as Record<string, unknown>);
+  params.set("format", format);
+  return `${BASE}/export?${params}`;
+}
+
+export async function fetchIntegrity(params: {
+  session_id?: string;
+  start_time?: string;
+  end_time?: string;
+  limit?: number;
+}): Promise<IntegrityResult> {
+  const url = `${BASE}/integrity?${toParams(params as Record<string, unknown>)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to verify integrity: ${res.status}`);
+  return res.json() as Promise<IntegrityResult>;
 }

@@ -12,6 +12,8 @@ import { AgentProfileForm } from "./components/agents/AgentProfileForm";
 import { AgentDetailPage } from "./components/agents/AgentDetailPage";
 import { BulkRoleAssignment } from "./components/agents/BulkRoleAssignment";
 import { RiskDashboard } from "./components/RiskDashboard";
+import { AuditExplorer } from "./components/AuditExplorer";
+import { SessionTimeline } from "./components/SessionTimeline";
 
 export function App() {
   return (
@@ -47,7 +49,11 @@ export function App() {
                 <Route path="/agents/:agentId/edit" element={<AgentProfileForm />} />
                 <Route
                   path="/audit"
-                  element={<Placeholder title="Audit Log" />}
+                  element={<AuditExplorer />}
+                />
+                <Route
+                  path="/audit/session/:sessionId"
+                  element={<SessionTimeline />}
                 />
                 <Route
                   path="/escalations"
