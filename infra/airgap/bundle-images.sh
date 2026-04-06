@@ -34,10 +34,10 @@ done
 IMAGES=(
   "agentpep/agentpep-api:0.1.0"
   "agentpep/agentpep-console:0.1.0"
-  "mongo:7"
+  "mongo:7.0.14"
   "confluentinc/cp-kafka:7.7.0"
   "confluentinc/cp-zookeeper:7.7.0"
-  "busybox:1.36"
+  "busybox:1.36.1"
 )
 
 # If a custom values file is provided, parse image overrides
@@ -56,7 +56,7 @@ if [[ -n "${VALUES_FILE}" ]]; then
     [[ -n "${MONGO_IMG}" && "${MONGO_IMG}" != "null:null" ]] && IMAGES+=("${MONGO_IMG}")
     [[ -n "${KAFKA_IMG}" && "${KAFKA_IMG}" != "null:null" ]] && IMAGES+=("${KAFKA_IMG}")
     [[ -n "${ZK_IMG}" && "${ZK_IMG}" != "null:null" ]] && IMAGES+=("${ZK_IMG}")
-    IMAGES+=("busybox:1.36")
+    IMAGES+=("busybox:1.36.1")
   else
     echo "[airgap] WARNING: yq not found, using default image references"
   fi

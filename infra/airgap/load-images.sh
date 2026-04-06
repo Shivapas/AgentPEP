@@ -47,13 +47,23 @@ IMAGES=$(echo "${LOADED}" | grep "Loaded image:" | sed 's/Loaded image: //')
 
 echo ""
 echo "[airgap] Re-tagging and pushing to ${REGISTRY}..."
+PUSH_FAILURES=0
 for img in ${IMAGES}; do
   # Build the new tag: registry/original-path
   NEW_TAG="${REGISTRY}/${img}"
   echo "  ${img} -> ${NEW_TAG}"
   docker tag "${img}" "${NEW_TAG}"
-  docker push "${NEW_TAG}"
+  if ! docker push "${NEW_TAG}"; then
+    echo "  ERROR: Failed to push ${NEW_TAG}"
+    PUSH_FAILURES=$((PUSH_FAILURES + 1))
+  fi
 done
+
+if [[ ${PUSH_FAILURES} -gt 0 ]]; then
+  echo ""
+  echo "[airgap] WARNING: ${PUSH_FAILURES} image(s) failed to push"
+  exit 1
+fi
 
 echo ""
 echo "[airgap] All images pushed to ${REGISTRY}"

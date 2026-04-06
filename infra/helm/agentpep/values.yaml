@@ -330,7 +330,7 @@ replicaCount: 2
 
 image:
   repository: agentpep/backend
-  tag: "latest"
+  tag: "0.1.0"
   pullPolicy: IfNotPresent
 
 service:
@@ -397,7 +397,10 @@ grafana:
   image:
     repository: grafana/grafana
     tag: "10.4.1"
-  adminPassword: "agentpep-admin"
+  # adminPassword should be supplied via --set or a Secret; never commit plaintext
+  adminPassword: ""
+  resources:
+    requests:
       cpu: 250m
       memory: 256Mi
 
