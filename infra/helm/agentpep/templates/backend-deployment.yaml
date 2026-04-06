@@ -16,6 +16,10 @@ spec:
         {{- include "agentpep.backend.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "agentpep.fullname" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: backend
           image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
