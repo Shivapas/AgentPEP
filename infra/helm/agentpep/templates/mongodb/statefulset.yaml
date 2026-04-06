@@ -26,8 +26,25 @@ spec:
             - name: mongodb
               containerPort: 27017
               protocol: TCP
-          {{- if .Values.mongodb.auth.enabled }}
+          {{- /* APEP-192: Build mongod args for encryption and bind IP */ -}}
+          {{- $mongoArgs := list }}
+          {{- if and .Values.mongodb.encryption .Values.mongodb.encryption.enabled }}
+          {{- $mongoArgs = append $mongoArgs "--enableEncryption" }}
+          {{- $mongoArgs = append $mongoArgs "--encryptionKeyFile" }}
+          {{- $mongoArgs = append $mongoArgs .Values.mongodb.encryption.keyFile }}
+          {{- end }}
+          {{- if and .Values.mongodb.network (not (default false .Values.mongodb.network.bindIpAll)) }}
+          {{- $mongoArgs = append $mongoArgs "--bind_ip" }}
+          {{- $mongoArgs = append $mongoArgs "localhost,$(POD_IP)" }}
+          {{- end }}
+          {{- if $mongoArgs }}
+          args:
+            {{- range $mongoArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- end }}
           env:
+            {{- if .Values.mongodb.auth.enabled }}
             - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -38,7 +55,13 @@ spec:
                 secretKeyRef:
                   name: {{ default (printf "%s-mongodb" (include "agentpep.fullname" .)) .Values.mongodb.auth.existingSecret }}
                   key: password
-          {{- end }}
+            {{- end }}
+            {{- if and .Values.mongodb.network (not (default false .Values.mongodb.network.bindIpAll)) }}
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            {{- end }}
           livenessProbe:
             exec:
               command:
@@ -60,8 +83,19 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data/db
+            {{- if and .Values.mongodb.encryption .Values.mongodb.encryption.enabled .Values.mongodb.encryption.keySecretName }}
+            - name: encryption-key
+              mountPath: /etc/mongodb
+              readOnly: true
+            {{- end }}
           resources:
             {{- toYaml .Values.mongodb.resources | nindent 12 }}
+      {{- if and .Values.mongodb.encryption .Values.mongodb.encryption.enabled .Values.mongodb.encryption.keySecretName }}
+      volumes:
+        - name: encryption-key
+          secret:
+            secretName: {{ .Values.mongodb.encryption.keySecretName }}
+      {{- end }}
       {{- with .Values.mongodb.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

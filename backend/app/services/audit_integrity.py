@@ -87,6 +87,11 @@ class AuditIntegrityVerifier:
         chain_entry = {
             "sequence": sequence,
             "decision_id": str(audit_record.get("decision_id", "")),
+            "session_id": str(audit_record.get("session_id", "")),
+            "agent_id": str(audit_record.get("agent_id", "")),
+            "tool_name": str(audit_record.get("tool_name", "")),
+            "decision": str(audit_record.get("decision", "")),
+            "record_timestamp": timestamp_str,
             "chain_hash": chain_hash,
             "previous_hash": previous_hash,
             "timestamp": datetime.now(UTC),
@@ -137,10 +142,28 @@ class AuditIntegrityVerifier:
         for i, entry in enumerate(entries):
             records_checked += 1
 
+            # Resolve the source of truth for hash recomputation: prefer
+            # audit_decisions, fall back to fields stored in the chain entry.
+            audit_rec = audit_records_by_id.get(entry["decision_id"])
+            if audit_rec:
+                rec_decision_id = str(audit_rec.get("decision_id", entry["decision_id"]))
+                rec_session_id = str(audit_rec.get("session_id", ""))
+                rec_agent_id = str(audit_rec.get("agent_id", ""))
+                rec_tool_name = str(audit_rec.get("tool_name", ""))
+                rec_decision = str(audit_rec.get("decision", ""))
+                rec_timestamp = str(audit_rec.get("timestamp", ""))
+            else:
+                # Use fields embedded in the chain entry (APEP-191)
+                rec_decision_id = str(entry.get("decision_id", ""))
+                rec_session_id = str(entry.get("session_id", ""))
+                rec_agent_id = str(entry.get("agent_id", ""))
+                rec_tool_name = str(entry.get("tool_name", ""))
+                rec_decision = str(entry.get("decision", ""))
+                rec_timestamp = str(entry.get("record_timestamp", ""))
+
             if i == 0:
                 expected_previous = "GENESIS" if entry["sequence"] == 0 else None
                 if expected_previous and entry["previous_hash"] != expected_previous:
-                    # First entry in range — check genesis only if seq 0
                     if entry["sequence"] == 0:
                         broken_links.append({
                             "sequence": entry["sequence"],
@@ -150,15 +173,14 @@ class AuditIntegrityVerifier:
                         })
                 # Recompute chain_hash for the first entry as well
                 prev_hash = entry.get("previous_hash", "GENESIS")
-                audit_rec = audit_records_by_id.get(entry["decision_id"], {})
                 recomputed = self.compute_record_hash(
                     previous_hash=prev_hash,
-                    decision_id=str(audit_rec.get("decision_id", entry["decision_id"])),
-                    session_id=str(audit_rec.get("session_id", "")),
-                    agent_id=str(audit_rec.get("agent_id", "")),
-                    tool_name=str(audit_rec.get("tool_name", "")),
-                    decision=str(audit_rec.get("decision", "")),
-                    timestamp=str(audit_rec.get("timestamp", "")),
+                    decision_id=rec_decision_id,
+                    session_id=rec_session_id,
+                    agent_id=rec_agent_id,
+                    tool_name=rec_tool_name,
+                    decision=rec_decision,
+                    timestamp=rec_timestamp,
                 )
                 if entry["chain_hash"] != recomputed:
                     broken_links.append({
@@ -180,16 +202,15 @@ class AuditIntegrityVerifier:
                     "actual_previous": entry["previous_hash"],
                 })
 
-            # Recompute chain_hash from the audit record to detect content tampering
-            audit_rec = audit_records_by_id.get(entry["decision_id"], {})
+            # Recompute chain_hash to detect content tampering
             recomputed = self.compute_record_hash(
                 previous_hash=entry["previous_hash"],
-                decision_id=str(audit_rec.get("decision_id", entry["decision_id"])),
-                session_id=str(audit_rec.get("session_id", "")),
-                agent_id=str(audit_rec.get("agent_id", "")),
-                tool_name=str(audit_rec.get("tool_name", "")),
-                decision=str(audit_rec.get("decision", "")),
-                timestamp=str(audit_rec.get("timestamp", "")),
+                decision_id=rec_decision_id,
+                session_id=rec_session_id,
+                agent_id=rec_agent_id,
+                tool_name=rec_tool_name,
+                decision=rec_decision,
+                timestamp=rec_timestamp,
             )
             if entry["chain_hash"] != recomputed:
                 broken_links.append({
