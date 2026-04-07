@@ -8,7 +8,7 @@ Sprint 10:
 import csv
 import io
 import logging
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime
 
 from app.db import mongodb as db_module
 from app.models.policy import AuditQueryRequest

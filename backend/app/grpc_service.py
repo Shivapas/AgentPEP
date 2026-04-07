@@ -30,7 +30,7 @@ _DECISION_TO_PROTO = {
 class InterceptServicer(intercept_pb2_grpc.InterceptServiceServicer):
     """gRPC servicer that delegates to the PolicyEvaluator."""
 
-    async def Intercept(
+    async def Intercept(  # noqa: N802
         self,
         request: intercept_pb2.ToolCallRequest,
         context: grpc.aio.ServicerContext,

@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime
 from typing import Any
 
 from app.db import mongodb as db_module
@@ -90,6 +90,11 @@ class AuditIntegrityVerifier:
             "chain_hash": chain_hash,
             "previous_hash": previous_hash,
             "timestamp": datetime.now(UTC),
+            "session_id": str(audit_record.get("session_id", "")),
+            "agent_id": str(audit_record.get("agent_id", "")),
+            "tool_name": str(audit_record.get("tool_name", "")),
+            "decision": str(audit_record.get("decision", "")),
+            "record_timestamp": timestamp_str,
         }
 
         await db[AUDIT_HASH_CHAIN].insert_one(chain_entry)
@@ -153,12 +158,24 @@ class AuditIntegrityVerifier:
                 audit_rec = audit_records_by_id.get(entry["decision_id"], {})
                 recomputed = self.compute_record_hash(
                     previous_hash=prev_hash,
-                    decision_id=str(audit_rec.get("decision_id", entry["decision_id"])),
-                    session_id=str(audit_rec.get("session_id", "")),
-                    agent_id=str(audit_rec.get("agent_id", "")),
-                    tool_name=str(audit_rec.get("tool_name", "")),
-                    decision=str(audit_rec.get("decision", "")),
-                    timestamp=str(audit_rec.get("timestamp", "")),
+                    decision_id=str(
+                        audit_rec.get("decision_id", entry["decision_id"])
+                    ),
+                    session_id=str(
+                        audit_rec.get("session_id", entry.get("session_id", ""))
+                    ),
+                    agent_id=str(
+                        audit_rec.get("agent_id", entry.get("agent_id", ""))
+                    ),
+                    tool_name=str(
+                        audit_rec.get("tool_name", entry.get("tool_name", ""))
+                    ),
+                    decision=str(
+                        audit_rec.get("decision", entry.get("decision", ""))
+                    ),
+                    timestamp=str(
+                        audit_rec.get("timestamp", entry.get("record_timestamp", ""))
+                    ),
                 )
                 if entry["chain_hash"] != recomputed:
                     broken_links.append({
@@ -184,12 +201,24 @@ class AuditIntegrityVerifier:
             audit_rec = audit_records_by_id.get(entry["decision_id"], {})
             recomputed = self.compute_record_hash(
                 previous_hash=entry["previous_hash"],
-                decision_id=str(audit_rec.get("decision_id", entry["decision_id"])),
-                session_id=str(audit_rec.get("session_id", "")),
-                agent_id=str(audit_rec.get("agent_id", "")),
-                tool_name=str(audit_rec.get("tool_name", "")),
-                decision=str(audit_rec.get("decision", "")),
-                timestamp=str(audit_rec.get("timestamp", "")),
+                decision_id=str(
+                    audit_rec.get("decision_id", entry["decision_id"])
+                ),
+                session_id=str(
+                    audit_rec.get("session_id", entry.get("session_id", ""))
+                ),
+                agent_id=str(
+                    audit_rec.get("agent_id", entry.get("agent_id", ""))
+                ),
+                tool_name=str(
+                    audit_rec.get("tool_name", entry.get("tool_name", ""))
+                ),
+                decision=str(
+                    audit_rec.get("decision", entry.get("decision", ""))
+                ),
+                timestamp=str(
+                    audit_rec.get("timestamp", entry.get("record_timestamp", ""))
+                ),
             )
             if entry["chain_hash"] != recomputed:
                 broken_links.append({

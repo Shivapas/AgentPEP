@@ -12,7 +12,7 @@ data lineage across tool calls within that session. The tracker:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime
 from uuid import UUID
 
 from app.models.policy import TaintLevel, TaintSource

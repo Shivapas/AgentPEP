@@ -6,7 +6,7 @@ metrics and privacy control evidence.
 """
 
 import logging
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime
 
 from app.db.mongodb import AUDIT_DECISIONS, POLICY_RULES, get_database
 from app.models.compliance import (

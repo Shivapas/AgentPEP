@@ -18,6 +18,7 @@ from app.api.v1.console_auth import router as console_auth_router
 from app.api.v1.console_dashboard import router as console_dashboard_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.escalation import router as escalation_router
+from app.api.v1.escalation_v1 import router as escalation_v1_router
 from app.api.v1.health import router as health_router
 from app.api.v1.intercept import router as intercept_router
 from app.api.v1.mcp import router as mcp_router
@@ -141,7 +142,8 @@ app = FastAPI(
 # Starlette processes middleware in reverse order of add_middleware calls:
 # the LAST added runs FIRST (outermost).
 # Desired order: Rate Limit -> Security Headers -> CORS -> Auth -> CSRF
-# So we add in reverse: CSRF first (innermost), then Auth, CORS, Headers, Rate Limit last (outermost)
+# So we add in reverse: CSRF first (innermost), then Auth, CORS,
+# Headers, Rate Limit last (outermost)
 
 # Auth middleware (innermost — runs after rate limit, headers, and CORS)
 app.add_middleware(MTLSMiddleware)
@@ -170,6 +172,7 @@ app.include_router(console_auth_router)
 app.include_router(console_dashboard_router)
 app.include_router(dashboard_router)
 app.include_router(escalation_router)
+app.include_router(escalation_v1_router)
 app.include_router(health_router)
 app.include_router(intercept_router)
 app.include_router(mcp_router)

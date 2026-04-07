@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     port: int = 8000
 
     # Observability
-    otlp_endpoint: str = "http://localhost:4317"
+    otlp_endpoint: str = ""
     metrics_enabled: bool = True
 
     # Policy defaults

@@ -1,12 +1,11 @@
 """Agent Registry API — CRUD, key management, activity, bulk ops, delegation."""
 
 import hashlib
+import logging
 import secrets
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
-
-import logging
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field

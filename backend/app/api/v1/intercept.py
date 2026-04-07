@@ -64,12 +64,12 @@ async def intercept(request: ToolCallRequest) -> PolicyDecisionResponse:
         # which has a small fixed set of values.
         DECISION_TOTAL.labels(
             decision=response.decision.value,
-            agent_id="__all__",
-            tool_name="__all__",
+            agent_id=request.agent_id,
+            tool_name=request.tool_name,
         ).inc()
         DECISION_LATENCY.labels(
-            agent_id="__all__",
-            tool_name="__all__",
+            agent_id=request.agent_id,
+            tool_name=request.tool_name,
         ).observe(elapsed)
 
         # Enrich span with decision outcome

@@ -77,7 +77,9 @@ async def list_roles(_user: dict = Depends(get_current_user)) -> list[dict[str, 
 
 
 @router.post("/roles", status_code=201)
-async def create_role(body: CreateRoleRequest, _user: dict = Depends(require_admin)) -> dict[str, Any]:
+async def create_role(
+    body: CreateRoleRequest, _user: dict = Depends(require_admin),
+) -> dict[str, Any]:
     """Create a new agent role."""
     db = get_database()
     existing = await db[AGENT_ROLES].find_one({"role_id": body.role_id})
@@ -96,7 +98,9 @@ async def create_role(body: CreateRoleRequest, _user: dict = Depends(require_adm
 
 
 @router.patch("/roles/{role_id}")
-async def update_role(role_id: str, body: UpdateRoleRequest, _user: dict = Depends(require_admin)) -> dict[str, Any]:
+async def update_role(
+    role_id: str, body: UpdateRoleRequest, _user: dict = Depends(require_admin),
+) -> dict[str, Any]:
     """Update an existing agent role."""
     db = get_database()
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
@@ -155,7 +159,9 @@ class ReorderRequest(BaseModel):
 
 
 @router.post("/rules", status_code=201)
-async def create_rule(body: CreateRuleRequest, _user: dict = Depends(require_admin)) -> dict[str, Any]:
+async def create_rule(
+    body: CreateRuleRequest, _user: dict = Depends(require_admin),
+) -> dict[str, Any]:
     """Create a new policy rule."""
     db = get_database()
     now = datetime.now(UTC)
@@ -171,7 +177,9 @@ async def create_rule(body: CreateRuleRequest, _user: dict = Depends(require_adm
 
 
 @router.patch("/rules/{rule_id}")
-async def update_rule(rule_id: str, body: UpdateRuleRequest, _user: dict = Depends(require_admin)) -> dict[str, Any]:
+async def update_rule(
+    rule_id: str, body: UpdateRuleRequest, _user: dict = Depends(require_admin),
+) -> dict[str, Any]:
     """Update an existing policy rule."""
     db = get_database()
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
@@ -199,7 +207,9 @@ async def delete_rule(rule_id: str, _user: dict = Depends(require_admin)) -> Non
 
 
 @router.post("/rules/reorder")
-async def reorder_rules(body: ReorderRequest, _user: dict = Depends(require_admin)) -> dict[str, bool]:
+async def reorder_rules(
+    body: ReorderRequest, _user: dict = Depends(require_admin),
+) -> dict[str, bool]:
     """Reorder rules by assigning sequential priorities based on the provided order."""
     db = get_database()
 
@@ -300,7 +310,9 @@ async def get_policy_set(set_id: str, _user: dict = Depends(get_current_user)) -
 
 
 @router.post("/policy-sets/{set_id}/versions", status_code=201)
-async def create_policy_version(set_id: str, version: dict[str, Any], _user: dict = Depends(require_admin)) -> dict[str, Any]:
+async def create_policy_version(
+    set_id: str, version: dict[str, Any], _user: dict = Depends(require_admin),
+) -> dict[str, Any]:
     """Create a new version snapshot for a policy set."""
     db = get_database()
     policy_set = await db[POLICY_SETS].find_one({"policy_set_id": set_id})
@@ -350,7 +362,9 @@ async def create_policy_version(set_id: str, version: dict[str, Any], _user: dic
 
 
 @router.post("/policy-sets/{set_id}/versions/{version_id}/restore")
-async def restore_version(set_id: str, version_id: str, user: dict = Depends(require_admin)) -> dict[str, Any]:
+async def restore_version(
+    set_id: str, version_id: str, user: dict = Depends(require_admin),
+) -> dict[str, Any]:
     """Restore rules and roles from a specific version."""
     db = get_database()
     policy_set = await db[POLICY_SETS].find_one({"policy_set_id": set_id})

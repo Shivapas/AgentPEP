@@ -513,13 +513,20 @@ class PolicyEvaluator:
             reason += f" | Taint flags: {', '.join(taint_flags)}"
 
         elapsed_ms = int((time.monotonic() - start) * 1000)
-        # APEP-187: Compute risk score
-        computed_risk = risk_scorer.score(
-            taint_flags=taint_flags,
-            tool_name=request.tool_name,
-            delegation_chain=request.delegation_chain,
-            matched_rule=matched_rule,
-        )
+        # APEP-187: Use the risk score from the full risk scoring engine
+        # (computed above via risk_engine.compute) which accounts for
+        # operation type, data sensitivity, taint, session history, and
+        # delegation depth.  The inline RiskScorer is used only as a
+        # fallback when the engine score is unavailable (e.g. exception).
+        if risk_score == 0.0:
+            # Engine may have failed or returned 0 — try inline scorer
+            computed_risk = risk_scorer.score(
+                taint_flags=taint_flags,
+                tool_name=request.tool_name,
+                delegation_chain=request.delegation_chain,
+                matched_rule=matched_rule,
+            )
+            risk_score = max(risk_score, computed_risk)
 
         return PolicyDecisionResponse(
             request_id=request.request_id,
@@ -527,7 +534,7 @@ class PolicyEvaluator:
             matched_rule_id=matched_rule.rule_id,
             reason=reason,
             taint_flags=taint_flags,
-            risk_score=computed_risk,
+            risk_score=risk_score,
             latency_ms=elapsed_ms,
         )
 
