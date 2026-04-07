@@ -156,7 +156,10 @@ async def get_decision(decision_id: str, _user: dict = Depends(get_current_user)
 
 
 @router.get("/sessions/{session_id}/timeline")
-async def session_timeline(session_id: str, _user: dict = Depends(get_current_user)) -> list[dict[str, Any]]:
+async def session_timeline(
+    session_id: str,
+    _user: dict = Depends(get_current_user),
+) -> list[dict[str, Any]]:
     """Return all decisions for a session in chronological order."""
     db = db_module.get_database()
     col = db[db_module.AUDIT_DECISIONS]
@@ -443,7 +446,9 @@ async def get_chain_length(_user: dict = Depends(get_current_user)):
 
 
 @router.post("/export/json")
-async def export_compliance_json(body: dict[str, Any], _user: dict = Depends(get_current_user)) -> dict[str, Any]:
+async def export_compliance_json(
+    body: dict[str, Any], _user: dict = Depends(get_current_user),
+) -> dict[str, Any]:
     """Export audit records as a JSON compliance report."""
     from app.models.policy import AuditQueryRequest
     from app.services.compliance_export import export_json
@@ -462,7 +467,9 @@ async def export_compliance_json(body: dict[str, Any], _user: dict = Depends(get
 
 
 @router.post("/export/csv")
-async def export_compliance_csv(body: dict[str, Any], _user: dict = Depends(get_current_user)) -> StreamingResponse:
+async def export_compliance_csv(
+    body: dict[str, Any], _user: dict = Depends(get_current_user),
+) -> StreamingResponse:
     """Export audit records as a CSV compliance report."""
     from app.models.policy import AuditQueryRequest
     from app.services.compliance_export import export_csv

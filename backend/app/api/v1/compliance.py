@@ -31,7 +31,9 @@ router = APIRouter(prefix="/v1/compliance", tags=["compliance"])
 
 
 @router.post("/reports", response_model=ComplianceReport)
-async def create_report(req: GenerateReportRequest, _user: dict = Depends(get_current_user)) -> ComplianceReport:
+async def create_report(
+    req: GenerateReportRequest, _user: dict = Depends(get_current_user),
+) -> ComplianceReport:
     """Generate a compliance report for the specified type and period."""
     report = await generate_report(req.report_type, req.period_start, req.period_end)
     return report
@@ -50,7 +52,9 @@ async def get_reports(
 
 
 @router.get("/reports/{report_id}", response_model=ComplianceReport)
-async def get_report_detail(report_id: UUID, _user: dict = Depends(get_current_user)) -> ComplianceReport:
+async def get_report_detail(
+    report_id: UUID, _user: dict = Depends(get_current_user),
+) -> ComplianceReport:
     """Get a single compliance report by ID."""
     report = await get_report(report_id)
     if not report:
@@ -80,7 +84,9 @@ async def download_report(report_id: UUID, _user: dict = Depends(get_current_use
 
 
 @router.post("/schedules", response_model=ReportSchedule)
-async def create_report_schedule(req: CreateScheduleRequest, _user: dict = Depends(get_current_user)) -> ReportSchedule:
+async def create_report_schedule(
+    req: CreateScheduleRequest, _user: dict = Depends(get_current_user),
+) -> ReportSchedule:
     """Create a recurring report schedule."""
     schedule = ReportSchedule(
         report_type=req.report_type,

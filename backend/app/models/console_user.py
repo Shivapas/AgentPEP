@@ -1,12 +1,12 @@
 """Pydantic models for Policy Console users and RBAC."""
 
-from datetime import datetime, timezone, UTC
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, EmailStr, Field
 
 
-class ConsoleRole(str, Enum):
+class ConsoleRole(StrEnum):
     """RBAC roles for Policy Console users (APEP-107)."""
 
     ADMIN = "Admin"
