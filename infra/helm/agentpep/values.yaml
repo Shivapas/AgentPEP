@@ -1,49 +1,5 @@
 # AgentPEP Helm chart values — APEP-192: Security-hardened defaults
-
-# --------------------------------------------------------------------------
-# MongoDB — hardened configuration
-# --------------------------------------------------------------------------
-mongodb:
-  # Authentication (APEP-192)
-  auth:
-    enabled: true
-    rootUser: agentpep-admin
-    # rootPassword should be supplied via --set or a Secret; never commit
-    rootPassword: ""
-    # Application-level credentials
-    database: agentpep
-    username: agentpep
-    # password should be supplied via --set or a Secret
-    password: ""
-
-  # Encryption at rest (APEP-192)
-  encryption:
-    enabled: true
-    # Path to the encryption key file inside the MongoDB container.
-    # In production, mount from a Kubernetes Secret backed by a KMS provider.
-    keyFile: /etc/mongodb/encryption-key
-
-  # Network restriction (APEP-192)
-  network:
-    # Bind only to the pod IP, not 0.0.0.0
-    bindIpAll: false
-    # NetworkPolicy: only allow traffic from agentpep-api pods
-    networkPolicy:
-      enabled: true
-      allowedLabels:
-        app: agentpep-api
-
-  # TLS
-  tls:
-    enabled: false
-    # certSecretName: mongodb-tls-cert
-
-  persistence:
-    enabled: true
-    size: 10Gi
-    storageClass: ""
-
-# Default values for AgentPEP Helm chart (APEP-211)
+# Default values for AgentPEP Helm chart
 
 tenant:
   id: "default"
@@ -221,19 +177,42 @@ ingress:
           service: console
   tls: []
 
-# -- MongoDB configuration
+# -- MongoDB configuration (APEP-192: hardened defaults)
 mongodb:
   enabled: true
   image:
     repository: mongo
     tag: "7"
   replicaCount: 1
+  # Authentication (APEP-192): enabled by default for production security
   auth:
-    enabled: false
-    # -- Set these when auth.enabled=true
-    rootUsername: ""
+    enabled: true
+    # rootUsername/rootPassword should be supplied via --set or existingSecret
+    rootUsername: "agentpep-admin"
     rootPassword: ""
     existingSecret: ""
+    # Application-level credentials
+    database: agentpep
+    username: agentpep
+    password: ""
+  # Encryption at rest (APEP-192)
+  encryption:
+    enabled: true
+    # Path to the encryption key file inside the MongoDB container.
+    # In production, mount from a Kubernetes Secret backed by a KMS provider.
+    keyFile: /etc/mongodb/encryption-key
+    keySecretName: ""
+  # Network restriction (APEP-192)
+  network:
+    bindIpAll: false
+    networkPolicy:
+      enabled: true
+      allowedLabels:
+        app: agentpep-api
+  # TLS
+  tls:
+    enabled: false
+    # certSecretName: mongodb-tls-cert
   persistence:
     enabled: true
     size: 10Gi
@@ -403,10 +382,6 @@ grafana:
     requests:
       cpu: 250m
       memory: 256Mi
-
-mongodb:
-  url: "mongodb://mongodb-headless.mongodb.svc.cluster.local:27017"
-  database: "agentpep"
 
 ingress:
   enabled: true
