@@ -13,7 +13,7 @@
 | **Classification** | Confidential |
 | **Stack** | Python · FastAPI · React · MongoDB |
 | **Sprint Count** | 36 Sprints · ~18 Months |
-| **Total Stories** | ~290 User Stories |
+| **Total Stories** | ~291 User Stories |
 
 ---
 
@@ -983,6 +983,271 @@ Each sprint is 2 weeks. Story points use a Fibonacci scale (1–8). Total estima
 | APEP-222 | Submit to AWS Marketplace and GCP Marketplace | 5 | Business |
 | APEP-223 | Coordinate press release and product launch blog post | 3 | Marketing |
 | APEP-224 | Conduct GA go/no-go review: all P0 issues resolved; SLA targets met | 3 | Platform |
+
+---
+
+# 12. AgentLock Enhancement Roadmap v1
+
+## 12.1 Overview
+
+This section documents enhancements to AgentPEP inspired by analysis of [AgentLock](https://github.com/webpro255/agentlock) — an open-source authorization security framework for AI agent systems. AgentLock implements an infrastructure-level authorization layer between agents and their tools, using a three-layer enforcement architecture (Conversation → Authorization Gate → Tool Execution). While AgentPEP already provides a robust deterministic authorization engine, AgentLock introduces several architectural patterns and security mechanisms that would meaningfully strengthen AgentPEP's capabilities.
+
+**Analysis Date:** April 2026
+**Scope:** 8 sprints (Sprints 29–36) · 67 stories · ~16 weeks
+
+## 12.2 Gap Analysis: AgentLock vs AgentPEP
+
+The following table summarises capabilities present in AgentLock that are absent or under-developed in AgentPEP, along with their assessed enhancement priority.
+
+| # | AgentLock Capability | AgentPEP Current State | Gap | Priority |
+|---|---|---|---|---|
+| 1 | **Pluggable backend ABCs** — Abstract base classes for storage, auth, and audit backends with plugin architecture | Hardcoded MongoDB + Kafka; no plugin abstraction | Major | P0 |
+| 2 | **YAML-first policy loading** — Declarative policy-as-code with GitOps workflow support | YAML import/export in UI only; no native YAML-first pipeline | Major | P0 |
+| 3 | **Offline SDK evaluation** — Full policy stack evaluation locally without server round-trip | SDK has limited offline mode; DRY_RUN is server-side only | Moderate | P1 |
+| 4 | **Pluggable auth providers** — OAuth2, OIDC, SAML, and custom authentication backends | mTLS + API key only | Major | P0 |
+| 5 | **Redis-backed session store** — Redis as first-class session, taint, and rate-limit backend | Redis used for caching only; not a persistence backend | Moderate | P1 |
+| 6 | **Single-use execution tokens** — Tokens passed directly to execution layer; never exposed to agents | No per-execution token mechanism | Major | P0 |
+| 7 | **Trust degradation** — Session trust ceiling that degrades irreversibly when untrusted content enters context | No trust ceiling or degradation tracking | Major | P0 |
+| 8 | **Context authority tracking** — Classifies source trustworthiness (authoritative, derived, untrusted) | Taint tracking labels sources but no authority hierarchy | Moderate | P1 |
+| 9 | **Hash-chained context** — Tamper-evident context entries with per-entry hash chains | Audit log has hash chain; context does not | Moderate | P1 |
+| 10 | **Adaptive prompt hardening** — Dynamically generates targeted defensive instructions on suspicious activity | No equivalent mechanism | Major | P0 |
+| 11 | **Step-up authentication** — Dynamic human approval triggered by suspicious activity patterns | ESCALATE exists but is static (rule-based); no dynamic pattern detection | Moderate | P1 |
+| 12 | **DEFER decision type** — Suspends authorisation pending human review with configurable timeout-to-deny | Only ALLOW/DENY/ESCALATE/DRY_RUN; no DEFER semantics | Moderate | P1 |
+| 13 | **MODIFY decision type** — Adjusts tool call arguments before allowing execution | No argument modification; only allow/deny binary | Moderate | P1 |
+| 14 | **Memory access control** — Governs what agents can persist to and read from memory stores | No agent memory governance | Major | P0 |
+| 15 | **PII redaction engine** — Automatic PII detection and redaction on tool outputs | PII detection in risk scoring only; no output redaction | Major | P0 |
+| 16 | **Data classification hierarchy** — Sensitivity levels from public to PHI/financial with boundary enforcement | Basic PII detection; no formal classification taxonomy | Moderate | P1 |
+| 17 | **Tool combination detection** — Detects suspicious tool sequences (16+ suspicious pairs, 5+ problematic sequences) | No tool-sequence analysis | Major | P0 |
+| 18 | **Velocity anomaly detection** — Identifies unusual call frequency patterns beyond simple rate limits | Sliding-window rate limits only; no anomaly-based detection | Moderate | P1 |
+| 19 | **Echo detection** — Identifies repeated patterns in prompts suggesting manipulation | No prompt pattern analysis | Moderate | P1 |
+| 20 | **Signed receipts** — Cryptographically verifiable authorisation records (Ed25519 / HMAC-SHA256) | SHA-256 hash chain on audit log; no individual signed receipts | Major | P0 |
+| 21 | **Offline receipt verification** — Verify authorisation decisions without server access | No offline verification capability | Moderate | P1 |
+| 22 | **Pluggable audit backends** — CloudWatch, Datadog, Loki, and custom SIEM targets | MongoDB + Kafka only | Moderate | P1 |
+| 23 | **Structured logging** — JSON-structured logs with configurable verbosity (minimal/standard/full) | Basic structured logging; no configurable verbosity levels | Minor | P2 |
+| 24 | **11-stage policy engine** — Comprehensive sequential evaluation with independent filter chains | Multi-stage engine exists but lacks injection/PII filter stages as independent chains | Minor | P2 |
+
+## 12.3 Enhancement Architecture
+
+The enhancements are organised into a plugin-based extensibility layer that preserves AgentPEP's existing architecture while introducing new capabilities:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Enhanced PolicyEvaluator                      │
+│                                                                 │
+│  Existing Stages              New Stages (AgentLock-inspired)   │
+│  ┌──────────────┐             ┌──────────────────────┐          │
+│  │ RBAC Engine  │             │ Trust Degradation     │          │
+│  │ Taint Track  │             │ Context Authority     │          │
+│  │ Deputy Detect│             │ Tool Combo Detection  │          │
+│  │ Risk Scoring │             │ Velocity Anomaly      │          │
+│  │ Rate Limiting│             │ Echo Detection        │          │
+│  │ Arg Validate │             │ PII Redaction         │          │
+│  └──────────────┘             │ Adaptive Hardening    │          │
+│                               │ Step-Up Auth          │          │
+│                               │ DEFER / MODIFY        │          │
+│                               └──────────────────────┘          │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────┐        │
+│  │          Plugin Backend Layer (New ABCs)             │        │
+│  │  StorageBackend · AuthProvider · AuditBackend ·     │        │
+│  │  NotificationChannel · ReceiptSigner                │        │
+│  └─────────────────────────────────────────────────────┘        │
+│                                                                 │
+│  ┌────────────────────────┐  ┌────────────────────────┐         │
+│  │  Execution Token Mgr   │  │  Memory Access Gate    │         │
+│  └────────────────────────┘  └────────────────────────┘         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## 12.4 New Decision Types
+
+AgentLock introduces two decision types beyond AgentPEP's current `ALLOW / DENY / ESCALATE / DRY_RUN`:
+
+| Decision | Semantics | Use Case |
+|---|---|---|
+| **DEFER** | Suspend authorisation; timeout defaults to DENY after configurable period (default 60s) | Uncertain decisions requiring async human review; lower urgency than ESCALATE |
+| **MODIFY** | Allow execution but with modified arguments (e.g., redacted PII, sanitised inputs) | Output filtering, PII redaction, argument sanitisation before execution |
+
+The Intercept API response schema will be extended:
+
+```json
+{
+  "decision": "ALLOW | DENY | ESCALATE | DEFER | MODIFY | DRY_RUN",
+  "modified_args": {},
+  "deferral_id": "uuid | null",
+  "deferral_timeout_s": 60,
+  "execution_token": "single-use-token | null",
+  "receipt": { "signature": "base64", "algorithm": "ed25519" }
+}
+```
+
+## 12.5 Detailed Sprint Plans — Phase 8: AgentLock Roadmap v1
+
+### Sprint 29 — AgentLock: Backend ABCs & Async Architecture
+
+**Goal:** Introduce abstract base classes for storage, authentication, and audit backends; refactor existing MongoDB/Kafka backends as reference implementations of the new plugin interface; add execution token infrastructure.
+
+| Story ID | Description | Points | Area |
+|---|---|---|---|
+| APEP-225 | Design and implement `StorageBackend` ABC with async methods: get, put, delete, query, health_check | 5 | Backend |
+| APEP-226 | Refactor MongoDB policy store to implement `StorageBackend` ABC as `MongoDBStorageBackend` | 5 | Backend |
+| APEP-227 | Design and implement `AuthProvider` ABC with methods: authenticate, validate_token, get_roles | 5 | Backend |
+| APEP-228 | Refactor existing mTLS + API key auth to implement `AuthProvider` as `MTLSAuthProvider` and `APIKeyAuthProvider` | 5 | Backend |
+| APEP-229 | Design and implement `AuditBackend` ABC with methods: write_decision, query, verify_integrity | 3 | Backend |
+| APEP-230 | Refactor MongoDB audit logger and Kafka producer to implement `AuditBackend` ABC | 5 | Backend |
+| APEP-231 | Implement `ExecutionTokenManager`: generate single-use cryptographic tokens per ALLOW decision; validate and invalidate on use | 8 | Security |
+| APEP-232 | Integrate execution tokens into Intercept API response; SDK validates token before tool execution | 5 | SDK |
+
+### Sprint 30 — AgentLock: YAML Policy Loading & Offline Evaluation
+
+**Goal:** Native YAML-first policy definition format with JSON Schema validation; GitOps workflow support; enhanced offline SDK evaluation with full policy stack.
+
+| Story ID | Description | Points | Area |
+|---|---|---|---|
+| APEP-233 | Design YAML policy schema: roles, rules, risk thresholds, taint policies, data classifications in declarative format | 5 | Backend |
+| APEP-234 | Implement YAML policy loader: parse, validate (JSON Schema), and hydrate policy objects from YAML files | 5 | Backend |
+| APEP-235 | Implement policy-as-code directory convention: `policies/roles.yaml`, `policies/rules.yaml`, `policies/risk.yaml` | 3 | Backend |
+| APEP-236 | Build GitOps sync endpoint: `POST /v1/policies/sync` — accepts YAML payload, validates, and applies atomically | 5 | Backend |
+| APEP-237 | Implement policy diff engine: compare two YAML policy sets and return structured diff (added/removed/changed rules) | 5 | Backend |
+| APEP-238 | Enhance SDK offline evaluation: bundle full policy stack (RBAC + taint + risk + injection) for local eval without server | 8 | SDK |
+| APEP-239 | Implement GitHub Action for policy-as-code: validate YAML, run simulation suite, diff against current on PR | 5 | DevOps |
+| APEP-240 | Write integration tests: YAML load → evaluate → diff → sync lifecycle | 3 | Testing |
+
+### Sprint 31 — AgentLock: Auth Providers & Redis Backend
+
+**Goal:** Pluggable authentication with OAuth2/OIDC and SAML providers; Redis as first-class session, taint, and rate-limit backend; data classification hierarchy with boundary enforcement.
+
+| Story ID | Description | Points | Area |
+|---|---|---|---|
+| APEP-241 | Implement `OAuth2OIDCAuthProvider`: JWT validation, JWKS discovery, role mapping from claims | 8 | Security |
+| APEP-242 | Implement `SAMLAuthProvider`: SAML assertion parsing, role extraction, SSO redirect flow | 5 | Security |
+| APEP-243 | Build auth provider registry: configurable per-tenant provider selection with fallback chain | 3 | Backend |
+| APEP-244 | Implement `RedisStorageBackend`: Redis-backed policy cache, session store, and taint graph persistence | 8 | Backend |
+| APEP-245 | Implement Redis-backed sliding window rate limiter replacing MongoDB-based implementation | 5 | Performance |
+| APEP-246 | Design data classification hierarchy: PUBLIC → INTERNAL → CONFIDENTIAL → PII → PHI → FINANCIAL with configurable levels | 5 | Backend |
+| APEP-247 | Implement data boundary enforcement: restrict tool call data access scope (user-only → team → organisation) based on classification | 5 | Backend |
+| APEP-248 | Implement clearance-level checking: agent roles mapped to max data classification they can access | 3 | Backend |
+| APEP-249 | Write integration tests: OAuth2 login flow, Redis failover, data classification enforcement | 5 | Testing |
+
+### Sprint 32 — AgentLock: Structured Logging & Notification Channels
+
+**Goal:** Pluggable audit backends (CloudWatch, Datadog, Loki); configurable log verbosity; notification channel abstraction; cryptographically signed receipts with offline verification.
+
+| Story ID | Description | Points | Area |
+|---|---|---|---|
+| APEP-250 | Implement `CloudWatchAuditBackend`: write decision records to AWS CloudWatch Logs | 5 | Backend |
+| APEP-251 | Implement `DatadogAuditBackend`: write decision records to Datadog Log Management API | 5 | Backend |
+| APEP-252 | Implement `LokiAuditBackend`: write decision records to Grafana Loki push API | 3 | Backend |
+| APEP-253 | Implement configurable audit verbosity: MINIMAL (outcome only) → STANDARD (identity + scope) → FULL (all fields including args hash) | 3 | Backend |
+| APEP-254 | Design and implement `NotificationChannel` ABC with methods: send_alert, send_approval_request, send_resolution | 3 | Backend |
+| APEP-255 | Implement `PagerDutyChannel` and `MicrosoftTeamsChannel` notification backends | 5 | Backend |
+| APEP-256 | Implement `ReceiptSigner`: Ed25519 (PyNaCl) and HMAC-SHA256 (fallback) signed receipts per authorisation decision | 8 | Security |
+| APEP-257 | Implement `ReceiptVerifier`: offline verification of signed receipts without server access; CLI tool for batch verification | 5 | Security |
+| APEP-258 | Write integration tests: multi-backend audit routing, receipt sign/verify round-trip, notification delivery | 3 | Testing |
+
+### Sprint 33 — AgentLock: Framework Integrations (OpenAI Agents, LangGraph)
+
+**Goal:** Deep integration with OpenAI Agents SDK function hooks and LangGraph guardrail nodes; memory access control middleware; context authority tracking for enriched taint decisions.
+
+| Story ID | Description | Points | Area |
+|---|---|---|---|
+| APEP-259 | Enhance OpenAI Agents SDK integration: execution token validation, receipt attachment, DEFER/MODIFY handling | 5 | SDK |
+| APEP-260 | Enhance LangGraph guardrail node: inject trust degradation context, support MODIFY decision with arg rewriting | 5 | SDK |
+| APEP-261 | Implement `MemoryAccessGate`: govern agent persist/read operations on memory stores (vector DBs, key-value stores) | 8 | Backend |
+| APEP-262 | Implement memory write authorisation: validate allowed writers, prohibited content patterns, entry count limits per session | 5 | Backend |
+| APEP-263 | Implement memory read authorisation: lazy retention enforcement with `max_age` purging at read time | 3 | Backend |
+| APEP-264 | Implement `ContextAuthorityTracker`: classify each context entry as AUTHORITATIVE / DERIVED / UNTRUSTED based on source | 5 | Backend |
+| APEP-265 | Integrate context authority into policy evaluation: downweight derived sources in risk scoring; block untrusted sources from privileged decisions | 5 | Backend |
+| APEP-266 | Write integration tests: memory gate CRUD authorisation, context authority scoring, framework-specific DEFER/MODIFY handling | 3 | Testing |
+
+### Sprint 34 — AgentLock: Testing Utilities, Simulation & Enhanced CLI
+
+**Goal:** CLI-driven policy testing and simulation harness; red-team test generation; trust degradation simulation; policy migration utilities.
+
+| Story ID | Description | Points | Area |
+|---|---|---|---|
+| APEP-267 | Build `agentpep-cli` command-line tool: `agentpep policy validate`, `agentpep policy diff`, `agentpep simulate` | 8 | SDK |
+| APEP-268 | Implement `agentpep redteam generate`: auto-generate adversarial tool call payloads from policy definitions | 8 | Backend |
+| APEP-269 | Implement `agentpep redteam run`: execute adversarial suite against live or offline policy stack; produce pass/fail report | 5 | Backend |
+| APEP-270 | Implement trust degradation simulation: model session trust ceiling decay across configurable interaction sequences | 5 | Backend |
+| APEP-271 | Build policy migration utility: `agentpep policy migrate` — upgrade policy YAML between schema versions with backward compatibility | 3 | SDK |
+| APEP-272 | Implement simulation result comparison: diff two simulation runs (before/after policy change) with visual output | 3 | SDK |
+| APEP-273 | Implement `agentpep receipt verify` CLI command: batch-verify signed receipts from audit export files | 3 | SDK |
+| APEP-274 | Implement `agentpep health` CLI: check server connectivity, policy sync status, backend health for all registered backends | 3 | SDK |
+| APEP-275 | Write CLI integration tests: end-to-end validate → simulate → redteam → verify workflow | 3 | Testing |
+
+### Sprint 35 — AgentLock: Injection Library, Arg Validation & Risk Scoring
+
+**Goal:** Tool combination detection engine; velocity anomaly detection; echo detection; adaptive prompt hardening; PII redaction engine with MODIFY decision support.
+
+| Story ID | Description | Points | Area |
+|---|---|---|---|
+| APEP-276 | Implement `ToolCombinationDetector`: maintain configurable library of suspicious tool pairs (16+) and problematic sequences (5+) | 8 | Security |
+| APEP-277 | Integrate tool combination signals into risk scoring: detect multi-tool attack patterns across session history | 5 | Backend |
+| APEP-278 | Implement `VelocityAnomalyDetector`: statistical anomaly detection on per-agent call frequency using sliding-window z-score | 5 | Security |
+| APEP-279 | Implement `EchoDetector`: identify repeated or near-duplicate patterns in tool call arguments suggesting prompt manipulation | 5 | Security |
+| APEP-280 | Implement `AdaptiveHardeningEngine`: accumulate risk signals per session and generate targeted defensive instructions for agent system prompts | 8 | Security |
+| APEP-281 | Implement `PIIRedactionEngine`: detect and redact PII (names, emails, SSNs, phone numbers, addresses) in tool call outputs | 5 | Backend |
+| APEP-282 | Integrate PII redaction with MODIFY decision: return redacted arguments when PII detected in outputs to agents with insufficient clearance | 5 | Backend |
+| APEP-283 | Enhance injection signature library: add social engineering patterns, encoding attack patterns, and reconnaissance signatures from AgentLock findings | 3 | Security |
+| APEP-284 | Write adversarial tests: tool combo evasion, velocity gaming, echo bypass, hardening effectiveness validation | 5 | Testing |
+
+### Sprint 36 — AgentLock: Conflict Detection, Metrics, Tamper Detection & Multi-Tenancy
+
+**Goal:** Hash-chained context tamper detection; DEFER and STEP_UP decision types; policy conflict resolution engine; enhanced multi-tenancy isolation; comprehensive enhancement metrics.
+
+| Story ID | Description | Points | Area |
+|---|---|---|---|
+| APEP-285 | Implement `HashChainedContext`: per-session tamper-evident context entries with SHA-256 hash linking; detect unauthorised historical modifications | 8 | Security |
+| APEP-286 | Implement `TrustDegradationEngine`: per-session trust ceiling that degrades irreversibly when untrusted or derived content contaminates context | 5 | Backend |
+| APEP-287 | Implement DEFER decision type: suspend authorisation, create deferral ticket, enforce configurable timeout-to-deny (default 60s) | 5 | Backend |
+| APEP-288 | Implement STEP_UP decision type: dynamic human approval triggered by pattern detection (hardening escalation, PII accumulation, post-denial retry) | 5 | Backend |
+| APEP-289 | Enhance policy conflict detection: identify not just shadowed rules but circular dependencies, permission gaps, and over-broad grants | 5 | Backend |
+| APEP-290 | Implement multi-tenancy data isolation: per-tenant encryption keys, tenant-scoped backend instances, cross-tenant access prevention | 5 | Security |
+| APEP-291 | Publish Prometheus metrics for all new capabilities: trust_degradation_events, tool_combo_alerts, pii_redactions, defer_count, stepup_count, receipt_verifications | 3 | Observability |
+
+---
+
+## 12.6 Enhancement Summary
+
+| Dimension | Before (v1.0 GA) | After (v1.1 with AgentLock Enhancements) |
+|---|---|---|
+| **Decision types** | ALLOW / DENY / ESCALATE / DRY_RUN | + DEFER / MODIFY / STEP_UP |
+| **Backend extensibility** | Hardcoded MongoDB + Kafka | Plugin ABCs: StorageBackend, AuthProvider, AuditBackend, NotificationChannel |
+| **Authentication** | mTLS + API key | + OAuth2/OIDC, SAML, pluggable providers |
+| **Policy management** | UI-based YAML import/export | YAML-first policy-as-code with GitOps sync, CLI tools, schema validation |
+| **Threat detection** | Injection signatures, rate limiting | + Tool combination detection, velocity anomaly, echo detection, adaptive hardening |
+| **Data protection** | PII detection in risk scoring | + PII redaction engine, data classification hierarchy, clearance-level enforcement |
+| **Trust model** | Binary taint (TRUSTED/UNTRUSTED/QUARANTINE) | + Trust degradation, context authority tracking, hash-chained context |
+| **Execution security** | No per-execution tokens | Single-use execution tokens, signed receipts, offline verification |
+| **Agent memory** | No memory governance | Memory access control gate: write/read authorisation with retention enforcement |
+| **Audit backends** | MongoDB + Kafka | + CloudWatch, Datadog, Loki, configurable verbosity |
+| **Developer experience** | SDK + DRY_RUN API | + CLI tool (validate, diff, simulate, redteam, verify), offline evaluation |
+| **Total stories** | ~224 (Sprints 1–28) | ~291 (+ 67 AgentLock enhancement stories) |
+
+## 12.7 Risk Assessment
+
+| Risk | Impact | Likelihood | Mitigation |
+|---|---|---|---|
+| Backend ABC refactoring introduces regressions in MongoDB path | High | Medium | Feature-flag new plugin layer; existing MongoDB code remains default until stabilised |
+| Redis backend latency differs from MongoDB under load | Medium | Low | Benchmark in Sprint 31 load tests; maintain MongoDB as fallback |
+| DEFER/MODIFY decisions increase API surface complexity | Medium | Medium | Implement behind feature flags; opt-in per tenant |
+| Signed receipts add latency to intercept API hot path | Medium | Medium | Ed25519 signing is ~100μs; benchmark in Sprint 32; async receipt signing option |
+| Tool combination detection false positives on benign workflows | High | Medium | Curate initial library conservatively; configurable sensitivity per tenant; simulation mode |
+| Trust degradation irreversibility frustrates legitimate users | Medium | Medium | Provide trust-reset API for security admins; log all degradation events for review |
+
+## 12.8 Success Metrics — Phase 8
+
+| Metric | Target | Measurement Method |
+|---|---|---|
+| Plugin backend switch time | < 1 hour to swap storage/auth/audit backend | Developer integration test |
+| YAML policy-as-code adoption | > 60% of policies managed via YAML within 3 months of release | Policy API analytics |
+| Tool combination detection rate | > 90% detection of known suspicious sequences | Red-team adversarial suite |
+| PII redaction accuracy | > 95% recall, < 2% false positive rate | PII test corpus evaluation |
+| Signed receipt verification | 100% of ALLOW decisions have verifiable receipts | Audit reconciliation job |
+| CLI adoption | > 50% of developers using CLI for policy validation in CI/CD | SDK telemetry |
+| Intercept API p99 latency (with enhancements) | < 20ms cached (≤ 5ms regression budget from new stages) | Prometheus histogram |
+| Trust degradation accuracy | > 95% correct degradation on untrusted content injection | Adversarial simulation suite |
 
 ---
 
