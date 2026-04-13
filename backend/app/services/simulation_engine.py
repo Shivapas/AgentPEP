@@ -137,8 +137,14 @@ class SimulationDiff:
         if self.matched_rule_changed:
             changes.append({
                 "field": "matched_rule_id",
-                "from": str(self.result_a.matched_rule_id) if self.result_a.matched_rule_id else None,
-                "to": str(self.result_b.matched_rule_id) if self.result_b.matched_rule_id else None,
+                "from": (
+                    str(self.result_a.matched_rule_id)
+                    if self.result_a.matched_rule_id else None
+                ),
+                "to": (
+                    str(self.result_b.matched_rule_id)
+                    if self.result_b.matched_rule_id else None
+                ),
             })
         if self.risk_score_changed:
             changes.append({
@@ -361,7 +367,8 @@ class SimulationEngine:
         steps.append(SimulationStepResult(
             "rule_match",
             True,
-            f"Matched rule: {matched_rule.name} (priority {matched_rule.priority}, action {matched_rule.action.value})",
+            f"Matched rule: {matched_rule.name} "
+            f"(priority {matched_rule.priority}, action {matched_rule.action.value})",
         ))
 
         # Step 5: Taint evaluation
@@ -402,7 +409,9 @@ class SimulationEngine:
         else:
             steps.append(SimulationStepResult(
                 "taint_check", True,
-                "Taint check not required" if not matched_rule.taint_check else "No taint node IDs provided",
+                "Taint check not required"
+                if not matched_rule.taint_check
+                else "No taint node IDs provided",
             ))
 
         result["taint_eval"] = taint_eval

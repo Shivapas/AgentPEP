@@ -1,26 +1,26 @@
 """Pydantic models for compliance reports and SIEM integration (Sprint 22)."""
 
-from datetime import datetime, timezone, UTC
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
 
-class ReportType(str, Enum):
+class ReportType(StrEnum):
     DPDPA = "DPDPA"
     GDPR_ART25 = "GDPR_ART25"
     CERT_IN_BOM = "CERT_IN_BOM"
 
 
-class ReportStatus(str, Enum):
+class ReportStatus(StrEnum):
     PENDING = "PENDING"
     GENERATING = "GENERATING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
 
-class ScheduleFrequency(str, Enum):
+class ScheduleFrequency(StrEnum):
     WEEKLY = "WEEKLY"
     MONTHLY = "MONTHLY"
 

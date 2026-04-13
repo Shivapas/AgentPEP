@@ -85,7 +85,13 @@ class EscalationWebSocketManager:
                     self._connections.pop(ws, None)
 
     @staticmethod
-    def _serialize_ticket(ticket: EscalationTicket) -> dict[str, Any]:
+    def _serialize_ticket(ticket) -> dict[str, Any]:
+        # Support both Sprint-18 EscalationTicket (has .status) and
+        # Sprint-9 EscalationTicketV1 (has .state)
+        state_value = (
+            ticket.status.value if hasattr(ticket, "status") else ticket.state.value
+        )
+        sla = getattr(ticket, "sla_seconds", getattr(ticket, "timeout_seconds", 300))
         return {
             "event": "ESCALATE",
             "ticket_id": str(ticket.ticket_id),
@@ -93,9 +99,9 @@ class EscalationWebSocketManager:
             "agent_id": ticket.agent_id,
             "tool_name": ticket.tool_name,
             "risk_score": ticket.risk_score,
-            "reason": ticket.reason,
-            "status": ticket.status.value,
-            "sla_seconds": ticket.sla_seconds,
+            "reason": getattr(ticket, "reason", ""),
+            "state": state_value,
+            "sla_seconds": sla,
             "taint_flags": ticket.taint_flags,
             "delegation_chain": ticket.delegation_chain,
             "created_at": ticket.created_at.isoformat(),

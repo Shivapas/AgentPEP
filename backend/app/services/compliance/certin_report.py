@@ -6,7 +6,7 @@ accessed, security alerts, and risk posture for the reporting period.
 """
 
 import logging
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime
 
 from app.db.mongodb import (
     AGENT_PROFILES,

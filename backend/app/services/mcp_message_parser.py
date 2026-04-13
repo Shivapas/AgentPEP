@@ -11,7 +11,7 @@ tool call information for policy evaluation. Supports:
 from __future__ import annotations
 
 import logging
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 
 
-class MCPMessageType(str, Enum):
+class MCPMessageType(StrEnum):
     """Classified MCP message types."""
 
     TOOL_CALL = "tools/call"

@@ -26,7 +26,7 @@ import hashlib
 import logging
 import re
 import threading
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 

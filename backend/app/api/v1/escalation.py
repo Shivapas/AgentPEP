@@ -82,7 +82,7 @@ async def list_all(_user: dict = Depends(get_current_user)) -> list[dict[str, An
 @router.get("/{ticket_id}")
 async def get_ticket(ticket_id: UUID, _user: dict = Depends(get_current_user)) -> dict[str, Any]:
     """Return full detail for a single escalation ticket."""
-    ticket = escalation_manager.get_ticket(ticket_id)
+    ticket = escalation_manager.get_ticket_sync(ticket_id)
     if ticket is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -97,9 +97,11 @@ async def get_ticket(ticket_id: UUID, _user: dict = Depends(get_current_user)) -
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_ticket(request: CreateEscalationRequest, _user: dict = Depends(get_current_user)) -> dict[str, Any]:
+async def create_ticket(
+    request: CreateEscalationRequest, _user: dict = Depends(get_current_user),
+) -> dict[str, Any]:
     """Create a new escalation ticket."""
-    ticket = escalation_manager.create_ticket(
+    ticket = escalation_manager.create_ticket_sync(
         session_id=request.session_id,
         agent_id=request.agent_id,
         agent_role=request.agent_role,
@@ -122,7 +124,9 @@ async def create_ticket(request: CreateEscalationRequest, _user: dict = Depends(
 
 
 @router.post("/{ticket_id}/resolve")
-async def resolve_ticket(ticket_id: UUID, body: EscalationAction, _user: dict = Depends(get_current_user)) -> dict[str, Any]:
+async def resolve_ticket(
+    ticket_id: UUID, body: EscalationAction, _user: dict = Depends(get_current_user),
+) -> dict[str, Any]:
     """Approve, deny, or escalate-up a pending ticket."""
     if body.action not in (
         EscalationStatus.APPROVED,
@@ -133,7 +137,7 @@ async def resolve_ticket(ticket_id: UUID, body: EscalationAction, _user: dict = 
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Invalid action '{body.action}'. Must be APPROVED, DENIED, or ESCALATED_UP.",
         )
-    ticket = escalation_manager.resolve_ticket(
+    ticket = escalation_manager.resolve_ticket_sync(
         ticket_id=ticket_id,
         action=body.action,
         comment=body.comment,
@@ -153,7 +157,9 @@ async def resolve_ticket(ticket_id: UUID, body: EscalationAction, _user: dict = 
 
 
 @router.post("/bulk-approve")
-async def bulk_approve(body: BulkApproveRequest, _user: dict = Depends(get_current_user)) -> dict[str, Any]:
+async def bulk_approve(
+    body: BulkApproveRequest, _user: dict = Depends(get_current_user),
+) -> dict[str, Any]:
     """Approve all PENDING tickets matching the given tool pattern."""
     resolved = escalation_manager.bulk_approve(
         tool_pattern=body.tool_pattern,

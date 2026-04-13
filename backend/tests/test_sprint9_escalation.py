@@ -58,8 +58,12 @@ def base_ticket_kwargs():
 
 @pytest.fixture
 async def http_client():
+    from tests.conftest import _get_auth_headers
+
     transport = ASGITransport(app=app)  # type: ignore[arg-type]
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    async with AsyncClient(
+        transport=transport, base_url="http://test", headers=_get_auth_headers()
+    ) as client:
         yield client
 
 

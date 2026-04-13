@@ -1,7 +1,7 @@
 """Pydantic models for policy rules, taint nodes, audit decisions, and agent profiles."""
 
-from datetime import datetime, timezone, UTC
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 # --- Enums ---
 
 
-class Decision(str, Enum):
+class Decision(StrEnum):
     ALLOW = "ALLOW"
     DENY = "DENY"
     ESCALATE = "ESCALATE"
@@ -18,13 +18,13 @@ class Decision(str, Enum):
     TIMEOUT = "TIMEOUT"
 
 
-class TaintLevel(str, Enum):
+class TaintLevel(StrEnum):
     TRUSTED = "TRUSTED"
     UNTRUSTED = "UNTRUSTED"
     QUARANTINE = "QUARANTINE"
 
 
-class TaintSource(str, Enum):
+class TaintSource(StrEnum):
     USER_PROMPT = "USER_PROMPT"
     SYSTEM_PROMPT = "SYSTEM_PROMPT"
     WEB = "WEB"
@@ -35,7 +35,7 @@ class TaintSource(str, Enum):
     SANITISED = "SANITISED"  # APEP-048: output of a sanitisation gate
 
 
-class TaintEventType(str, Enum):
+class TaintEventType(StrEnum):
     """Types of taint audit events (APEP-052)."""
 
     TAINT_ASSIGNED = "TAINT_ASSIGNED"
@@ -81,7 +81,7 @@ class AgentRole(BaseModel):
 # --- Policy Rule ---
 
 
-class RateLimitType(str, Enum):
+class RateLimitType(StrEnum):
     """Rate limiting algorithm type (APEP-090/091)."""
 
     SLIDING_WINDOW = "SLIDING_WINDOW"
@@ -232,7 +232,7 @@ class DelegationChain(BaseModel):
         return self.hops[0].agent_id if self.hops else None
 
 
-class SecurityAlertType(str, Enum):
+class SecurityAlertType(StrEnum):
     """Types of security alert events (APEP-059)."""
 
     PRIVILEGE_ESCALATION = "PRIVILEGE_ESCALATION"
@@ -245,7 +245,7 @@ class SecurityAlertType(str, Enum):
 # --- Escalation Ticket (Sprint 9 — Human Escalation Manager) ---
 
 
-class EscalationState(str, Enum):
+class EscalationState(StrEnum):
     """State machine for escalation tickets (APEP-072)."""
 
     PENDING = "PENDING"
@@ -254,14 +254,14 @@ class EscalationState(str, Enum):
     TIMEOUT = "TIMEOUT"
 
 
-class EscalationTimeoutAction(str, Enum):
+class EscalationTimeoutAction(StrEnum):
     """Valid actions when an escalation ticket times out."""
 
     APPROVED = "APPROVED"
     DENIED = "DENIED"
 
 
-class ApproverRoutingStrategy(str, Enum):
+class ApproverRoutingStrategy(StrEnum):
     """Routing strategy for selecting approvers (APEP-076)."""
 
     ROUND_ROBIN = "ROUND_ROBIN"
@@ -633,7 +633,7 @@ class PolicyDecisionResponse(BaseModel):
 # --- Escalation Ticket (Sprint 18 — APEP-143..APEP-147) ---
 
 
-class EscalationStatus(str, Enum):
+class EscalationStatus(StrEnum):
     """Lifecycle states for an escalation ticket."""
 
     PENDING = "PENDING"

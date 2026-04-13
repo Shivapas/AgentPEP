@@ -10,8 +10,8 @@ Provides aggregated data for the Policy Console Risk Dashboard:
 
 import logging
 import math
-from datetime import datetime, timedelta, timezone, UTC
-from enum import Enum
+from datetime import UTC, datetime, timedelta
+from enum import StrEnum
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/v1/dashboard", tags=["dashboard"])
 # --- Time Window ---
 
 
-class TimeWindow(str, Enum):
+class TimeWindow(StrEnum):
     ONE_HOUR = "1h"
     SIX_HOURS = "6h"
     TWENTY_FOUR_HOURS = "24h"
