@@ -60,6 +60,8 @@ class PolicyDecisionResponse(BaseModel):
     latency_ms: int = 0
     # Sprint 29 — APEP-232: Single-use execution token for ALLOW decisions
     execution_token: str | None = None
+    # Sprint 32 — APEP-256: Cryptographically signed receipt
+    receipt: str | None = None
 
 
 class TaintNodeResponse(BaseModel):

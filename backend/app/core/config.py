@@ -143,6 +143,40 @@ class Settings(BaseSettings):
     # Redis Rate Limiter (Sprint 31 — APEP-245)
     redis_rate_limiter_enabled: bool = False
 
+    # Audit Verbosity (Sprint 32 — APEP-253)
+    audit_verbosity: str = "FULL"
+
+    # CloudWatch Audit (Sprint 32 — APEP-250)
+    cloudwatch_audit_enabled: bool = False
+    cloudwatch_audit_log_group: str = "/agentpep/audit"
+    cloudwatch_audit_log_stream: str = "decisions"
+    cloudwatch_audit_region: str = "us-east-1"
+
+    # Datadog Audit (Sprint 32 — APEP-251)
+    datadog_audit_enabled: bool = False
+    datadog_api_key: str = ""
+    datadog_site: str = "datadoghq.com"
+    datadog_service_name: str = "agentpep"
+
+    # Loki Audit (Sprint 32 — APEP-252)
+    loki_audit_enabled: bool = False
+    loki_push_url: str = ""
+    loki_tenant_id: str = ""
+
+    # PagerDuty (Sprint 32 — APEP-255)
+    pagerduty_enabled: bool = False
+    pagerduty_routing_key: str = ""
+
+    # Microsoft Teams (Sprint 32 — APEP-255)
+    teams_enabled: bool = False
+    teams_webhook_url: str = ""
+
+    # Receipt Signing (Sprint 32 — APEP-256)
+    receipt_signing_enabled: bool = False
+    receipt_signing_method: str = "hmac-sha256"  # "ed25519" or "hmac-sha256"
+    receipt_signing_key: str = ""  # Base64-encoded private/secret key
+    receipt_key_id: str = "default"
+
     model_config = {"env_prefix": "AGENTPEP_"}
 
 

@@ -106,6 +106,74 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await redis_rate_limiter.initialize()
         logger.info("redis_rate_limiter_initialized")
 
+    # Sprint 32 (APEP-250): Initialize CloudWatch audit backend
+    _cloudwatch_audit = None
+    if settings.cloudwatch_audit_enabled:
+        from app.backends.cloudwatch_audit import CloudWatchAuditBackend
+
+        _cloudwatch_audit = CloudWatchAuditBackend()
+        await _cloudwatch_audit.initialize()
+        logger.info("cloudwatch_audit_initialized")
+
+    # Sprint 32 (APEP-251): Initialize Datadog audit backend
+    _datadog_audit = None
+    if settings.datadog_audit_enabled:
+        from app.backends.datadog_audit import DatadogAuditBackend
+
+        _datadog_audit = DatadogAuditBackend()
+        await _datadog_audit.initialize()
+        logger.info("datadog_audit_initialized")
+
+    # Sprint 32 (APEP-252): Initialize Loki audit backend
+    _loki_audit = None
+    if settings.loki_audit_enabled:
+        from app.backends.loki_audit import LokiAuditBackend
+
+        _loki_audit = LokiAuditBackend()
+        await _loki_audit.initialize()
+        logger.info("loki_audit_initialized")
+
+    # Sprint 32 (APEP-256): Initialize receipt signer
+    if settings.receipt_signing_enabled:
+        import base64
+
+        import app.services.receipt_signer as receipt_signer_module
+
+        key_bytes = (
+            base64.urlsafe_b64decode(settings.receipt_signing_key)
+            if settings.receipt_signing_key
+            else None
+        )
+        receipt_signer_module.receipt_signer = receipt_signer_module.ReceiptSigner(
+            signing_method=settings.receipt_signing_method,
+            private_key=key_bytes,
+            key_id=settings.receipt_key_id,
+        )
+        logger.info(
+            "receipt_signer_initialized",
+            method=receipt_signer_module.receipt_signer.method,
+            key_id=settings.receipt_key_id,
+        )
+
+    # Sprint 32 (APEP-254/255): Initialize notification channel registry
+    from app.backends.notification_registry import notification_registry
+
+    if settings.pagerduty_enabled:
+        from app.backends.pagerduty_channel import PagerDutyChannel
+
+        _pd_channel = PagerDutyChannel()
+        await _pd_channel.initialize()
+        notification_registry.register("pagerduty", _pd_channel)
+        logger.info("pagerduty_channel_initialized")
+
+    if settings.teams_enabled:
+        from app.backends.teams_channel import MicrosoftTeamsChannel
+
+        _teams_channel = MicrosoftTeamsChannel()
+        await _teams_channel.initialize()
+        notification_registry.register("teams", _teams_channel)
+        logger.info("teams_channel_initialized")
+
     # Sprint 31 (APEP-243): Initialize auth provider registry
     from app.backends.auth_registry import auth_registry
     from app.backends.apikey_auth import APIKeyAuthProvider
@@ -195,6 +263,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Sprint 23: Close Redis
     await rule_cache.close_redis()
+
+    # Sprint 32: Reset notification channel registry
+    notification_registry.reset()
+
+    # Sprint 32: Close cloud audit backends
+    if _cloudwatch_audit is not None:
+        await _cloudwatch_audit.close()
+    if _datadog_audit is not None:
+        await _datadog_audit.close()
+    if _loki_audit is not None:
+        await _loki_audit.close()
 
     # Sprint 31: Reset auth registry
     auth_registry.reset()

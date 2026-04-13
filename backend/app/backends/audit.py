@@ -96,5 +96,21 @@ class AuditBackend(ABC):
     async def close(self) -> None:
         """Clean up resources. Override in subclasses if needed."""
 
+    def filter_by_verbosity(
+        self,
+        record: dict[str, Any],
+        verbosity: "AuditVerbosity | None" = None,
+    ) -> dict[str, Any]:
+        """Filter *record* according to the configured audit verbosity.
+
+        If *verbosity* is ``None`` the global ``settings.audit_verbosity``
+        value is used.  New audit backends should call this before writing.
+        """
+        from app.backends.audit_verbosity import AuditVerbosity, filter_record
+        from app.core.config import settings
+
+        effective = verbosity or AuditVerbosity(settings.audit_verbosity)
+        return filter_record(record, effective)
+
     async def initialize(self) -> None:
         """Perform any startup initialization. Override in subclasses if needed."""

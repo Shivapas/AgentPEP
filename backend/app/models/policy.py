@@ -654,6 +654,11 @@ class PolicyDecisionResponse(BaseModel):
         default=None,
         description="Single-use cryptographic token for authorized tool execution",
     )
+    # Sprint 32 — APEP-256: Cryptographically signed receipt
+    receipt: str | None = Field(
+        default=None,
+        description="Cryptographically signed receipt for this authorization decision",
+    )
 
 
 # --- Escalation Ticket (Sprint 18 — APEP-143..APEP-147) ---
