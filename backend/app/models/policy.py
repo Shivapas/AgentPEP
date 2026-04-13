@@ -73,6 +73,17 @@ class AgentRole(BaseModel):
     max_risk_threshold: float = Field(
         default=1.0, ge=0.0, le=1.0, description="Max risk score this role can tolerate"
     )
+    # Sprint 31 — APEP-248: clearance-level checking
+    clearance_level: str = Field(
+        default="PUBLIC",
+        description="Max data classification level this role can access "
+        "(PUBLIC, INTERNAL, CONFIDENTIAL, PII, PHI, FINANCIAL)",
+    )
+    # Sprint 31 — APEP-247: data boundary scope
+    data_boundary: str = Field(
+        default="USER_ONLY",
+        description="Data boundary scope (USER_ONLY, TEAM, ORGANISATION)",
+    )
     enabled: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
@@ -116,6 +127,16 @@ class PolicyRule(BaseModel):
     rate_limit: RateLimit | None = None
     arg_validators: list[ArgValidator] = Field(default_factory=list)
     priority: int = Field(default=100, description="Lower = higher priority")
+    # Sprint 31 — APEP-246/247: data classification and boundary on rules
+    data_classification: str | None = Field(
+        default=None,
+        description="Required data classification level for this rule "
+        "(PUBLIC, INTERNAL, CONFIDENTIAL, PII, PHI, FINANCIAL)",
+    )
+    data_boundary: str | None = Field(
+        default=None,
+        description="Required data boundary scope (USER_ONLY, TEAM, ORGANISATION)",
+    )
     enabled: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
