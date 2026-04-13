@@ -16,6 +16,9 @@ class Decision(StrEnum):
     ESCALATE = "ESCALATE"
     DRY_RUN = "DRY_RUN"
     TIMEOUT = "TIMEOUT"
+    # Sprint 33 — APEP-259/260: New decision types
+    DEFER = "DEFER"
+    MODIFY = "MODIFY"
 
 
 class TaintLevel(StrEnum):
@@ -438,6 +441,8 @@ class RiskWeightConfig(BaseModel):
     taint: float = Field(default=0.20, ge=0.0)
     session_accumulated: float = Field(default=0.10, ge=0.0)
     delegation_depth: float = Field(default=0.20, ge=0.0)
+    # Sprint 33 — APEP-265: Context authority weight
+    context_authority: float = Field(default=0.10, ge=0.0)
 
 
 class RiskModelConfig(BaseModel):
@@ -658,6 +663,15 @@ class PolicyDecisionResponse(BaseModel):
     receipt: str | None = Field(
         default=None,
         description="Cryptographically signed receipt for this authorization decision",
+    )
+    # Sprint 33 — APEP-259/260: DEFER and MODIFY decision support
+    modified_args: dict[str, Any] | None = Field(
+        default=None,
+        description="Rewritten tool arguments when decision is MODIFY",
+    )
+    defer_timeout_s: int = Field(
+        default=60,
+        description="Seconds before auto-deny for DEFER decisions",
     )
 
 

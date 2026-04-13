@@ -21,3 +21,40 @@ class AgentPEPConnectionError(AgentPEPError):
 
 class AgentPEPTimeoutError(AgentPEPError):
     """Raised when a request to AgentPEP times out."""
+
+
+class PolicyDeferredError(AgentPEPError):
+    """Raised when a tool call is deferred pending review (DEFER decision)."""
+
+    def __init__(
+        self,
+        tool_name: str,
+        reason: str = "",
+        defer_timeout_s: int = 60,
+    ):
+        self.tool_name = tool_name
+        self.reason = reason
+        self.defer_timeout_s = defer_timeout_s
+        super().__init__(
+            f"Policy DEFER for tool '{tool_name}': {reason} "
+            f"(timeout={defer_timeout_s}s)"
+        )
+
+
+class PolicyModifiedError(AgentPEPError):
+    """Raised when tool arguments are modified by policy (MODIFY decision)."""
+
+    def __init__(
+        self,
+        tool_name: str,
+        original_args: dict | None = None,
+        modified_args: dict | None = None,
+        reason: str = "",
+    ):
+        self.tool_name = tool_name
+        self.original_args = original_args or {}
+        self.modified_args = modified_args or {}
+        self.reason = reason
+        super().__init__(
+            f"Policy MODIFY for tool '{tool_name}': {reason}"
+        )

@@ -276,20 +276,23 @@ class TestRiskAggregator:
             RiskFactor(factor_name="taint", score=1.0),
             RiskFactor(factor_name="session_accumulated", score=1.0),
             RiskFactor(factor_name="delegation_depth", score=1.0),
+            RiskFactor(factor_name="context_authority", score=1.0),
         ]
         assert aggregator.aggregate(factors) == 1.0
 
     def test_weighted_sum_correct(self, aggregator):
-        # Default weights: op=0.25, data=0.25, taint=0.20, session=0.10, depth=0.20
+        # Default weights: op=0.25, data=0.25, taint=0.20, session=0.10, depth=0.20, ctx_auth=0.10
+        # Total weight = 1.10
         factors = [
             RiskFactor(factor_name="operation_type", score=1.0),
             RiskFactor(factor_name="data_sensitivity", score=0.0),
             RiskFactor(factor_name="taint", score=0.0),
             RiskFactor(factor_name="session_accumulated", score=0.0),
             RiskFactor(factor_name="delegation_depth", score=0.0),
+            RiskFactor(factor_name="context_authority", score=0.0),
         ]
-        # Expected: 1.0 * 0.25 / 1.0 = 0.25
-        assert aggregator.aggregate(factors) == 0.25
+        # Expected: 1.0 * 0.25 / 1.10 ≈ 0.2273
+        assert aggregator.aggregate(factors) == pytest.approx(0.2273, abs=0.001)
 
     def test_role_override(self, aggregator):
         config = RiskModelConfig(
@@ -301,6 +304,7 @@ class TestRiskAggregator:
                     taint=0.0,
                     session_accumulated=0.0,
                     delegation_depth=1.0,
+                    context_authority=0.0,
                 ),
             },
         )
@@ -310,6 +314,7 @@ class TestRiskAggregator:
             RiskFactor(factor_name="taint", score=1.0),
             RiskFactor(factor_name="session_accumulated", score=1.0),
             RiskFactor(factor_name="delegation_depth", score=0.5),
+            RiskFactor(factor_name="context_authority", score=1.0),
         ]
         # Admin override: only delegation_depth matters (weight=1.0)
         score = aggregator.aggregate(factors, agent_roles=["admin"], config=config)
@@ -323,6 +328,7 @@ class TestRiskAggregator:
                 taint=0.0,
                 session_accumulated=0.0,
                 delegation_depth=0.0,
+                context_authority=0.0,
             ),
         )
         factors = [RiskFactor(factor_name="operation_type", score=1.0)]
@@ -427,7 +433,7 @@ class TestCalibrationMalicious:
             session_id=sid,
             taint_node_ids=[node.node_id],
         )
-        assert score > 0.3, f"Quarantine taint + destructive query should be elevated risk, got {score}"
+        assert score > 0.25, f"Quarantine taint + destructive query should be elevated risk, got {score}"
         # Verify taint factor is maxed
         factor_map = {f.factor_name: f for f in factors}
         assert factor_map["taint"].score == 1.0, "Quarantine taint should yield max taint score"
@@ -470,6 +476,7 @@ class TestCalibrationEdgeCases:
                 "taint": 0.0,
                 "session_accumulated": 0.0,
                 "delegation_depth": 0.0,
+                "context_authority": 0.0,
             },
             "escalation_threshold": 0.5,
         })

@@ -1,7 +1,10 @@
-"""OpenAI Agents SDK integration for AgentPEP (APEP-158, APEP-159).
+"""OpenAI Agents SDK integration for AgentPEP (APEP-158, APEP-159, APEP-259).
 
 Provides a pre-execution callback hook that intercepts tool calls made by
 OpenAI Agents SDK agents and enforces AgentPEP policy before the tool runs.
+
+Sprint 33 — APEP-259: Execution token validation, receipt attachment,
+DEFER/MODIFY decision handling.
 """
 
 from __future__ import annotations
@@ -10,7 +13,8 @@ import json
 import logging
 from typing import Any, Callable
 
-from agentpep.exceptions import PolicyDeniedError
+from agentpep.exceptions import PolicyDeferredError, PolicyDeniedError
+from agentpep.execution_token import execution_token_validator
 from agentpep.models import PolicyDecision, PolicyDecisionResponse
 
 logger = logging.getLogger(__name__)
@@ -72,6 +76,12 @@ class AgentPEPHooks:
     Implements the ``AgentHooks`` protocol from the OpenAI Agents SDK to
     intercept tool calls before execution.
 
+    Sprint 33 — APEP-259 enhancements:
+    - Validates execution tokens on ALLOW decisions
+    - Stores receipts for audit trail
+    - Handles DEFER decisions (raises ``PolicyDeferredError``)
+    - Handles MODIFY decisions (stores modified args for framework use)
+
     Args:
         client: An ``AgentPEPClient`` instance.
         agent_id: The agent identifier for policy evaluation.
@@ -109,6 +119,9 @@ class AgentPEPHooks:
         self.session_id = session_id
         self.delegation_chain = delegation_chain or []
         self.on_decision = on_decision
+        # Sprint 33 — APEP-259: Track receipts and modified args
+        self._last_receipt: str | None = None
+        self._pending_modified_args: dict[str, Any] | None = None
 
     async def on_tool_start(
         self,
@@ -119,7 +132,12 @@ class AgentPEPHooks:
         """Pre-execution hook: evaluate policy before the tool runs.
 
         Called by the OpenAI Agents SDK runner before each tool invocation.
-        Raises ``PolicyDeniedError`` if the decision is not ALLOW or DRY_RUN.
+
+        Sprint 33 — APEP-259 behaviour:
+        - ALLOW/DRY_RUN: validates execution token, stores receipt, proceeds
+        - DEFER: raises ``PolicyDeferredError`` with timeout info
+        - MODIFY: stores ``modified_args`` for the framework to use
+        - Other decisions: raises ``PolicyDeniedError``
         """
         # Extract tool name from the tool object
         tool_name = getattr(tool, "name", None) or type(tool).__name__
@@ -142,12 +160,42 @@ class AgentPEPHooks:
         if self.on_decision:
             self.on_decision(response)
 
+        # APEP-259: Handle DEFER — suspend execution pending review
+        if response.decision == PolicyDecision.DEFER:
+            raise PolicyDeferredError(
+                tool_name=tool_name,
+                reason=response.reason,
+                defer_timeout_s=response.defer_timeout_s,
+            )
+
+        # APEP-259: Handle MODIFY — store rewritten args for framework use
+        if response.decision == PolicyDecision.MODIFY:
+            self._pending_modified_args = response.modified_args
+            logger.info(
+                "Tool args modified by policy for tool=%s agent=%s",
+                tool_name,
+                self.agent_id,
+            )
+            return
+
         if response.decision not in (PolicyDecision.ALLOW, PolicyDecision.DRY_RUN):
             raise PolicyDeniedError(
                 tool_name=tool_name,
                 reason=response.reason,
                 decision=response.decision.value,
             )
+
+        # APEP-259: Validate execution token on ALLOW
+        if response.execution_token is not None:
+            execution_token_validator.validate_and_consume(
+                response.execution_token,
+                expected_tool_name=tool_name,
+                expected_agent_id=self.agent_id,
+            )
+
+        # APEP-259: Store receipt for audit trail
+        if response.receipt is not None:
+            self._last_receipt = response.receipt
 
     async def on_tool_end(
         self,
@@ -156,7 +204,13 @@ class AgentPEPHooks:
         tool: Any,
         result: str,
     ) -> None:
-        """Post-execution hook (no-op). Present for protocol completeness."""
+        """Post-execution hook: attach receipt to result metadata if available."""
+        if self._last_receipt is not None:
+            if hasattr(context, "agentpep_receipt"):
+                context.agentpep_receipt = self._last_receipt
+            self._last_receipt = None
+        # Clear pending modified args after tool execution
+        self._pending_modified_args = None
 
     async def on_start(self, context: Any, agent: Any) -> None:
         """Agent start hook (no-op)."""
@@ -179,6 +233,9 @@ def enforce_tool(
 
     Returns an async callable that evaluates AgentPEP policy for the given
     tool name and arguments. Suitable for use in custom agent runners.
+
+    Sprint 33 — APEP-259: Handles DEFER (raises ``PolicyDeferredError``)
+    and MODIFY (returns response with ``modified_args``).
 
     Args:
         client: An ``AgentPEPClient`` instance.
@@ -207,6 +264,19 @@ def enforce_tool(
             session_id=session_id,
             delegation_chain=delegation_chain or [],
         )
+
+        # APEP-259: Handle DEFER
+        if response.decision == PolicyDecision.DEFER:
+            raise PolicyDeferredError(
+                tool_name=name,
+                reason=response.reason,
+                defer_timeout_s=response.defer_timeout_s,
+            )
+
+        # APEP-259: Handle MODIFY — return response (caller inspects modified_args)
+        if response.decision == PolicyDecision.MODIFY:
+            return response
+
         if response.decision not in (PolicyDecision.ALLOW, PolicyDecision.DRY_RUN):
             raise PolicyDeniedError(
                 tool_name=name,

@@ -13,6 +13,9 @@ class PolicyDecision(str, Enum):
     ESCALATE = "ESCALATE"
     DRY_RUN = "DRY_RUN"
     TIMEOUT = "TIMEOUT"
+    # Sprint 33 — APEP-259/260: New decision types
+    DEFER = "DEFER"
+    MODIFY = "MODIFY"
 
 
 class TaintLevel(str, Enum):
@@ -62,6 +65,9 @@ class PolicyDecisionResponse(BaseModel):
     execution_token: str | None = None
     # Sprint 32 — APEP-256: Cryptographically signed receipt
     receipt: str | None = None
+    # Sprint 33 — APEP-259/260: DEFER and MODIFY decision support
+    modified_args: dict[str, Any] | None = None
+    defer_timeout_s: int = 60
 
 
 class TaintNodeResponse(BaseModel):
