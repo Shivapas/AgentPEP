@@ -1,0 +1,55 @@
+roles:
+  - role_id: admin
+    name: Administrator
+    parent_roles: []
+    allowed_tools:
+      - "*"
+    denied_tools: []
+    max_risk_threshold: 0.9
+    max_data_classification: FINANCIAL
+    enabled: true
+
+  - role_id: developer
+    name: Developer
+    parent_roles:
+      - reader
+    allowed_tools:
+      - "file.read_*"
+      - "file.write_*"
+      - "code.*"
+      - "git.*"
+    denied_tools:
+      - "admin.*"
+      - "deploy.*"
+    max_risk_threshold: 0.7
+    max_data_classification: CONFIDENTIAL
+    enabled: true
+
+  - role_id: reader
+    name: Read-Only Agent
+    parent_roles: []
+    allowed_tools:
+      - "file.read_*"
+      - "search.*"
+      - "list_*"
+    denied_tools:
+      - "file.write_*"
+      - "file.delete_*"
+      - "exec.*"
+    max_risk_threshold: 0.5
+    max_data_classification: INTERNAL
+    enabled: true
+
+  - role_id: deployer
+    name: Deployment Agent
+    parent_roles:
+      - developer
+    allowed_tools:
+      - "deploy.*"
+      - "docker.*"
+      - "k8s.*"
+    denied_tools:
+      - "admin.delete_*"
+    max_risk_threshold: 0.8
+    max_data_classification: CONFIDENTIAL
+    enabled: true

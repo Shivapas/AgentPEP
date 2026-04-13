@@ -1,0 +1,71 @@
+rules:
+  - name: Allow read operations for all roles
+    agent_roles: ["*"]
+    tool_pattern: "file.read_*"
+    action: ALLOW
+    priority: 10
+    enabled: true
+
+  - name: Allow search for all roles
+    agent_roles: ["*"]
+    tool_pattern: "search.*"
+    action: ALLOW
+    priority: 20
+    enabled: true
+
+  - name: Allow code tools for developers
+    agent_roles:
+      - developer
+      - deployer
+    tool_pattern: "code.*"
+    action: ALLOW
+    taint_check: true
+    risk_threshold: 0.7
+    priority: 30
+    enabled: true
+
+  - name: Escalate file writes with taint check
+    agent_roles:
+      - developer
+    tool_pattern: "file.write_*"
+    action: ESCALATE
+    taint_check: true
+    risk_threshold: 0.5
+    priority: 40
+    enabled: true
+
+  - name: Allow deployment for deployer
+    agent_roles:
+      - deployer
+    tool_pattern: "deploy.*"
+    action: ALLOW
+    taint_check: true
+    risk_threshold: 0.8
+    priority: 50
+    enabled: true
+
+  - name: Deny admin operations for non-admins
+    agent_roles:
+      - developer
+      - reader
+      - deployer
+    tool_pattern: "admin.*"
+    action: DENY
+    priority: 5
+    enabled: true
+
+  - name: Allow all for admin
+    agent_roles:
+      - admin
+    tool_pattern: "*"
+    action: ALLOW
+    risk_threshold: 0.9
+    priority: 1
+    enabled: true
+
+  - name: Deny destructive operations by default
+    agent_roles: ["*"]
+    tool_pattern: "*.delete_*"
+    action: DENY
+    priority: 3
+    enabled: true

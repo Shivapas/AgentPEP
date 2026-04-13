@@ -1,0 +1,6 @@
+author: AgentPEP Team
+description: Default policy set for AgentPEP authorization engine
+version: "1.0"
+labels:
+  environment: production
+  team: platform-security

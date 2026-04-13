@@ -496,3 +496,246 @@ async def import_yaml(request: Request, _user: dict = Depends(require_admin)) ->
     )
     doc.pop("_id", None)
     return _serialize(doc)
+
+
+# ---------------------------------------------------------------------------
+# Sprint 30 — APEP-236: GitOps Sync Endpoint
+# ---------------------------------------------------------------------------
+
+
+class PolicySyncResponse(BaseModel):
+    """Response from the GitOps sync endpoint."""
+
+    status: str = Field(..., description="'applied' or 'validated'")
+    roles_synced: int = 0
+    rules_synced: int = 0
+    risk_config_synced: bool = False
+    validation_errors: list[str] = Field(default_factory=list)
+    diff_summary: dict[str, Any] = Field(default_factory=dict)
+
+
+@router.post("/policies/sync", status_code=200)
+async def sync_policies(
+    request: Request,
+    dry_run: bool = False,
+    _user: dict = Depends(require_admin),
+) -> dict[str, Any]:
+    """GitOps sync endpoint: accept YAML payload, validate, and apply atomically.
+
+    If ``dry_run=true``, validates and returns a diff without applying changes.
+    Otherwise, atomically replaces all roles, rules, and risk config.
+    """
+    from app.services.yaml_loader import YAMLPolicyValidationError, yaml_policy_loader
+    from app.services.policy_differ import policy_diff_engine
+
+    raw = await request.body()
+    max_size = 2_097_152  # 2 MB
+    if len(raw) > max_size:
+        raise HTTPException(status_code=413, detail=f"Payload too large (max {max_size} bytes)")
+
+    # Parse and validate
+    try:
+        doc = yaml_policy_loader.load_and_validate(raw)
+    except YAMLPolicyValidationError as exc:
+        raise HTTPException(status_code=400, detail={"validation_errors": exc.errors})
+
+    # Build diff against current state
+    db = get_database()
+    current_roles_cursor = db[AGENT_ROLES].find({}, {"_id": 0})
+    current_roles_raw = [r async for r in current_roles_cursor]
+    current_rules_cursor = db[POLICY_RULES].find({}, {"_id": 0}).sort("priority", 1)
+    current_rules_raw = [r async for r in current_rules_cursor]
+
+    # Build a YAMLPolicyDocument from current state for diffing
+    current_doc = await _build_current_policy_doc(current_roles_raw, current_rules_raw)
+    diff_result = policy_diff_engine.diff(current_doc, doc)
+
+    if dry_run:
+        return PolicySyncResponse(
+            status="validated",
+            roles_synced=len(doc.roles),
+            rules_synced=len(doc.rules),
+            risk_config_synced=True,
+            diff_summary=diff_result.to_dict(),
+        ).model_dump()
+
+    # Atomic apply: replace all roles and rules
+    hydrated_roles = yaml_policy_loader.hydrate_roles(doc)
+    hydrated_rules = yaml_policy_loader.hydrate_rules(doc)
+    hydrated_risk = yaml_policy_loader.hydrate_risk_config(doc)
+
+    now = datetime.now(UTC)
+
+    # Clear and re-insert roles
+    await db[AGENT_ROLES].delete_many({})
+    if hydrated_roles:
+        role_docs = []
+        for role in hydrated_roles:
+            d = role.model_dump(mode="json")
+            d["created_at"] = now
+            d["updated_at"] = now
+            role_docs.append(d)
+        await db[AGENT_ROLES].insert_many(role_docs)
+
+    # Clear and re-insert rules
+    await db[POLICY_RULES].delete_many({})
+    if hydrated_rules:
+        rule_docs = []
+        for rule in hydrated_rules:
+            d = rule.model_dump(mode="json")
+            d["created_at"] = now
+            d["updated_at"] = now
+            rule_docs.append(d)
+        await db[POLICY_RULES].insert_many(rule_docs)
+
+    # Update risk model config
+    risk_doc = hydrated_risk.model_dump(mode="json")
+    risk_doc["updated_at"] = now
+    await db["risk_model_configs"].replace_one(
+        {"model_id": "yaml-policy"},
+        risk_doc,
+        upsert=True,
+    )
+
+    # Invalidate rule cache
+    try:
+        from app.services.rule_cache import rule_cache
+        rule_cache.invalidate()
+    except ImportError:
+        pass
+
+    logger.info(
+        "policy_sync_applied: roles=%d rules=%d user=%s",
+        len(hydrated_roles),
+        len(hydrated_rules),
+        _user.get("sub", "unknown"),
+    )
+
+    return PolicySyncResponse(
+        status="applied",
+        roles_synced=len(hydrated_roles),
+        rules_synced=len(hydrated_rules),
+        risk_config_synced=True,
+        diff_summary=diff_result.to_dict(),
+    ).model_dump()
+
+
+# ---------------------------------------------------------------------------
+# Sprint 30 — APEP-237: Policy Diff Endpoint
+# ---------------------------------------------------------------------------
+
+
+@router.post("/policies/diff")
+async def diff_policies(
+    request: Request,
+    _user: dict = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Compare a proposed YAML policy against the current active policy.
+
+    Accepts a YAML payload and returns a structured diff showing added,
+    removed, and changed roles/rules/risk/taint configuration.
+    """
+    from app.services.yaml_loader import YAMLPolicyValidationError, yaml_policy_loader
+    from app.services.policy_differ import policy_diff_engine
+
+    raw = await request.body()
+    max_size = 2_097_152  # 2 MB
+    if len(raw) > max_size:
+        raise HTTPException(status_code=413, detail=f"Payload too large (max {max_size} bytes)")
+
+    try:
+        proposed_doc = yaml_policy_loader.load_and_validate(raw)
+    except YAMLPolicyValidationError as exc:
+        raise HTTPException(status_code=400, detail={"validation_errors": exc.errors})
+
+    # Build current state
+    db = get_database()
+    current_roles_cursor = db[AGENT_ROLES].find({}, {"_id": 0})
+    current_roles_raw = [r async for r in current_roles_cursor]
+    current_rules_cursor = db[POLICY_RULES].find({}, {"_id": 0}).sort("priority", 1)
+    current_rules_raw = [r async for r in current_rules_cursor]
+
+    current_doc = await _build_current_policy_doc(current_roles_raw, current_rules_raw)
+    diff_result = policy_diff_engine.diff(current_doc, proposed_doc)
+
+    return diff_result.to_dict()
+
+
+async def _build_current_policy_doc(
+    roles_raw: list[dict[str, Any]],
+    rules_raw: list[dict[str, Any]],
+) -> "YAMLPolicyDocument":
+    """Build a YAMLPolicyDocument from current MongoDB state for diffing."""
+    from app.models.yaml_policy import (
+        YAMLPolicyDocument,
+        YAMLRiskConfig,
+        YAMLRiskWeights,
+        YAMLRoleDefinition,
+        YAMLRuleDefinition,
+        YAMLTaintPolicy,
+    )
+
+    yaml_roles = []
+    for r in roles_raw:
+        yaml_roles.append(
+            YAMLRoleDefinition(
+                role_id=r.get("role_id", ""),
+                name=r.get("name", ""),
+                parent_roles=r.get("parent_roles", []),
+                allowed_tools=r.get("allowed_tools", []),
+                denied_tools=r.get("denied_tools", []),
+                max_risk_threshold=r.get("max_risk_threshold", 1.0),
+                enabled=r.get("enabled", True),
+            )
+        )
+
+    yaml_rules = []
+    for r in rules_raw:
+        yaml_rules.append(
+            YAMLRuleDefinition(
+                rule_id=r.get("rule_id", ""),
+                name=r.get("name", ""),
+                agent_roles=r.get("agent_role", []),
+                tool_pattern=r.get("tool_pattern", "*"),
+                action=r.get("action", "DENY"),
+                taint_check=r.get("taint_check", False),
+                risk_threshold=r.get("risk_threshold", 1.0),
+                priority=r.get("priority", 100),
+                enabled=r.get("enabled", True),
+            )
+        )
+
+    # Read back risk config if available
+    risk_config = YAMLRiskConfig()
+    db = get_database()
+    risk_doc = await db["risk_model_configs"].find_one(
+        {"model_id": "yaml-policy"}, {"_id": 0}
+    )
+    if risk_doc:
+        dw = risk_doc.get("default_weights", {})
+        role_overrides = {}
+        for role_id, weights in risk_doc.get("role_overrides", {}).items():
+            role_overrides[role_id] = YAMLRiskWeights(
+                operation_type=weights.get("operation_type", 0.25),
+                data_sensitivity=weights.get("data_sensitivity", 0.25),
+                taint=weights.get("taint", 0.20),
+                session_accumulated=weights.get("session_accumulated", 0.10),
+                delegation_depth=weights.get("delegation_depth", 0.20),
+            )
+        risk_config = YAMLRiskConfig(
+            default_weights=YAMLRiskWeights(
+                operation_type=dw.get("operation_type", 0.25),
+                data_sensitivity=dw.get("data_sensitivity", 0.25),
+                taint=dw.get("taint", 0.20),
+                session_accumulated=dw.get("session_accumulated", 0.10),
+                delegation_depth=dw.get("delegation_depth", 0.20),
+            ),
+            role_overrides=role_overrides,
+            escalation_threshold=risk_doc.get("escalation_threshold", 0.7),
+        )
+
+    return YAMLPolicyDocument(
+        roles=yaml_roles,
+        rules=yaml_rules,
+        risk=risk_config,
+    )

@@ -1,0 +1,213 @@
+name: Policy-as-Code Validation
+
+on:
+  pull_request:
+    paths:
+      - "policies/**"
+      - ".github/workflows/policy-validation.yaml"
+  push:
+    paths:
+      - "policies/**"
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validate YAML Policies
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Validate YAML policy schema
+        run: |
+          python -c "
+          import sys
+          from pathlib import Path
+
+          # Add parent dir so 'policies/' is accessible
+          policies_dir = Path('..') / 'policies'
+          if not policies_dir.is_dir():
+              print('No policies/ directory found — skipping validation')
+              sys.exit(0)
+
+          from app.services.policy_directory import policy_directory_loader
+          from app.services.yaml_loader import YAMLPolicyValidationError
+
+          try:
+              doc = policy_directory_loader.load_directory(policies_dir)
+              print(f'Policy validation passed:')
+              print(f'  Roles:  {len(doc.roles)}')
+              print(f'  Rules:  {len(doc.rules)}')
+              print(f'  Schema: {doc.schema_version}')
+          except YAMLPolicyValidationError as exc:
+              print('Policy validation FAILED:')
+              for err in exc.errors:
+                  print(f'  - {err}')
+              sys.exit(1)
+          "
+
+  simulate:
+    name: Run Policy Simulation Suite
+    runs-on: ubuntu-latest
+    needs: validate
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run simulation suite against policy
+        run: |
+          python -c "
+          import sys
+          from pathlib import Path
+
+          policies_dir = Path('..') / 'policies'
+          if not policies_dir.is_dir():
+              print('No policies/ directory found — skipping simulation')
+              sys.exit(0)
+
+          from app.services.policy_directory import policy_directory_loader
+          from app.services.yaml_loader import yaml_policy_loader, YAMLPolicyValidationError
+
+          try:
+              doc = policy_directory_loader.load_directory(policies_dir)
+          except YAMLPolicyValidationError as exc:
+              print(f'Cannot simulate — policy validation failed: {exc}')
+              sys.exit(1)
+
+          # Hydrate and run basic simulation assertions
+          roles = yaml_policy_loader.hydrate_roles(doc)
+          rules = yaml_policy_loader.hydrate_rules(doc)
+
+          print(f'Simulation results:')
+          print(f'  Roles loaded:  {len(roles)}')
+          print(f'  Rules loaded:  {len(rules)}')
+
+          # Verify no duplicate role IDs
+          role_ids = [r.role_id for r in roles]
+          dupes = [rid for rid in role_ids if role_ids.count(rid) > 1]
+          if dupes:
+              print(f'  ERROR: Duplicate role IDs: {set(dupes)}')
+              sys.exit(1)
+
+          # Verify no duplicate rule names
+          rule_names = [r.name for r in rules]
+          dupes = [rn for rn in rule_names if rule_names.count(rn) > 1]
+          if dupes:
+              print(f'  ERROR: Duplicate rule names: {set(dupes)}')
+              sys.exit(1)
+
+          print('  All simulation checks passed')
+          "
+
+  diff:
+    name: Diff Against Current Policy
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'pull_request'
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Compute policy diff
+        run: |
+          python -c "
+          import subprocess, sys, json
+          from pathlib import Path
+
+          policies_dir = Path('..') / 'policies'
+          if not policies_dir.is_dir():
+              print('No policies/ directory found — skipping diff')
+              sys.exit(0)
+
+          from app.services.policy_directory import policy_directory_loader
+          from app.services.policy_differ import policy_diff_engine
+          from app.services.yaml_loader import YAMLPolicyValidationError
+          from app.models.yaml_policy import YAMLPolicyDocument
+
+          # Load proposed (PR) policy
+          try:
+              proposed = policy_directory_loader.load_directory(policies_dir)
+          except YAMLPolicyValidationError as exc:
+              print(f'Cannot diff — proposed policy invalid: {exc}')
+              sys.exit(1)
+
+          # Load base (main branch) policy via git
+          try:
+              result = subprocess.run(
+                  ['git', 'show', 'origin/main:policies/roles.yaml'],
+                  capture_output=True, text=True, cwd='..'
+              )
+              base_roles = result.stdout if result.returncode == 0 else ''
+
+              result = subprocess.run(
+                  ['git', 'show', 'origin/main:policies/rules.yaml'],
+                  capture_output=True, text=True, cwd='..'
+              )
+              base_rules = result.stdout if result.returncode == 0 else ''
+          except Exception:
+              base_roles = ''
+              base_rules = ''
+
+          if not base_roles and not base_rules:
+              print('No base policy found on main — showing full addition')
+              base_doc = YAMLPolicyDocument()
+          else:
+              import yaml as _yaml
+              roles_data = _yaml.safe_load(base_roles) if base_roles else {}
+              rules_data = _yaml.safe_load(base_rules) if base_rules else {}
+
+              from app.models.yaml_policy import YAMLRoleDefinition, YAMLRuleDefinition
+              base_roles_list = []
+              for r in (roles_data.get('roles', []) if isinstance(roles_data, dict) else (roles_data or [])):
+                  base_roles_list.append(YAMLRoleDefinition(**r))
+              base_rules_list = []
+              for r in (rules_data.get('rules', []) if isinstance(rules_data, dict) else (rules_data or [])):
+                  base_rules_list.append(YAMLRuleDefinition(**r))
+              base_doc = YAMLPolicyDocument(roles=base_roles_list, rules=base_rules_list)
+
+          diff = policy_diff_engine.diff(base_doc, proposed)
+          summary = diff.to_dict()
+
+          print('## Policy Diff Summary')
+          print(f'Added:   {summary[\"summary\"][\"added\"]}')
+          print(f'Removed: {summary[\"summary\"][\"removed\"]}')
+          print(f'Changed: {summary[\"summary\"][\"changed\"]}')
+          print()
+
+          for entry in summary['entries']:
+              print(f'  [{entry[\"change_type\"]}] {entry[\"section\"]}/{entry[\"identifier\"]}')
+              if entry.get('changed_fields'):
+                  print(f'    Changed fields: {\", \".join(entry[\"changed_fields\"])}')
+          "

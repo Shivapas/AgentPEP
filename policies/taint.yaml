@@ -1,0 +1,22 @@
+taint:
+  max_hop_depth: 10
+  quarantine_on_injection: true
+  auto_propagate_cross_agent: true
+  sanitisation_gates:
+    - name: HTML Sanitiser
+      function_pattern: "sanitise_html_*"
+      downgrades_from: UNTRUSTED
+      downgrades_to: TRUSTED
+      requires_approval: false
+
+    - name: SQL Parameteriser
+      function_pattern: "parameterise_sql_*"
+      downgrades_from: UNTRUSTED
+      downgrades_to: TRUSTED
+      requires_approval: false
+
+    - name: Manual Review Gate
+      function_pattern: "manual_review_*"
+      downgrades_from: QUARANTINE
+      downgrades_to: UNTRUSTED
+      requires_approval: true
