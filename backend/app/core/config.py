@@ -114,6 +114,35 @@ class Settings(BaseSettings):
     evaluation_timeout_cached_s: float = 2.0
     evaluation_timeout_cold_s: float = 5.0
 
+    # Auth Provider Registry (Sprint 31 — APEP-243)
+    auth_provider_default_chain: list[str] = ["apikey"]
+    auth_provider_tenant_chains: str = ""  # JSON: {"tenant-id": ["oauth2", "apikey"]}
+    oauth2_enabled: bool = False
+    saml_enabled: bool = False
+
+    # OAuth2/OIDC (Sprint 31 — APEP-241)
+    oauth2_issuer_url: str = ""
+    oauth2_audience: str = ""
+    oauth2_role_claim_path: str = "realm_access.roles"
+    oauth2_jwks_refresh_interval_s: int = 3600
+    oauth2_allowed_algorithms: list[str] = ["RS256", "ES256"]
+
+    # SAML (Sprint 31 — APEP-242)
+    saml_idp_metadata_url: str = ""
+    saml_sp_entity_id: str = ""
+    saml_sp_acs_url: str = ""
+    saml_role_attribute: str = "Role"
+    saml_certificate_path: str = ""
+
+    # Redis Storage Backend (Sprint 31 — APEP-244)
+    redis_storage_enabled: bool = False
+    redis_storage_url: str = ""
+    redis_storage_key_prefix: str = "agentpep"
+    redis_storage_default_ttl_s: int = 3600
+
+    # Redis Rate Limiter (Sprint 31 — APEP-245)
+    redis_rate_limiter_enabled: bool = False
+
     model_config = {"env_prefix": "AGENTPEP_"}
 
 

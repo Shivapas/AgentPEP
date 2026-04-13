@@ -394,6 +394,34 @@ class PolicyEvaluator:
         ):
             agent_roles = await role_resolver.resolve_roles(request.agent_id)
 
+        # --- Data classification check (Sprint 31 — APEP-248) ---
+        with tracer.start_as_current_span(
+            "data_classification_check",
+            attributes={"agentpep.tool_name": request.tool_name},
+        ):
+            try:
+                from app.services.data_classification import data_classification_engine
+
+                dc_allowed, dc_reason = await data_classification_engine.enforce(
+                    agent_roles=agent_roles,
+                    tool_name=request.tool_name,
+                    agent_id=request.agent_id,
+                )
+                if not dc_allowed:
+                    elapsed_ms = int((time.monotonic() - start) * 1000)
+                    decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
+                    return PolicyDecisionResponse(
+                        request_id=request.request_id,
+                        decision=decision,
+                        reason=dc_reason,
+                        latency_ms=elapsed_ms,
+                    )
+            except Exception:
+                logger.warning(
+                    "Data classification check failed; proceeding without",
+                    exc_info=True,
+                )
+
         # Fetch enabled rules (cached with TTL)
         with tracer.start_as_current_span("fetch_rules"):
             rules = await rule_cache.get_rules()

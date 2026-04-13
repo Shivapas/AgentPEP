@@ -216,7 +216,25 @@ class RateLimiter:
         tool_name: str,
         rate_limit: RateLimit,
     ) -> RateLimitResult:
-        """Check rate limit using the algorithm configured on the rule."""
+        """Check rate limit using the algorithm configured on the rule.
+
+        Sprint 31 — APEP-245: Delegates to Redis-backed rate limiter when
+        ``redis_rate_limiter_enabled`` is True and Redis is available.
+        Falls back to MongoDB-based implementation otherwise.
+        """
+        # Sprint 31: Try Redis rate limiter first
+        if settings.redis_rate_limiter_enabled:
+            try:
+                from app.services.redis_rate_limiter import redis_rate_limiter
+
+                if redis_rate_limiter.available:
+                    return await redis_rate_limiter.check(agent_role, tool_name, rate_limit)
+            except Exception:
+                logger.warning(
+                    "Redis rate limiter failed — falling back to MongoDB",
+                    exc_info=True,
+                )
+
         if rate_limit.limiter_type == RateLimitType.SLIDING_WINDOW:
             return await self.check_sliding_window(agent_role, tool_name, rate_limit)
         elif rate_limit.limiter_type == RateLimitType.FIXED_WINDOW:
@@ -224,6 +242,24 @@ class RateLimiter:
         else:
             logger.warning("Unknown rate limit type: %s", rate_limit.limiter_type)
             return RateLimitResult(allowed=True)
+
+    async def check_global_rate_limit_with_redis(
+        self,
+        tenant_id: str,
+    ) -> RateLimitResult:
+        """Global rate limit with Redis fallback (Sprint 31 — APEP-245)."""
+        if settings.redis_rate_limiter_enabled:
+            try:
+                from app.services.redis_rate_limiter import redis_rate_limiter
+
+                if redis_rate_limiter.available:
+                    return await redis_rate_limiter.check_global_rate_limit(tenant_id)
+            except Exception:
+                logger.warning(
+                    "Redis global rate limit failed — falling back to MongoDB",
+                    exc_info=True,
+                )
+        return await self.check_global_rate_limit(tenant_id)
 
 
 # Module-level singleton

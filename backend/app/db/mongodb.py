@@ -64,6 +64,7 @@ MCP_PROXY_SESSIONS = "mcp_proxy_sessions"
 CONSOLE_USERS = "console_users"
 COMPLIANCE_REPORTS = "compliance_reports"
 REPORT_SCHEDULES = "report_schedules"
+DATA_CLASSIFICATION_RULES = "data_classification_rules"  # Sprint 31 — APEP-246
 AUDIT_HASH_CHAIN = "audit_hash_chain"
 
 
@@ -321,5 +322,16 @@ async def init_collections() -> None:
             IndexModel([("report_type", ASCENDING)]),
             IndexModel([("enabled", ASCENDING)]),
             IndexModel([("next_run_at", ASCENDING)]),
+        ]
+    )
+
+    # Data Classification Rules (Sprint 31 — APEP-246)
+    data_classification_rules = db[DATA_CLASSIFICATION_RULES]
+    await data_classification_rules.create_indexes(
+        [
+            IndexModel([("rule_id", ASCENDING)], unique=True),
+            IndexModel([("tool_pattern", ASCENDING)]),
+            IndexModel([("classification", ASCENDING)]),
+            IndexModel([("enabled", ASCENDING)]),
         ]
     )

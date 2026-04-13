@@ -29,7 +29,7 @@ from app.core.config import settings
 from app.core.observability import get_metrics_app, setup_tracing
 from app.core.structured_logging import configure_logging, get_logger
 from app.db.mongodb import close_client, init_collections
-from app.middleware.auth import APIKeyAuthMiddleware, MTLSMiddleware
+from app.middleware.auth import APIKeyAuthMiddleware, AuthRegistryMiddleware, MTLSMiddleware
 from app.middleware.security import (
     CSRFMiddleware,
     RateLimitMiddleware,
@@ -87,6 +87,69 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     await rule_cache.init_redis()
 
+    # Sprint 31 (APEP-244): Initialize Redis storage backend
+    if settings.redis_storage_enabled:
+        from app.backends.redis_storage import RedisStorageBackend
+
+        _redis_storage = RedisStorageBackend(
+            redis_url=settings.redis_storage_url or settings.redis_url,
+            key_prefix=settings.redis_storage_key_prefix,
+            default_ttl_s=settings.redis_storage_default_ttl_s,
+        )
+        await _redis_storage.initialize()
+        logger.info("redis_storage_initialized")
+
+    # Sprint 31 (APEP-245): Initialize Redis rate limiter
+    if settings.redis_rate_limiter_enabled:
+        from app.services.redis_rate_limiter import redis_rate_limiter
+
+        await redis_rate_limiter.initialize()
+        logger.info("redis_rate_limiter_initialized")
+
+    # Sprint 31 (APEP-243): Initialize auth provider registry
+    from app.backends.auth_registry import auth_registry
+    from app.backends.apikey_auth import APIKeyAuthProvider
+    from app.backends.mongodb_storage import MongoDBStorageBackend
+
+    _storage = MongoDBStorageBackend()
+    auth_registry.register("apikey", APIKeyAuthProvider(_storage))
+
+    if settings.mtls_enabled:
+        from app.backends.mtls_auth import MTLSAuthProvider
+
+        auth_registry.register("mtls", MTLSAuthProvider())
+
+    if settings.oauth2_enabled:
+        from app.backends.oauth2_auth import OAuth2OIDCAuthProvider
+
+        auth_registry.register(
+            "oauth2",
+            OAuth2OIDCAuthProvider(
+                issuer_url=settings.oauth2_issuer_url,
+                audience=settings.oauth2_audience,
+                role_claim_path=settings.oauth2_role_claim_path,
+                allowed_algorithms=settings.oauth2_allowed_algorithms,
+                jwks_refresh_interval_s=settings.oauth2_jwks_refresh_interval_s,
+            ),
+        )
+
+    if settings.saml_enabled:
+        from app.backends.saml_auth import SAMLAuthProvider
+
+        auth_registry.register(
+            "saml",
+            SAMLAuthProvider(
+                idp_metadata_url=settings.saml_idp_metadata_url,
+                sp_entity_id=settings.saml_sp_entity_id,
+                sp_acs_url=settings.saml_sp_acs_url,
+                role_attribute=settings.saml_role_attribute,
+                certificate_path=settings.saml_certificate_path,
+            ),
+        )
+
+    auth_registry.set_default_chain(settings.auth_provider_default_chain)
+    auth_registry.configure_tenant_chains(settings.auth_provider_tenant_chains)
+
     # Sprint 23 (APEP-184): Start async audit log writer
     from app.services.policy_evaluator import audit_log_writer
 
@@ -124,8 +187,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     audit_log_writer.stop()
     await audit_log_writer.flush_pending()
 
+    # Sprint 31: Close Redis rate limiter
+    if settings.redis_rate_limiter_enabled:
+        from app.services.redis_rate_limiter import redis_rate_limiter
+
+        await redis_rate_limiter.close()
+
     # Sprint 23: Close Redis
     await rule_cache.close_redis()
+
+    # Sprint 31: Reset auth registry
+    auth_registry.reset()
 
     await close_client()
     logger.info("app_shutdown")
@@ -148,6 +220,8 @@ app = FastAPI(
 # Auth middleware (innermost — runs after rate limit, headers, and CORS)
 app.add_middleware(MTLSMiddleware)
 app.add_middleware(APIKeyAuthMiddleware)
+# Sprint 31 (APEP-243): Auth registry middleware — tries pluggable providers
+app.add_middleware(AuthRegistryMiddleware)
 # APEP-193: CSRF protection (runs after auth so API-key exemption works)
 app.add_middleware(CSRFMiddleware)
 # CORS middleware (APEP-215 friction #6)

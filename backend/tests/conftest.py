@@ -140,3 +140,11 @@ def mock_mongodb(monkeypatch):
         execution_token_manager.reset()
     except ImportError:
         pass
+
+    # Clear Sprint 31 auth registry state
+    try:
+        from app.backends.auth_registry import auth_registry
+
+        auth_registry.reset()
+    except ImportError:
+        pass
