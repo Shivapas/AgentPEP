@@ -2,6 +2,7 @@
 
 Sprint 23 (APEP-180): Optimised hot path — avoid redundant serialisation,
 use pre-validated request objects, record latency with minimal overhead.
+Sprint 29 (APEP-232): Execution token generation for ALLOW decisions.
 """
 
 import time
@@ -16,7 +17,8 @@ from app.core.observability import (
     POLICY_EVALUATIONS,
     get_tracer,
 )
-from app.models.policy import PolicyDecisionResponse, ToolCallRequest
+from app.models.policy import Decision, PolicyDecisionResponse, ToolCallRequest
+from app.services.execution_token import execution_token_manager
 from app.services.policy_evaluator import policy_evaluator
 
 router = APIRouter(prefix="/v1", tags=["intercept"])
@@ -71,6 +73,15 @@ async def intercept(request: ToolCallRequest) -> PolicyDecisionResponse:
             agent_id=request.agent_id,
             tool_name=request.tool_name,
         ).observe(elapsed)
+
+        # APEP-232: Generate single-use execution token for ALLOW decisions
+        if response.decision == Decision.ALLOW:
+            response.execution_token = execution_token_manager.generate(
+                decision_id=str(response.request_id),
+                session_id=request.session_id,
+                agent_id=request.agent_id,
+                tool_name=request.tool_name,
+            )
 
         # Enrich span with decision outcome
         span.set_attribute("agentpep.decision", response.decision.value)

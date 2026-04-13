@@ -14,6 +14,7 @@ from typing import Any, Callable, TypeVar
 
 from agentpep.client import AgentPEPClient
 from agentpep.exceptions import PolicyDeniedError
+from agentpep.execution_token import execution_token_validator
 from agentpep.models import PolicyDecision
 from agentpep.offline import OfflineEvaluator
 from agentpep.tamper_detection import tamper_detector
@@ -88,6 +89,13 @@ def _wrap_async(
             )
         # APEP-190: Verify intercept was recorded before execution
         tamper_detector.verify_before_execution(tool_name, agent_id)
+        # APEP-232: Validate execution token before tool execution
+        if response.execution_token is not None:
+            execution_token_validator.validate_and_consume(
+                response.execution_token,
+                expected_tool_name=tool_name,
+                expected_agent_id=agent_id,
+            )
         return await fn(*args, **kwargs)
 
     return wrapper
@@ -116,6 +124,13 @@ def _wrap_sync(
             )
         # APEP-190: Verify intercept was recorded before execution
         tamper_detector.verify_before_execution(tool_name, agent_id)
+        # APEP-232: Validate execution token before tool execution
+        if response.execution_token is not None:
+            execution_token_validator.validate_and_consume(
+                response.execution_token,
+                expected_tool_name=tool_name,
+                expected_agent_id=agent_id,
+            )
         return fn(*args, **kwargs)
 
     return wrapper
