@@ -171,6 +171,11 @@ class Settings(BaseSettings):
     teams_enabled: bool = False
     teams_webhook_url: str = ""
 
+    # Sprint 33 — APEP-259/260/261/264: Feature flags
+    memory_access_gate_enabled: bool = False
+    context_authority_enabled: bool = False
+    defer_default_timeout_s: int = 60
+
     # Receipt Signing (Sprint 32 — APEP-256)
     receipt_signing_enabled: bool = False
     receipt_signing_method: str = "hmac-sha256"  # "ed25519" or "hmac-sha256"

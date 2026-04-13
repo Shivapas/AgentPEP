@@ -532,6 +532,34 @@ class PolicyEvaluator:
         except Exception:
             logger.warning("Risk scoring failed; proceeding without score", exc_info=True)
 
+        # Sprint 33 (APEP-265): Block untrusted context from privileged decisions
+        if settings.context_authority_enabled and decision == Decision.ALLOW:
+            try:
+                from app.services.context_authority import (
+                    ContextAuthority,
+                    context_authority_tracker,
+                )
+
+                counts = await context_authority_tracker.get_session_authorities(
+                    request.session_id
+                )
+                untrusted = counts.get(ContextAuthority.UNTRUSTED, 0)
+                total = sum(counts.values())
+                if untrusted > 0 and total > 0:
+                    untrusted_ratio = untrusted / total
+                    # If majority untrusted and tool is privileged → ESCALATE
+                    if untrusted_ratio > 0.5 and matched_rule.taint_check:
+                        decision = Decision.ESCALATE
+                        reason = (
+                            result.reason
+                            + " | Context authority: majority UNTRUSTED — escalated for privileged tool"
+                        )
+            except Exception:
+                logger.warning(
+                    "Context authority check failed; proceeding without",
+                    exc_info=True,
+                )
+
         # DRY_RUN mode: evaluate fully but never enforce
         if request.dry_run:
             decision = Decision.DRY_RUN

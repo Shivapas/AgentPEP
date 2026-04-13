@@ -66,6 +66,11 @@ COMPLIANCE_REPORTS = "compliance_reports"
 REPORT_SCHEDULES = "report_schedules"
 DATA_CLASSIFICATION_RULES = "data_classification_rules"  # Sprint 31 — APEP-246
 AUDIT_HASH_CHAIN = "audit_hash_chain"
+# Sprint 33 — APEP-261/262/263: Memory access gate
+MEMORY_ACCESS_POLICIES = "memory_access_policies"
+MEMORY_ENTRIES = "memory_entries"
+# Sprint 33 — APEP-264: Context authority tracking
+CONTEXT_ENTRIES = "context_entries"
 
 
 async def init_collections() -> None:

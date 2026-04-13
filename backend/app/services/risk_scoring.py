@@ -322,6 +322,43 @@ class DelegationDepthScorer:
 
 
 # ---------------------------------------------------------------------------
+# Sprint 33 — APEP-265: ContextAuthorityScorer
+# ---------------------------------------------------------------------------
+
+
+class ContextAuthorityScorer:
+    """Adjust risk based on context authority distribution (APEP-265).
+
+    Scoring:
+      - All AUTHORITATIVE → 0.0
+      - Mix with DERIVED (no UNTRUSTED) → 0.3 scaled by derived proportion
+      - Any UNTRUSTED present → 0.7
+      - Majority UNTRUSTED → 0.9
+      - No entries → 0.0
+    """
+
+    async def score(self, session_id: str) -> RiskFactor:
+        from app.services.context_authority import context_authority_tracker
+
+        authority_score = await context_authority_tracker.get_authority_score(session_id)
+
+        if authority_score >= 0.9:
+            detail = "Majority UNTRUSTED context"
+        elif authority_score >= 0.7:
+            detail = "UNTRUSTED context present"
+        elif authority_score > 0.0:
+            detail = f"DERIVED context present (score={authority_score:.4f})"
+        else:
+            detail = "All context AUTHORITATIVE or no context"
+
+        return RiskFactor(
+            factor_name="context_authority",
+            score=authority_score,
+            detail=detail,
+        )
+
+
+# ---------------------------------------------------------------------------
 # APEP-069: RiskAggregator
 # ---------------------------------------------------------------------------
 
@@ -383,6 +420,7 @@ class RiskAggregator:
             "taint": weights.taint,
             "session_accumulated": weights.session_accumulated,
             "delegation_depth": weights.delegation_depth,
+            "context_authority": weights.context_authority,
         }
 
         total_weight = sum(weight_map.values())
@@ -417,6 +455,7 @@ class RiskScoringEngine:
         self.taint_scorer = TaintScorer()
         self.session_accumulated_scorer = SessionAccumulatedRiskScorer()
         self.delegation_depth_scorer = DelegationDepthScorer()
+        self.context_authority_scorer = ContextAuthorityScorer()
         self.aggregator = RiskAggregator()
 
     async def compute(
@@ -445,6 +484,7 @@ class RiskScoringEngine:
 
         # Async scorers
         factors.append(await self.session_accumulated_scorer.score(session_id))
+        factors.append(await self.context_authority_scorer.score(session_id))
 
         score = self.aggregator.aggregate(factors, agent_roles)
         return score, factors

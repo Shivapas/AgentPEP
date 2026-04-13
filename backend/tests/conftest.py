@@ -164,3 +164,11 @@ def mock_mongodb(monkeypatch):
         rs_mod.receipt_signer = None
     except ImportError:
         pass
+
+    # Clear Sprint 33 risk engine context authority scorer cache
+    try:
+        from app.services.risk_scoring import risk_engine
+
+        risk_engine.aggregator._cached_config = None
+    except ImportError:
+        pass
