@@ -22,7 +22,7 @@
 | Version | Date | Author | Change Summary |
 |---|---|---|---|
 | 1.0 | Apr 2026 | Product Team | Initial PRD draft — architecture, features, sprint plan |
-| 1.1 | Apr 2026 | Product Team | **Roadmap v1** — AgentLock enhancement analysis and sprint plan (Sprints 29–36) |
+| 1.1 | Apr 2026 | Product Team | **Roadmap v1** — AgentZT enhancement analysis and sprint plan (Sprints 29–36) |
 
 ---
 
@@ -39,7 +39,7 @@
 9. [Security Model](#9-security-model)
 10. [Success Metrics](#10-success-metrics)
 11. [Sprint Plan](#11-sprint-plan-36-sprints--18-months)
-12. [AgentLock Enhancement Roadmap v1](#12-agentlock-enhancement-roadmap-v1)
+12. [AgentZT Enhancement Roadmap v1](#12-agentzt-enhancement-roadmap-v1)
 
 ---
 
@@ -527,14 +527,14 @@ Each sprint is 2 weeks. Story points use a Fibonacci scale (1–8). Total estima
 | 26 | Observability & Alerting | Phase 6: Hardening & Operations | 7 |
 | 27 | Beta Programme & Developer Experience | Phase 7: Beta & GA | 7 |
 | 28 | General Availability Release | Phase 7: Beta & GA | 7 |
-| 29 | AgentLock — Backend ABCs & Async Architecture | Phase 8: AgentLock Roadmap v1 | 8 |
-| 30 | AgentLock — YAML Policy Loading & Offline Evaluation | Phase 8: AgentLock Roadmap v1 | 8 |
-| 31 | AgentLock — Auth Providers & Redis Backend | Phase 8: AgentLock Roadmap v1 | 9 |
-| 32 | AgentLock — Structured Logging & Notification Channels | Phase 8: AgentLock Roadmap v1 | 8 |
-| 33 | AgentLock — Framework Integrations (OpenAI Agents, LangGraph) | Phase 8: AgentLock Roadmap v1 | 8 |
-| 34 | AgentLock — Testing Utilities, Simulation & Enhanced CLI | Phase 8: AgentLock Roadmap v1 | 9 |
-| 35 | AgentLock — Injection Library, Arg Validation & Risk Scoring | Phase 8: AgentLock Roadmap v1 | 9 |
-| 36 | AgentLock — Conflict Detection, Metrics, Tamper Detection & Multi-Tenancy | Phase 8: AgentLock Roadmap v1 | 8 |
+| 29 | AgentZT — Backend ABCs & Async Architecture | Phase 8: AgentZT Roadmap v1 | 8 |
+| 30 | AgentZT — YAML Policy Loading & Offline Evaluation | Phase 8: AgentZT Roadmap v1 | 8 |
+| 31 | AgentZT — Auth Providers & Redis Backend | Phase 8: AgentZT Roadmap v1 | 9 |
+| 32 | AgentZT — Structured Logging & Notification Channels | Phase 8: AgentZT Roadmap v1 | 8 |
+| 33 | AgentZT — Framework Integrations (OpenAI Agents, LangGraph) | Phase 8: AgentZT Roadmap v1 | 8 |
+| 34 | AgentZT — Testing Utilities, Simulation & Enhanced CLI | Phase 8: AgentZT Roadmap v1 | 9 |
+| 35 | AgentZT — Injection Library, Arg Validation & Risk Scoring | Phase 8: AgentZT Roadmap v1 | 9 |
+| 36 | AgentZT — Conflict Detection, Metrics, Tamper Detection & Multi-Tenancy | Phase 8: AgentZT Roadmap v1 | 8 |
 
 ---
 
@@ -986,20 +986,20 @@ Each sprint is 2 weeks. Story points use a Fibonacci scale (1–8). Total estima
 
 ---
 
-# 12. AgentLock Enhancement Roadmap v1
+# 12. AgentZT Enhancement Roadmap v1
 
 ## 12.1 Overview
 
-This section documents enhancements to AgentPEP inspired by analysis of [AgentLock](https://github.com/webpro255/agentlock) — an open-source authorization security framework for AI agent systems. AgentLock implements an infrastructure-level authorization layer between agents and their tools, using a three-layer enforcement architecture (Conversation → Authorization Gate → Tool Execution). While AgentPEP already provides a robust deterministic authorization engine, AgentLock introduces several architectural patterns and security mechanisms that would meaningfully strengthen AgentPEP's capabilities.
+This section documents enhancements to AgentPEP inspired by analysis of [AgentZT](https://github.com/webpro255/agentzt) — an open-source authorization security framework for AI agent systems. AgentZT implements an infrastructure-level authorization layer between agents and their tools, using a three-layer enforcement architecture (Conversation → Authorization Gate → Tool Execution). While AgentPEP already provides a robust deterministic authorization engine, AgentZT introduces several architectural patterns and security mechanisms that would meaningfully strengthen AgentPEP's capabilities.
 
 **Analysis Date:** April 2026
 **Scope:** 8 sprints (Sprints 29–36) · 67 stories · ~16 weeks
 
-## 12.2 Gap Analysis: AgentLock vs AgentPEP
+## 12.2 Gap Analysis: AgentZT vs AgentPEP
 
-The following table summarises capabilities present in AgentLock that are absent or under-developed in AgentPEP, along with their assessed enhancement priority.
+The following table summarises capabilities present in AgentZT that are absent or under-developed in AgentPEP, along with their assessed enhancement priority.
 
-| # | AgentLock Capability | AgentPEP Current State | Gap | Priority |
+| # | AgentZT Capability | AgentPEP Current State | Gap | Priority |
 |---|---|---|---|---|
 | 1 | **Pluggable backend ABCs** — Abstract base classes for storage, auth, and audit backends with plugin architecture | Hardcoded MongoDB + Kafka; no plugin abstraction | Major | P0 |
 | 2 | **YAML-first policy loading** — Declarative policy-as-code with GitOps workflow support | YAML import/export in UI only; no native YAML-first pipeline | Major | P0 |
@@ -1034,7 +1034,7 @@ The enhancements are organised into a plugin-based extensibility layer that pres
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Enhanced PolicyEvaluator                      │
 │                                                                 │
-│  Existing Stages              New Stages (AgentLock-inspired)   │
+│  Existing Stages              New Stages (AgentZT-inspired)   │
 │  ┌──────────────┐             ┌──────────────────────┐          │
 │  │ RBAC Engine  │             │ Trust Degradation     │          │
 │  │ Taint Track  │             │ Context Authority     │          │
@@ -1061,7 +1061,7 @@ The enhancements are organised into a plugin-based extensibility layer that pres
 
 ## 12.4 New Decision Types
 
-AgentLock introduces two decision types beyond AgentPEP's current `ALLOW / DENY / ESCALATE / DRY_RUN`:
+AgentZT introduces two decision types beyond AgentPEP's current `ALLOW / DENY / ESCALATE / DRY_RUN`:
 
 | Decision | Semantics | Use Case |
 |---|---|---|
@@ -1081,9 +1081,9 @@ The Intercept API response schema will be extended:
 }
 ```
 
-## 12.5 Detailed Sprint Plans — Phase 8: AgentLock Roadmap v1
+## 12.5 Detailed Sprint Plans — Phase 8: AgentZT Roadmap v1
 
-### Sprint 29 — AgentLock: Backend ABCs & Async Architecture
+### Sprint 29 — AgentZT: Backend ABCs & Async Architecture
 
 **Goal:** Introduce abstract base classes for storage, authentication, and audit backends; refactor existing MongoDB/Kafka backends as reference implementations of the new plugin interface; add execution token infrastructure.
 
@@ -1098,7 +1098,7 @@ The Intercept API response schema will be extended:
 | APEP-231 | Implement `ExecutionTokenManager`: generate single-use cryptographic tokens per ALLOW decision; validate and invalidate on use | 8 | Security |
 | APEP-232 | Integrate execution tokens into Intercept API response; SDK validates token before tool execution | 5 | SDK |
 
-### Sprint 30 — AgentLock: YAML Policy Loading & Offline Evaluation
+### Sprint 30 — AgentZT: YAML Policy Loading & Offline Evaluation
 
 **Goal:** Native YAML-first policy definition format with JSON Schema validation; GitOps workflow support; enhanced offline SDK evaluation with full policy stack.
 
@@ -1113,7 +1113,7 @@ The Intercept API response schema will be extended:
 | APEP-239 | Implement GitHub Action for policy-as-code: validate YAML, run simulation suite, diff against current on PR | 5 | DevOps |
 | APEP-240 | Write integration tests: YAML load → evaluate → diff → sync lifecycle | 3 | Testing |
 
-### Sprint 31 — AgentLock: Auth Providers & Redis Backend
+### Sprint 31 — AgentZT: Auth Providers & Redis Backend
 
 **Goal:** Pluggable authentication with OAuth2/OIDC and SAML providers; Redis as first-class session, taint, and rate-limit backend; data classification hierarchy with boundary enforcement.
 
@@ -1129,7 +1129,7 @@ The Intercept API response schema will be extended:
 | APEP-248 | Implement clearance-level checking: agent roles mapped to max data classification they can access | 3 | Backend |
 | APEP-249 | Write integration tests: OAuth2 login flow, Redis failover, data classification enforcement | 5 | Testing |
 
-### Sprint 32 — AgentLock: Structured Logging & Notification Channels
+### Sprint 32 — AgentZT: Structured Logging & Notification Channels
 
 **Goal:** Pluggable audit backends (CloudWatch, Datadog, Loki); configurable log verbosity; notification channel abstraction; cryptographically signed receipts with offline verification.
 
@@ -1145,7 +1145,7 @@ The Intercept API response schema will be extended:
 | APEP-257 | Implement `ReceiptVerifier`: offline verification of signed receipts without server access; CLI tool for batch verification | 5 | Security |
 | APEP-258 | Write integration tests: multi-backend audit routing, receipt sign/verify round-trip, notification delivery | 3 | Testing |
 
-### Sprint 33 — AgentLock: Framework Integrations (OpenAI Agents, LangGraph)
+### Sprint 33 — AgentZT: Framework Integrations (OpenAI Agents, LangGraph)
 
 **Goal:** Deep integration with OpenAI Agents SDK function hooks and LangGraph guardrail nodes; memory access control middleware; context authority tracking for enriched taint decisions.
 
@@ -1160,7 +1160,7 @@ The Intercept API response schema will be extended:
 | APEP-265 | Integrate context authority into policy evaluation: downweight derived sources in risk scoring; block untrusted sources from privileged decisions | 5 | Backend |
 | APEP-266 | Write integration tests: memory gate CRUD authorisation, context authority scoring, framework-specific DEFER/MODIFY handling | 3 | Testing |
 
-### Sprint 34 — AgentLock: Testing Utilities, Simulation & Enhanced CLI
+### Sprint 34 — AgentZT: Testing Utilities, Simulation & Enhanced CLI
 
 **Goal:** CLI-driven policy testing and simulation harness; red-team test generation; trust degradation simulation; policy migration utilities.
 
@@ -1176,7 +1176,7 @@ The Intercept API response schema will be extended:
 | APEP-274 | Implement `agentpep health` CLI: check server connectivity, policy sync status, backend health for all registered backends | 3 | SDK |
 | APEP-275 | Write CLI integration tests: end-to-end validate → simulate → redteam → verify workflow | 3 | Testing |
 
-### Sprint 35 — AgentLock: Injection Library, Arg Validation & Risk Scoring
+### Sprint 35 — AgentZT: Injection Library, Arg Validation & Risk Scoring
 
 **Goal:** Tool combination detection engine; velocity anomaly detection; echo detection; adaptive prompt hardening; PII redaction engine with MODIFY decision support.
 
@@ -1189,10 +1189,10 @@ The Intercept API response schema will be extended:
 | APEP-280 | Implement `AdaptiveHardeningEngine`: accumulate risk signals per session and generate targeted defensive instructions for agent system prompts | 8 | Security |
 | APEP-281 | Implement `PIIRedactionEngine`: detect and redact PII (names, emails, SSNs, phone numbers, addresses) in tool call outputs | 5 | Backend |
 | APEP-282 | Integrate PII redaction with MODIFY decision: return redacted arguments when PII detected in outputs to agents with insufficient clearance | 5 | Backend |
-| APEP-283 | Enhance injection signature library: add social engineering patterns, encoding attack patterns, and reconnaissance signatures from AgentLock findings | 3 | Security |
+| APEP-283 | Enhance injection signature library: add social engineering patterns, encoding attack patterns, and reconnaissance signatures from AgentZT findings | 3 | Security |
 | APEP-284 | Write adversarial tests: tool combo evasion, velocity gaming, echo bypass, hardening effectiveness validation | 5 | Testing |
 
-### Sprint 36 — AgentLock: Conflict Detection, Metrics, Tamper Detection & Multi-Tenancy
+### Sprint 36 — AgentZT: Conflict Detection, Metrics, Tamper Detection & Multi-Tenancy
 
 **Goal:** Hash-chained context tamper detection; DEFER and STEP_UP decision types; policy conflict resolution engine; enhanced multi-tenancy isolation; comprehensive enhancement metrics.
 
@@ -1210,7 +1210,7 @@ The Intercept API response schema will be extended:
 
 ## 12.6 Enhancement Summary
 
-| Dimension | Before (v1.0 GA) | After (v1.1 with AgentLock Enhancements) |
+| Dimension | Before (v1.0 GA) | After (v1.1 with AgentZT Enhancements) |
 |---|---|---|
 | **Decision types** | ALLOW / DENY / ESCALATE / DRY_RUN | + DEFER / MODIFY / STEP_UP |
 | **Backend extensibility** | Hardcoded MongoDB + Kafka | Plugin ABCs: StorageBackend, AuthProvider, AuditBackend, NotificationChannel |
@@ -1223,7 +1223,7 @@ The Intercept API response schema will be extended:
 | **Agent memory** | No memory governance | Memory access control gate: write/read authorisation with retention enforcement |
 | **Audit backends** | MongoDB + Kafka | + CloudWatch, Datadog, Loki, configurable verbosity |
 | **Developer experience** | SDK + DRY_RUN API | + CLI tool (validate, diff, simulate, redteam, verify), offline evaluation |
-| **Total stories** | ~224 (Sprints 1–28) | ~291 (+ 67 AgentLock enhancement stories) |
+| **Total stories** | ~224 (Sprints 1–28) | ~291 (+ 67 AgentZT enhancement stories) |
 
 ## 12.7 Risk Assessment
 
