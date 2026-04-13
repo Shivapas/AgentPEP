@@ -148,3 +148,19 @@ def mock_mongodb(monkeypatch):
         auth_registry.reset()
     except ImportError:
         pass
+
+    # Clear Sprint 32 notification registry state
+    try:
+        from app.backends.notification_registry import notification_registry
+
+        notification_registry.reset()
+    except ImportError:
+        pass
+
+    # Clear Sprint 32 receipt signer state
+    try:
+        import app.services.receipt_signer as rs_mod
+
+        rs_mod.receipt_signer = None
+    except ImportError:
+        pass

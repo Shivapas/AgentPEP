@@ -83,6 +83,25 @@ async def intercept(request: ToolCallRequest) -> PolicyDecisionResponse:
                 tool_name=request.tool_name,
             )
 
+        # Sprint 32 (APEP-256): Sign receipt if enabled
+        from app.core.config import settings
+        if settings.receipt_signing_enabled:
+            from app.services.receipt_signer import receipt_signer
+
+            if receipt_signer is not None:
+                receipt_record = {
+                    "decision_id": str(response.request_id),
+                    "decision": response.decision.value,
+                    "session_id": request.session_id,
+                    "agent_id": request.agent_id,
+                    "tool_name": request.tool_name,
+                    "risk_score": response.risk_score,
+                    "matched_rule_id": str(response.matched_rule_id) if response.matched_rule_id else None,
+                    "taint_flags": response.taint_flags,
+                    "latency_ms": response.latency_ms,
+                }
+                response.receipt = receipt_signer.sign(receipt_record)
+
         # Enrich span with decision outcome
         span.set_attribute("agentpep.decision", response.decision.value)
         span.set_attribute("agentpep.latency_ms", response.latency_ms)

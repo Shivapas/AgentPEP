@@ -29,6 +29,12 @@ dependencies = [
 kafka = [
     "aiokafka>=0.11.0",
 ]
+cloudwatch = [
+    "boto3>=1.35.0",
+]
+nacl = [
+    "pynacl>=1.5.0",
+]
 dev = [
     "pytest>=8.3.0",
     "pytest-asyncio>=0.24.0",
