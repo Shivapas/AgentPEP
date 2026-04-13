@@ -1,0 +1,21 @@
+risk:
+  default_weights:
+    operation_type: 0.25
+    data_sensitivity: 0.25
+    taint: 0.20
+    session_accumulated: 0.10
+    delegation_depth: 0.20
+  role_overrides:
+    admin:
+      operation_type: 0.15
+      data_sensitivity: 0.15
+      taint: 0.30
+      session_accumulated: 0.15
+      delegation_depth: 0.25
+    reader:
+      operation_type: 0.30
+      data_sensitivity: 0.30
+      taint: 0.15
+      session_accumulated: 0.10
+      delegation_depth: 0.15
+  escalation_threshold: 0.7

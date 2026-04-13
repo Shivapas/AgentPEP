@@ -13,6 +13,8 @@ from agentpep.models import (
     TaintSource,
     ToolCallRequest,
 )
+from agentpep.offline import OfflineEvaluator, OfflineRule
+from agentpep.policy_bundle import PolicyBundle
 from agentpep.tamper_detection import TamperDetector, tamper_detector
 
 __all__ = [
@@ -20,6 +22,9 @@ __all__ = [
     "enforce",
     "ExecutionTokenValidator",
     "execution_token_validator",
+    "OfflineEvaluator",
+    "OfflineRule",
+    "PolicyBundle",
     "PolicyDecision",
     "PolicyDecisionResponse",
     "TaintLevel",
