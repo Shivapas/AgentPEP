@@ -1,0 +1,50 @@
+version: "1.0"
+metadata:
+  description: "Example RBAC role definitions for AgentPEP"
+  author: "platform-team"
+
+roles:
+  - role_id: admin
+    name: Administrator
+    allowed_tools:
+      - "*"
+    denied_tools: []
+    max_risk_threshold: 0.9
+    enabled: true
+
+  - role_id: operator
+    name: Operator
+    parent_roles:
+      - reader
+    allowed_tools:
+      - "read_*"
+      - "write_*"
+      - "list_*"
+    denied_tools:
+      - "delete_*"
+      - "drop_*"
+    max_risk_threshold: 0.7
+    enabled: true
+
+  - role_id: reader
+    name: Read-Only Agent
+    allowed_tools:
+      - "read_*"
+      - "list_*"
+      - "get_*"
+      - "search_*"
+    denied_tools:
+      - "write_*"
+      - "delete_*"
+      - "execute_*"
+    max_risk_threshold: 0.5
+    enabled: true
+
+  - role_id: restricted
+    name: Restricted Agent
+    allowed_tools:
+      - "read_public_*"
+    denied_tools:
+      - "*"
+    max_risk_threshold: 0.3
+    enabled: true

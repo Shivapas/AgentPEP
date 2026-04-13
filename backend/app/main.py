@@ -23,6 +23,7 @@ from app.api.v1.health import router as health_router
 from app.api.v1.intercept import router as intercept_router
 from app.api.v1.mcp import router as mcp_router
 from app.api.v1.policy import router as policy_router
+from app.api.v1.policy_sync import router as policy_sync_router
 from app.api.v1.simulate import router as simulate_router
 from app.api.v1.taint import router as taint_router
 from app.core.config import settings
@@ -177,6 +178,7 @@ app.include_router(health_router)
 app.include_router(intercept_router)
 app.include_router(mcp_router)
 app.include_router(policy_router)
+app.include_router(policy_sync_router)
 app.include_router(simulate_router)
 app.include_router(taint_router)
 

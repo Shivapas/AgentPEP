@@ -1,0 +1,28 @@
+version: "1.0"
+metadata:
+  description: "Risk scoring model configuration"
+  author: "platform-team"
+
+risk_model:
+  model_id: default
+  default_weights:
+    operation_type: 0.25
+    data_sensitivity: 0.25
+    taint: 0.20
+    session_accumulated: 0.10
+    delegation_depth: 0.20
+  role_overrides:
+    admin:
+      operation_type: 0.15
+      data_sensitivity: 0.15
+      taint: 0.30
+      session_accumulated: 0.10
+      delegation_depth: 0.30
+    restricted:
+      operation_type: 0.30
+      data_sensitivity: 0.30
+      taint: 0.20
+      session_accumulated: 0.10
+      delegation_depth: 0.10
+  escalation_threshold: 0.7
+  enabled: true

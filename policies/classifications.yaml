@@ -1,0 +1,55 @@
+version: "1.0"
+metadata:
+  description: "Data classification levels and tool-to-classification mappings"
+  author: "compliance-team"
+
+levels:
+  - name: PUBLIC
+    rank: 0
+    description: "Publicly available data with no access restrictions"
+
+  - name: INTERNAL
+    rank: 1
+    description: "Internal data, not for external distribution"
+
+  - name: CONFIDENTIAL
+    rank: 2
+    description: "Sensitive business data requiring access controls"
+
+  - name: PII
+    rank: 3
+    description: "Personally identifiable information subject to privacy regulations"
+
+  - name: PHI
+    rank: 4
+    description: "Protected health information subject to HIPAA"
+
+  - name: FINANCIAL
+    rank: 5
+    description: "Financial data subject to regulatory controls"
+
+tool_classifications:
+  - tool_pattern: "read_public_*"
+    classification: PUBLIC
+    description: "Public data read operations"
+
+  - tool_pattern: "read_internal_*"
+    classification: INTERNAL
+
+  - tool_pattern: "read_user_*"
+    classification: PII
+    description: "User data access"
+
+  - tool_pattern: "read_health_*"
+    classification: PHI
+    description: "Health record access"
+
+  - tool_pattern: "read_financial_*"
+    classification: FINANCIAL
+    description: "Financial data access"
+
+  - tool_pattern: "write_user_*"
+    classification: PII
+
+  - tool_pattern: "delete_user_*"
+    classification: PII

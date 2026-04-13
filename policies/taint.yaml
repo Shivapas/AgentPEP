@@ -1,0 +1,51 @@
+version: "1.0"
+metadata:
+  description: "Taint policies — sanitisation gates and injection signatures"
+  author: "security-team"
+
+sanitisation_gates:
+  - name: html-sanitiser
+    function_pattern: "sanitise_html*"
+    downgrades_from: UNTRUSTED
+    downgrades_to: TRUSTED
+    requires_approval: false
+    enabled: true
+
+  - name: sql-sanitiser
+    function_pattern: "sanitise_sql*"
+    downgrades_from: UNTRUSTED
+    downgrades_to: TRUSTED
+    requires_approval: false
+    enabled: true
+
+  - name: quarantine-review
+    function_pattern: "manual_review*"
+    downgrades_from: QUARANTINE
+    downgrades_to: UNTRUSTED
+    requires_approval: true
+    enabled: true
+
+injection_signatures:
+  - signature_id: INJ-001
+    category: prompt_override
+    pattern: "(?i)ignore\\s+all\\s+previous\\s+instructions"
+    severity: CRITICAL
+    description: "Attempts to override all prior instructions"
+
+  - signature_id: INJ-002
+    category: role_hijack
+    pattern: "(?i)you\\s+are\\s+now\\s+(a|an)\\s+"
+    severity: HIGH
+    description: "Attempts to assign a new persona to the agent"
+
+  - signature_id: INJ-003
+    category: system_escape
+    pattern: "(?i)system\\s*:\\s*"
+    severity: HIGH
+    description: "Attempts to inject system-level messages"
+
+  - signature_id: INJ-004
+    category: jailbreak
+    pattern: "(?i)(jailbreak|DAN\\s+mode)"
+    severity: CRITICAL
+    description: "Known jailbreak technique references"

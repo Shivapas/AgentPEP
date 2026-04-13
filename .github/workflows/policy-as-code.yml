@@ -1,0 +1,188 @@
+name: Policy-as-Code Validation
+
+on:
+  pull_request:
+    paths:
+      - "policies/**"
+      - "policy.yaml"
+      - "policy.yml"
+
+jobs:
+  validate-policy:
+    name: Validate YAML Policies
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install backend dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Validate policy YAML files
+        run: |
+          python -c "
+          import sys
+          from pathlib import Path
+          from app.services.yaml_policy_loader import YAMLPolicyLoader
+
+          loader = YAMLPolicyLoader()
+          policy_dir = Path('../policies')
+          errors_found = False
+
+          if policy_dir.is_dir():
+              results = loader.validate_directory(policy_dir)
+              for fname, errs in results.items():
+                  if errs:
+                      errors_found = True
+                      print(f'::error file=policies/{fname}::{len(errs)} validation error(s)')
+                      for e in errs:
+                          print(f'  - {e}')
+                  else:
+                      print(f'OK: policies/{fname}')
+          else:
+              print('No policies/ directory found — skipping directory validation')
+
+          # Also check single-file bundles
+          for name in ('policy.yaml', 'policy.yml'):
+              p = Path('..') / name
+              if p.exists():
+                  errs = loader.validate_file(p)
+                  if errs:
+                      errors_found = True
+                      print(f'::error file={name}::{len(errs)} validation error(s)')
+                      for e in errs:
+                          print(f'  - {e}')
+                  else:
+                      print(f'OK: {name}')
+
+          if errors_found:
+              sys.exit(1)
+          print('All policy files are valid.')
+          "
+
+  simulate-policy:
+    name: Simulate Policy Changes
+    runs-on: ubuntu-latest
+    needs: validate-policy
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install backend dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run policy simulation suite
+        run: |
+          python -c "
+          import json
+          from pathlib import Path
+          from app.services.yaml_policy_loader import YAMLPolicyLoader
+          from app.services.policy_diff import PolicyDiffEngine
+
+          loader = YAMLPolicyLoader()
+          differ = PolicyDiffEngine()
+
+          policy_dir = Path('../policies')
+          if not policy_dir.is_dir():
+              print('No policies/ directory — skipping simulation')
+              exit(0)
+
+          bundle = loader.load_directory(policy_dir)
+          print(f'Loaded: {len(bundle.roles)} roles, {len(bundle.rules)} rules')
+          print(f'Risk model: {\"configured\" if bundle.risk_model else \"default\"}')
+          print(f'Sanitisation gates: {len(bundle.sanitisation_gates)}')
+          print(f'Injection signatures: {len(bundle.injection_signatures)}')
+          print(f'Classification levels: {len(bundle.classification_levels)}')
+          print(f'Tool classifications: {len(bundle.tool_classifications)}')
+          print('Policy simulation passed.')
+          "
+
+  diff-policy:
+    name: Diff Against Current
+    runs-on: ubuntu-latest
+    needs: validate-policy
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install backend dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Compute policy diff
+        run: |
+          python -c "
+          import json
+          import subprocess
+          from pathlib import Path
+          from app.services.yaml_policy_loader import YAMLPolicyLoader, PolicyBundle
+          from app.services.policy_diff import PolicyDiffEngine
+
+          loader = YAMLPolicyLoader()
+          differ = PolicyDiffEngine()
+
+          policy_dir = Path('../policies')
+          if not policy_dir.is_dir():
+              print('No policies/ directory — skipping diff')
+              exit(0)
+
+          # Load current (PR) policies
+          new_bundle = loader.load_directory(policy_dir)
+
+          # Try to load base branch policies
+          old_bundle = PolicyBundle()
+          try:
+              result = subprocess.run(
+                  ['git', 'show', 'origin/main:policies/roles.yaml'],
+                  capture_output=True, text=True, cwd='..'
+              )
+              if result.returncode == 0:
+                  import yaml
+                  old_roles_data = yaml.safe_load(result.stdout)
+                  if old_roles_data and 'roles' in old_roles_data:
+                      from app.services.yaml_policy_loader import _hydrate_roles
+                      old_bundle.roles = _hydrate_roles(old_roles_data['roles'])
+
+              result = subprocess.run(
+                  ['git', 'show', 'origin/main:policies/rules.yaml'],
+                  capture_output=True, text=True, cwd='..'
+              )
+              if result.returncode == 0:
+                  old_rules_data = yaml.safe_load(result.stdout)
+                  if old_rules_data and 'rules' in old_rules_data:
+                      from app.services.yaml_policy_loader import _hydrate_rules
+                      old_bundle.rules = _hydrate_rules(old_rules_data['rules'])
+          except Exception as e:
+              print(f'Could not load base branch policies: {e}')
+              print('Showing full policy as new additions.')
+
+          diff = differ.diff(old_bundle, new_bundle)
+          print('## Policy Diff')
+          print(diff.summary())
+          print()
+          print(json.dumps(diff.to_dict(), indent=2, default=str))
+          "

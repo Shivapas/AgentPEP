@@ -1,0 +1,57 @@
+version: "1.0"
+metadata:
+  description: "Example authorization rules for AgentPEP"
+  author: "platform-team"
+
+rules:
+  - name: deny-dangerous-tools
+    agent_role: ["*"]
+    tool_pattern: "exec_command"
+    action: DENY
+    priority: 1
+    enabled: true
+
+  - name: escalate-delete-operations
+    agent_role: ["operator", "reader"]
+    tool_pattern: "delete_*"
+    action: ESCALATE
+    taint_check: true
+    risk_threshold: 0.5
+    priority: 10
+    enabled: true
+
+  - name: allow-read-operations
+    agent_role: ["reader", "operator", "admin"]
+    tool_pattern: "read_*"
+    action: ALLOW
+    risk_threshold: 0.8
+    priority: 50
+    enabled: true
+
+  - name: allow-list-operations
+    agent_role: ["reader", "operator", "admin"]
+    tool_pattern: "list_*"
+    action: ALLOW
+    priority: 50
+    enabled: true
+
+  - name: allow-write-for-operators
+    agent_role: ["operator", "admin"]
+    tool_pattern: "write_*"
+    action: ALLOW
+    taint_check: true
+    risk_threshold: 0.6
+    rate_limit:
+      count: 100
+      window_s: 3600
+      limiter_type: SLIDING_WINDOW
+    priority: 60
+    enabled: true
+
+  - name: admin-wildcard
+    agent_role: ["admin"]
+    tool_pattern: "*"
+    action: ALLOW
+    risk_threshold: 0.9
+    priority: 999
+    enabled: true
