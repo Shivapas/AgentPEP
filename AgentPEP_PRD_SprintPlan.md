@@ -12,8 +12,8 @@
 | **Status** | DRAFT — For Internal Review |
 | **Classification** | Confidential |
 | **Stack** | Python · FastAPI · React · MongoDB |
-| **Sprint Count** | 28 Sprints · ~14 Months |
-| **Total Stories** | ~224 User Stories |
+| **Sprint Count** | 36 Sprints · ~18 Months |
+| **Total Stories** | ~290 User Stories |
 
 ---
 
@@ -22,6 +22,7 @@
 | Version | Date | Author | Change Summary |
 |---|---|---|---|
 | 1.0 | Apr 2026 | Product Team | Initial PRD draft — architecture, features, sprint plan |
+| 1.1 | Apr 2026 | Product Team | **Roadmap v1** — AgentLock enhancement analysis and sprint plan (Sprints 29–36) |
 
 ---
 
@@ -37,7 +38,8 @@
 8. [Non-Functional Requirements](#8-non-functional-requirements)
 9. [Security Model](#9-security-model)
 10. [Success Metrics](#10-success-metrics)
-11. [Sprint Plan](#11-sprint-plan-28-sprints--14-months)
+11. [Sprint Plan](#11-sprint-plan-36-sprints--18-months)
+12. [AgentLock Enhancement Roadmap v1](#12-agentlock-enhancement-roadmap-v1)
 
 ---
 
@@ -489,9 +491,9 @@ Two configurable modes:
 
 ---
 
-# 11. Sprint Plan — 28 Sprints · ~14 Months
+# 11. Sprint Plan — 36 Sprints · ~18 Months
 
-Each sprint is 2 weeks. Story points use a Fibonacci scale (1–8). Total estimated stories: ~224.
+Each sprint is 2 weeks. Story points use a Fibonacci scale (1–8). Total estimated stories: ~290.
 
 ## Sprint Summary
 
@@ -525,6 +527,14 @@ Each sprint is 2 weeks. Story points use a Fibonacci scale (1–8). Total estima
 | 26 | Observability & Alerting | Phase 6: Hardening & Operations | 7 |
 | 27 | Beta Programme & Developer Experience | Phase 7: Beta & GA | 7 |
 | 28 | General Availability Release | Phase 7: Beta & GA | 7 |
+| 29 | AgentLock — Backend ABCs & Async Architecture | Phase 8: AgentLock Roadmap v1 | 8 |
+| 30 | AgentLock — YAML Policy Loading & Offline Evaluation | Phase 8: AgentLock Roadmap v1 | 8 |
+| 31 | AgentLock — Auth Providers & Redis Backend | Phase 8: AgentLock Roadmap v1 | 9 |
+| 32 | AgentLock — Structured Logging & Notification Channels | Phase 8: AgentLock Roadmap v1 | 8 |
+| 33 | AgentLock — Framework Integrations (OpenAI Agents, LangGraph) | Phase 8: AgentLock Roadmap v1 | 8 |
+| 34 | AgentLock — Testing Utilities, Simulation & Enhanced CLI | Phase 8: AgentLock Roadmap v1 | 9 |
+| 35 | AgentLock — Injection Library, Arg Validation & Risk Scoring | Phase 8: AgentLock Roadmap v1 | 9 |
+| 36 | AgentLock — Conflict Detection, Metrics, Tamper Detection & Multi-Tenancy | Phase 8: AgentLock Roadmap v1 | 8 |
 
 ---
 
