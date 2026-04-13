@@ -22,10 +22,10 @@
 | Version | Date | Author | Change Summary |
 |---|---|---|---|
 | 1.0 | Apr 2026 | Product Team | Initial PRD draft — architecture, features, sprint plan |
-| 1.1 | Apr 2026 | Product Team | **Roadmap v1** — AgentLock enhancement analysis and sprint plan (Sprints 29–36) |
-| 1.2 | Apr 2026 | Product Team | **Roadmap v2** — AgentMint-inspired enhancement analysis and sprint plan (Sprints 37–43) |
-| 1.3 | Apr 2026 | Product Team | **Roadmap v3** — TrustFabric Network: PipeLock capabilities natively in AgentPEP stack (Sprints 44–51) |
-| 1.4 | Apr 2026 | Product Team | **Roadmap v4** — CloneGuard-inspired: ML-based injection detection, pattern library, pre-session scanner (Sprints 52–56) |
+| 1.1 | Apr 2026 | Product Team | **Roadmap v1** — ToolTrust enhancement analysis and sprint plan (Sprints 29–36) |
+| 1.2 | Apr 2026 | Product Team | **Roadmap v2** — ToolTrust-inspired enhancement analysis and sprint plan (Sprints 37–43) |
+| 1.3 | Apr 2026 | Product Team | **Roadmap v3** — TrustFabric Network: ToolTrust capabilities natively in AgentPEP stack (Sprints 44–51) |
+| 1.4 | Apr 2026 | Product Team | **Roadmap v4** — ToolTrust-inspired: ML-based injection detection, pattern library, pre-session scanner (Sprints 52–56) |
 
 ---
 
@@ -42,10 +42,10 @@
 9. [Security Model](#9-security-model)
 10. [Success Metrics](#10-success-metrics)
 11. [Sprint Plan](#11-sprint-plan-36-sprints--18-months)
-12. [AgentLock Enhancement Roadmap v1](#12-agentlock-enhancement-roadmap-v1)
-13. [AgentMint Enhancement Roadmap v2](#13-agentmint-enhancement-roadmap-v2)
-14. [TrustFabric Network: PipeLock-Native Roadmap v3](#14-trustfabric-network-pipelock-native-roadmap-v3)
-15. [CloneGuard-Inspired Roadmap v4: ML Injection Detection & Content Ingestion Security](#15-cloneguard-inspired-roadmap-v4-ml-injection-detection--content-ingestion-security)
+12. [ToolTrust Enhancement Roadmap v1](#12-ToolTrust-enhancement-roadmap-v1)
+13. [ToolTrust Enhancement Roadmap v2](#13-ToolTrust-enhancement-roadmap-v2)
+14. [TrustFabric Network: ToolTrust-Native Roadmap v3](#14-trustfabric-network-ToolTrust-native-roadmap-v3)
+15. [ToolTrust-Inspired Roadmap v4: ML Injection Detection & Content Ingestion Security](#15-ToolTrust-inspired-roadmap-v4-ml-injection-detection--content-ingestion-security)
 
 ---
 
@@ -533,14 +533,14 @@ Each sprint is 2 weeks. Story points use a Fibonacci scale (1–8). Total estima
 | 26 | Observability & Alerting | Phase 6: Hardening & Operations | 7 |
 | 27 | Beta Programme & Developer Experience | Phase 7: Beta & GA | 7 |
 | 28 | General Availability Release | Phase 7: Beta & GA | 7 |
-| 29 | AgentLock — Backend ABCs & Async Architecture | Phase 8: AgentLock Roadmap v1 | 8 |
-| 30 | AgentLock — YAML Policy Loading & Offline Evaluation | Phase 8: AgentLock Roadmap v1 | 8 |
-| 31 | AgentLock — Auth Providers & Redis Backend | Phase 8: AgentLock Roadmap v1 | 9 |
-| 32 | AgentLock — Structured Logging & Notification Channels | Phase 8: AgentLock Roadmap v1 | 8 |
-| 33 | AgentLock — Framework Integrations (OpenAI Agents, LangGraph) | Phase 8: AgentLock Roadmap v1 | 8 |
-| 34 | AgentLock — Testing Utilities, Simulation & Enhanced CLI | Phase 8: AgentLock Roadmap v1 | 9 |
-| 35 | AgentLock — Injection Library, Arg Validation & Risk Scoring | Phase 8: AgentLock Roadmap v1 | 9 |
-| 36 | AgentLock — Conflict Detection, Metrics, Tamper Detection & Multi-Tenancy | Phase 8: AgentLock Roadmap v1 | 8 |
+| 29 | ToolTrust — Backend ABCs & Async Architecture | Phase 8: ToolTrust Roadmap v1 | 8 |
+| 30 | ToolTrust — YAML Policy Loading & Offline Evaluation | Phase 8: ToolTrust Roadmap v1 | 8 |
+| 31 | ToolTrust — Auth Providers & Redis Backend | Phase 8: ToolTrust Roadmap v1 | 9 |
+| 32 | ToolTrust — Structured Logging & Notification Channels | Phase 8: ToolTrust Roadmap v1 | 8 |
+| 33 | ToolTrust — Framework Integrations (OpenAI Agents, LangGraph) | Phase 8: ToolTrust Roadmap v1 | 8 |
+| 34 | ToolTrust — Testing Utilities, Simulation & Enhanced CLI | Phase 8: ToolTrust Roadmap v1 | 9 |
+| 35 | ToolTrust — Injection Library, Arg Validation & Risk Scoring | Phase 8: ToolTrust Roadmap v1 | 9 |
+| 36 | ToolTrust — Conflict Detection, Metrics, Tamper Detection & Multi-Tenancy | Phase 8: ToolTrust Roadmap v1 | 8 |
 
 ---
 
@@ -992,20 +992,20 @@ Each sprint is 2 weeks. Story points use a Fibonacci scale (1–8). Total estima
 
 ---
 
-# 12. AgentLock Enhancement Roadmap v1
+# 12. ToolTrust Enhancement Roadmap v1
 
 ## 12.1 Overview
 
-This section documents enhancements to AgentPEP inspired by analysis of [AgentLock](https://github.com/webpro255/agentlock) — an open-source authorization security framework for AI agent systems. AgentLock implements an infrastructure-level authorization layer between agents and their tools, using a three-layer enforcement architecture (Conversation → Authorization Gate → Tool Execution). While AgentPEP already provides a robust deterministic authorization engine, AgentLock introduces several architectural patterns and security mechanisms that would meaningfully strengthen AgentPEP's capabilities.
+This section documents enhancements to AgentPEP inspired by analysis of [ToolTrust](https://github.com/webpro255/ToolTrust) — an open-source authorization security framework for AI agent systems. ToolTrust implements an infrastructure-level authorization layer between agents and their tools, using a three-layer enforcement architecture (Conversation → Authorization Gate → Tool Execution). While AgentPEP already provides a robust deterministic authorization engine, ToolTrust introduces several architectural patterns and security mechanisms that would meaningfully strengthen AgentPEP's capabilities.
 
 **Analysis Date:** April 2026
 **Scope:** 8 sprints (Sprints 29–36) · 67 stories · ~16 weeks
 
-## 12.2 Gap Analysis: AgentLock vs AgentPEP
+## 12.2 Gap Analysis: ToolTrust vs AgentPEP
 
-The following table summarises capabilities present in AgentLock that are absent or under-developed in AgentPEP, along with their assessed enhancement priority.
+The following table summarises capabilities present in ToolTrust that are absent or under-developed in AgentPEP, along with their assessed enhancement priority.
 
-| # | AgentLock Capability | AgentPEP Current State | Gap | Priority |
+| # | ToolTrust Capability | AgentPEP Current State | Gap | Priority |
 |---|---|---|---|---|
 | 1 | **Pluggable backend ABCs** — Abstract base classes for storage, auth, and audit backends with plugin architecture | Hardcoded MongoDB + Kafka; no plugin abstraction | Major | P0 |
 | 2 | **YAML-first policy loading** — Declarative policy-as-code with GitOps workflow support | YAML import/export in UI only; no native YAML-first pipeline | Major | P0 |
@@ -1040,7 +1040,7 @@ The enhancements are organised into a plugin-based extensibility layer that pres
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Enhanced PolicyEvaluator                      │
 │                                                                 │
-│  Existing Stages              New Stages (AgentLock-inspired)   │
+│  Existing Stages              New Stages (ToolTrust-inspired)   │
 │  ┌──────────────┐             ┌──────────────────────┐          │
 │  │ RBAC Engine  │             │ Trust Degradation     │          │
 │  │ Taint Track  │             │ Context Authority     │          │
@@ -1067,7 +1067,7 @@ The enhancements are organised into a plugin-based extensibility layer that pres
 
 ## 12.4 New Decision Types
 
-AgentLock introduces two decision types beyond AgentPEP's current `ALLOW / DENY / ESCALATE / DRY_RUN`:
+ToolTrust introduces two decision types beyond AgentPEP's current `ALLOW / DENY / ESCALATE / DRY_RUN`:
 
 | Decision | Semantics | Use Case |
 |---|---|---|
@@ -1087,9 +1087,9 @@ The Intercept API response schema will be extended:
 }
 ```
 
-## 12.5 Detailed Sprint Plans — Phase 8: AgentLock Roadmap v1
+## 12.5 Detailed Sprint Plans — Phase 8: ToolTrust Roadmap v1
 
-### Sprint 29 — AgentLock: Backend ABCs & Async Architecture
+### Sprint 29 — ToolTrust: Backend ABCs & Async Architecture
 
 **Goal:** Introduce abstract base classes for storage, authentication, and audit backends; refactor existing MongoDB/Kafka backends as reference implementations of the new plugin interface; add execution token infrastructure.
 
@@ -1104,7 +1104,7 @@ The Intercept API response schema will be extended:
 | APEP-231 | Implement `ExecutionTokenManager`: generate single-use cryptographic tokens per ALLOW decision; validate and invalidate on use | 8 | Security |
 | APEP-232 | Integrate execution tokens into Intercept API response; SDK validates token before tool execution | 5 | SDK |
 
-### Sprint 30 — AgentLock: YAML Policy Loading & Offline Evaluation
+### Sprint 30 — ToolTrust: YAML Policy Loading & Offline Evaluation
 
 **Goal:** Native YAML-first policy definition format with JSON Schema validation; GitOps workflow support; enhanced offline SDK evaluation with full policy stack.
 
@@ -1119,7 +1119,7 @@ The Intercept API response schema will be extended:
 | APEP-239 | Implement GitHub Action for policy-as-code: validate YAML, run simulation suite, diff against current on PR | 5 | DevOps |
 | APEP-240 | Write integration tests: YAML load → evaluate → diff → sync lifecycle | 3 | Testing |
 
-### Sprint 31 — AgentLock: Auth Providers & Redis Backend
+### Sprint 31 — ToolTrust: Auth Providers & Redis Backend
 
 **Goal:** Pluggable authentication with OAuth2/OIDC and SAML providers; Redis as first-class session, taint, and rate-limit backend; data classification hierarchy with boundary enforcement.
 
@@ -1135,7 +1135,7 @@ The Intercept API response schema will be extended:
 | APEP-248 | Implement clearance-level checking: agent roles mapped to max data classification they can access | 3 | Backend |
 | APEP-249 | Write integration tests: OAuth2 login flow, Redis failover, data classification enforcement | 5 | Testing |
 
-### Sprint 32 — AgentLock: Structured Logging & Notification Channels
+### Sprint 32 — ToolTrust: Structured Logging & Notification Channels
 
 **Goal:** Pluggable audit backends (CloudWatch, Datadog, Loki); configurable log verbosity; notification channel abstraction; cryptographically signed receipts with offline verification.
 
@@ -1151,7 +1151,7 @@ The Intercept API response schema will be extended:
 | APEP-257 | Implement `ReceiptVerifier`: offline verification of signed receipts without server access; CLI tool for batch verification | 5 | Security |
 | APEP-258 | Write integration tests: multi-backend audit routing, receipt sign/verify round-trip, notification delivery | 3 | Testing |
 
-### Sprint 33 — AgentLock: Framework Integrations (OpenAI Agents, LangGraph)
+### Sprint 33 — ToolTrust: Framework Integrations (OpenAI Agents, LangGraph)
 
 **Goal:** Deep integration with OpenAI Agents SDK function hooks and LangGraph guardrail nodes; memory access control middleware; context authority tracking for enriched taint decisions.
 
@@ -1166,7 +1166,7 @@ The Intercept API response schema will be extended:
 | APEP-265 | Integrate context authority into policy evaluation: downweight derived sources in risk scoring; block untrusted sources from privileged decisions | 5 | Backend |
 | APEP-266 | Write integration tests: memory gate CRUD authorisation, context authority scoring, framework-specific DEFER/MODIFY handling | 3 | Testing |
 
-### Sprint 34 — AgentLock: Testing Utilities, Simulation & Enhanced CLI
+### Sprint 34 — ToolTrust: Testing Utilities, Simulation & Enhanced CLI
 
 **Goal:** CLI-driven policy testing and simulation harness; red-team test generation; trust degradation simulation; policy migration utilities.
 
@@ -1182,7 +1182,7 @@ The Intercept API response schema will be extended:
 | APEP-274 | Implement `agentpep health` CLI: check server connectivity, policy sync status, backend health for all registered backends | 3 | SDK |
 | APEP-275 | Write CLI integration tests: end-to-end validate → simulate → redteam → verify workflow | 3 | Testing |
 
-### Sprint 35 — AgentLock: Injection Library, Arg Validation & Risk Scoring
+### Sprint 35 — ToolTrust: Injection Library, Arg Validation & Risk Scoring
 
 **Goal:** Tool combination detection engine; velocity anomaly detection; echo detection; adaptive prompt hardening; PII redaction engine with MODIFY decision support.
 
@@ -1195,10 +1195,10 @@ The Intercept API response schema will be extended:
 | APEP-280 | Implement `AdaptiveHardeningEngine`: accumulate risk signals per session and generate targeted defensive instructions for agent system prompts | 8 | Security |
 | APEP-281 | Implement `PIIRedactionEngine`: detect and redact PII (names, emails, SSNs, phone numbers, addresses) in tool call outputs | 5 | Backend |
 | APEP-282 | Integrate PII redaction with MODIFY decision: return redacted arguments when PII detected in outputs to agents with insufficient clearance | 5 | Backend |
-| APEP-283 | Enhance injection signature library: add social engineering patterns, encoding attack patterns, and reconnaissance signatures from AgentLock findings | 3 | Security |
+| APEP-283 | Enhance injection signature library: add social engineering patterns, encoding attack patterns, and reconnaissance signatures from ToolTrust findings | 3 | Security |
 | APEP-284 | Write adversarial tests: tool combo evasion, velocity gaming, echo bypass, hardening effectiveness validation | 5 | Testing |
 
-### Sprint 36 — AgentLock: Conflict Detection, Metrics, Tamper Detection & Multi-Tenancy
+### Sprint 36 — ToolTrust: Conflict Detection, Metrics, Tamper Detection & Multi-Tenancy
 
 **Goal:** Hash-chained context tamper detection; DEFER and STEP_UP decision types; policy conflict resolution engine; enhanced multi-tenancy isolation; comprehensive enhancement metrics.
 
@@ -1216,7 +1216,7 @@ The Intercept API response schema will be extended:
 
 ## 12.6 Enhancement Summary
 
-| Dimension | Before (v1.0 GA) | After (v1.1 with AgentLock Enhancements) |
+| Dimension | Before (v1.0 GA) | After (v1.1 with ToolTrust Enhancements) |
 |---|---|---|
 | **Decision types** | ALLOW / DENY / ESCALATE / DRY_RUN | + DEFER / MODIFY / STEP_UP |
 | **Backend extensibility** | Hardcoded MongoDB + Kafka | Plugin ABCs: StorageBackend, AuthProvider, AuditBackend, NotificationChannel |
@@ -1229,7 +1229,7 @@ The Intercept API response schema will be extended:
 | **Agent memory** | No memory governance | Memory access control gate: write/read authorisation with retention enforcement |
 | **Audit backends** | MongoDB + Kafka | + CloudWatch, Datadog, Loki, configurable verbosity |
 | **Developer experience** | SDK + DRY_RUN API | + CLI tool (validate, diff, simulate, redteam, verify), offline evaluation |
-| **Total stories** | ~224 (Sprints 1–28) | ~291 (+ 67 AgentLock enhancement stories) |
+| **Total stories** | ~224 (Sprints 1–28) | ~291 (+ 67 ToolTrust enhancement stories) |
 
 ## 12.7 Risk Assessment
 
@@ -1261,26 +1261,26 @@ The Intercept API response schema will be extended:
 
 ---
 
-# 13. AgentMint Enhancement Roadmap v2
+# 13. ToolTrust Enhancement Roadmap v2
 
 ## 13.1 Overview
 
-This section documents enhancements to AgentPEP inspired by analysis of [agentmint-python](https://github.com/aniketh-maddipati/agentmint-python) — a lightweight, human-in-the-loop cryptographic authorization library for AI agents. AgentMint implements a three-primitive model: **Plans** (human-approved scoped authorization roots), **Delegation** (pattern-matched authorization before every action), and **Receipts** (Ed25519-signed, parent-chained proof records). While AgentPEP provides a far more comprehensive enforcement engine, AgentMint introduces several architectural patterns around *human-intent anchoring* and *verifiable authorization provenance* that would meaningfully strengthen AgentPEP's trust model.
+This section documents enhancements to AgentPEP inspired by analysis of [ToolTrust-python](https://github.com/aniketh-maddipati/ToolTrust-python) — a lightweight, human-in-the-loop cryptographic authorization library for AI agents. ToolTrust implements a three-primitive model: **Plans** (human-approved scoped authorization roots), **Delegation** (pattern-matched authorization before every action), and **Receipts** (Ed25519-signed, parent-chained proof records). While AgentPEP provides a far more comprehensive enforcement engine, ToolTrust introduces several architectural patterns around *human-intent anchoring* and *verifiable authorization provenance* that would meaningfully strengthen AgentPEP's trust model.
 
 **Analysis Date:** April 2026
-**Repository Analyzed:** https://github.com/aniketh-maddipati/agentmint-python
+**Repository Analyzed:** https://github.com/aniketh-maddipati/ToolTrust-python
 **Scope:** 7 sprints (Sprints 37–43) · 56 stories · ~14 weeks
 
 ---
 
-## 13.2 AgentMint Codebase Analysis
+## 13.2 ToolTrust Codebase Analysis
 
 ### 13.2.1 Architecture
 
-AgentMint is structured around three core primitives exposed via a single `AgentMint` class:
+ToolTrust is structured around three core primitives exposed via a single `ToolTrust` class:
 
 ```
-AgentMint
+ToolTrust
 ├── issue_plan(action, user, scope, delegates_to, requires_checkpoint)
 │       → Plan (signed root authorization artifact)
 │
@@ -1321,11 +1321,11 @@ plan (root)
     └── signature:  e2aa114c... (Ed25519 over delegation fields)
 ```
 
-**MCP server:** AgentMint ships an MCP server (`mcp_server/server.py`) that intercepts MCP tool calls and runs them through the AgentMint delegation check, returning structured approval/denial responses to MCP clients.
+**MCP server:** ToolTrust ships an MCP server (`mcp_server/server.py`) that intercepts MCP tool calls and runs them through the ToolTrust delegation check, returning structured approval/denial responses to MCP clients.
 
-### 13.2.2 Gap Analysis: AgentMint Patterns vs AgentPEP
+### 13.2.2 Gap Analysis: ToolTrust Patterns vs AgentPEP
 
-| # | AgentMint Pattern | AgentPEP Current State | Gap | Priority |
+| # | ToolTrust Pattern | AgentPEP Current State | Gap | Priority |
 |---|---|---|---|---|
 | 1 | **Mission Plan** — Human-issued root authorization artifact binding scope, delegates, checkpoints, and budget to a single signed document | No equivalent; sessions are implicit and policy-driven; no human-issued authorization root | **Major** | P0 |
 | 2 | **Scope Pattern Language** — `verb:namespace:resource` triple notation with glob support; ergonomic shorthand readable by humans and auditors | RBAC uses glob patterns on tool_name only; no semantic verb/namespace/resource decomposition | **Major** | P0 |
@@ -1362,7 +1362,7 @@ The enhancements add a **Mission Plan layer** above AgentPEP's existing session/
 │  ┌──────────────────────────────────────────────────────────────┐    │
 │  │              Existing PolicyEvaluator Pipeline               │    │
 │  │  RBAC · Taint Tracking · Confused-Deputy · Risk Scoring     │    │
-│  │  Rate Limiting · Arg Validation · AgentLock Enhancements    │    │
+│  │  Rate Limiting · Arg Validation · ToolTrust Enhancements    │    │
 │  │                                                              │    │
 │  │  NEW: PlanCheckpointFilter (pre-RBAC stage)                 │    │
 │  │    — if action matches requires_checkpoint → ESCALATE       │    │
@@ -1442,7 +1442,7 @@ A new sub-reason for `DENY` decisions when a plan-level constraint blocks execut
 
 ---
 
-## 13.6 Detailed Sprint Plans — Phase 9: AgentMint Roadmap v2
+## 13.6 Detailed Sprint Plans — Phase 9: ToolTrust Roadmap v2
 
 ### Sprint 37 — Mission Plan: Model, API & Lifecycle
 
@@ -1544,10 +1544,10 @@ A new sub-reason for `DENY` decisions when a plan-level constraint blocks execut
 | APEP-341 | Add `agentpep scope simulate --plan plan.yaml --action "delete:finance:report.pdf"` CLI command: runs full evaluation pipeline offline and outputs decision with stage trace | 5 | SDK |
 | APEP-342 | Build enterprise scope pattern library: 30+ curated scope patterns for file access, email, database, Slack/Teams, calendar, code execution, and API calls; stored as importable YAML templates | 8 | Backend |
 | APEP-343 | Implement pattern library UI: browse, search, and import scope patterns into new plan; preview what each pattern allows/blocks with example actions | 5 | Frontend |
-| APEP-344 | Implement `AgentMintSession` SDK class: wraps `AgentPEPClient` with plan-aware `issue_plan()`, `delegate()`, and `audit()` methods mirroring AgentMint's API surface for easy migration | 8 | SDK |
-| APEP-345 | Implement SDK `delegate()` method: calls `POST /v1/intercept` with plan context; returns `DelegationResult(ok, reason, receipt)` matching AgentMint's response shape | 3 | SDK |
-| APEP-346 | Write AgentMint migration guide: document how to convert an AgentMint `issue_plan()` / `delegate()` / `audit()` workflow to use AgentPEP's plan-aware SDK | 3 | Docs |
-| APEP-347 | Write integration tests: `AgentMintSession` full lifecycle — issue plan → bind session → delegate → receipt chain → audit tree → revoke | 3 | Testing |
+| APEP-344 | Implement `ToolTrustSession` SDK class: wraps `AgentPEPClient` with plan-aware `issue_plan()`, `delegate()`, and `audit()` methods mirroring ToolTrust's API surface for easy migration | 8 | SDK |
+| APEP-345 | Implement SDK `delegate()` method: calls `POST /v1/intercept` with plan context; returns `DelegationResult(ok, reason, receipt)` matching ToolTrust's response shape | 3 | SDK |
+| APEP-346 | Write ToolTrust migration guide: document how to convert an ToolTrust `issue_plan()` / `delegate()` / `audit()` workflow to use AgentPEP's plan-aware SDK | 3 | Docs |
+| APEP-347 | Write integration tests: `ToolTrustSession` full lifecycle — issue plan → bind session → delegate → receipt chain → audit tree → revoke | 3 | Testing |
 
 ---
 
@@ -1555,19 +1555,19 @@ A new sub-reason for `DENY` decisions when a plan-level constraint blocks execut
 
 | Sprint | Name | Phase | Stories |
 |---|---|---|---|
-| 37 | Mission Plan: Model, API & Lifecycle | Phase 9: AgentMint Roadmap v2 | 8 |
-| 38 | Scope Pattern Language & DSL Compiler | Phase 9: AgentMint Roadmap v2 | 8 |
-| 39 | Receipt Chaining with Plan Root | Phase 9: AgentMint Roadmap v2 | 8 |
-| 40 | Declarative Delegates-To & Plan Budget Gate | Phase 9: AgentMint Roadmap v2 | 8 |
-| 41 | Checkpoint-Declared Escalation & Human Intent | Phase 9: AgentMint Roadmap v2 | 8 |
-| 42 | Plan Console UI & Plan-Scoped Audit Tree | Phase 9: AgentMint Roadmap v2 | 8 |
-| 43 | Scope Simulator, Pattern Library & SDK Plan API | Phase 9: AgentMint Roadmap v2 | 8 |
+| 37 | Mission Plan: Model, API & Lifecycle | Phase 9: ToolTrust Roadmap v2 | 8 |
+| 38 | Scope Pattern Language & DSL Compiler | Phase 9: ToolTrust Roadmap v2 | 8 |
+| 39 | Receipt Chaining with Plan Root | Phase 9: ToolTrust Roadmap v2 | 8 |
+| 40 | Declarative Delegates-To & Plan Budget Gate | Phase 9: ToolTrust Roadmap v2 | 8 |
+| 41 | Checkpoint-Declared Escalation & Human Intent | Phase 9: ToolTrust Roadmap v2 | 8 |
+| 42 | Plan Console UI & Plan-Scoped Audit Tree | Phase 9: ToolTrust Roadmap v2 | 8 |
+| 43 | Scope Simulator, Pattern Library & SDK Plan API | Phase 9: ToolTrust Roadmap v2 | 8 |
 
 ---
 
 ## 13.8 Enhancement Summary
 
-| Dimension | Before (v1.1 with AgentLock) | After (v1.2 with AgentMint Enhancements) |
+| Dimension | Before (v1.1 with ToolTrust) | After (v1.2 with ToolTrust Enhancements) |
 |---|---|---|
 | **Authorization root** | Implicit sessions bound by RBAC policies | **Mission Plan**: human-issued, signed, scoped authorization artifact |
 | **Action notation** | Glob/regex patterns on tool_name | + `verb:namespace:resource` scope pattern DSL |
@@ -1578,9 +1578,9 @@ A new sub-reason for `DENY` decisions when a plan-level constraint blocks execut
 | **Audit view** | Flat audit log with filters | + Plan-scoped receipt tree: hierarchical view from plan root |
 | **Independent verification** | Server-dependent hash chain validation | Offline Ed25519 chain verification with public key only |
 | **Human context** | Technical audit records (tool names, arg hashes) | + `human_intent` field from plan in every audit record |
-| **SDK surface** | `@enforce` decorator, session taint labeling | + `AgentMintSession` plan-aware API (`issue_plan`, `delegate`, `audit`) |
+| **SDK surface** | `@enforce` decorator, session taint labeling | + `ToolTrustSession` plan-aware API (`issue_plan`, `delegate`, `audit`) |
 | **Scope tooling** | YAML policy authoring, CLI validation | + Scope simulator, pattern library (30+ templates), DSL compiler |
-| **Total stories** | ~291 (Sprints 1–36) | **~347** (+ 56 AgentMint enhancement stories, Sprints 37–43) |
+| **Total stories** | ~291 (Sprints 1–36) | **~347** (+ 56 ToolTrust enhancement stories, Sprints 37–43) |
 
 ---
 
@@ -1593,7 +1593,7 @@ A new sub-reason for `DENY` decisions when a plan-level constraint blocks execut
 | Receipt chaining increases write latency on ALLOW decisions | Low | Low | `parent_receipt_id` lookup from Redis (sub-millisecond); signing is async (PyNaCl Ed25519 ~100μs) |
 | Plan budget races under concurrent delegation | Medium | Medium | Redis atomic increment + compare; budget check uses Lua script for atomicity |
 | Checkpoint approval memory could be abused to pre-approve risky actions | High | Low | Approval memory scoped to plan; TTL configurable (default 1 hour); admin can clear |
-| `AgentMintSession` SDK API surface confusion with existing `@enforce` decorator | Low | Low | Both APIs documented; migration guide explicit; `AgentMintSession` is additive, not replacement |
+| `ToolTrustSession` SDK API surface confusion with existing `@enforce` decorator | Low | Low | Both APIs documented; migration guide explicit; `ToolTrustSession` is additive, not replacement |
 
 ---
 
@@ -1607,7 +1607,7 @@ A new sub-reason for `DENY` decisions when a plan-level constraint blocks execut
 | Receipt chain verification (offline) | 100% of ALLOW decisions independently verifiable | Audit reconciliation job |
 | Plan budget enforcement accuracy | Zero budget overruns under concurrent load | Redis Lua script stress test |
 | Plan Console task completion (SUS) | > 75 (Good) — plan issuance and receipt tree drill-down tasks | UX usability study |
-| `AgentMintSession` SDK migration time | Existing AgentMint users migrate in < 1 hour | Beta migration partner measurement |
+| `ToolTrustSession` SDK migration time | Existing ToolTrust users migrate in < 1 hour | Beta migration partner measurement |
 | Human intent field coverage | 100% of plan-bound audit records carry `human_intent` | Audit completeness check |
 
 ---
@@ -1616,13 +1616,13 @@ A new sub-reason for `DENY` decisions when a plan-level constraint blocks execut
 
 ---
 
-# 14. TrustFabric Network: PipeLock-Native Roadmap v3
+# 14. TrustFabric Network: ToolTrust-Native Roadmap v3
 
 ## 14.1 Overview
 
-This section specifies the work required to build PipeLock's network egress security capabilities natively within the AgentPEP Python/FastAPI/MongoDB stack — eliminating the Go dependency while gaining deep integration with AgentPEP's taint engine, risk scorer, audit logger, and Kafka event stream.
+This section specifies the work required to build ToolTrust's network egress security capabilities natively within the AgentPEP Python/FastAPI/MongoDB stack — eliminating the Go dependency while gaining deep integration with AgentPEP's taint engine, risk scorer, audit logger, and Kafka event stream.
 
-**Reference:** [Shivapas/pipelock](https://github.com/Shivapas/pipelock) — an agent firewall providing DLP scanning, SSRF protection, bidirectional MCP scanning, tool poisoning detection, and prompt injection blocking.
+**Reference:** [Shivapas/ToolTrust](https://github.com/Shivapas/ToolTrust) — an agent firewall providing DLP scanning, SSRF protection, bidirectional MCP scanning, tool poisoning detection, and prompt injection blocking.
 
 **Analysis Date:** April 2026
 **Scope:** 8 sprints (Sprints 44–51) · 64 stories · ~16 weeks
@@ -1633,11 +1633,11 @@ The resulting module is named **TrustFabric Network (TFN)** — a network egress
 
 ## 14.2 Feasibility Assessment: Python vs Go
 
-PipeLock is written in Go and achieves ~32μs per URL scan as a single binary. Building equivalent functionality in Python introduces trade-offs that must be understood before committing to the sprint plan.
+ToolTrust is written in Go and achieves ~32μs per URL scan as a single binary. Building equivalent functionality in Python introduces trade-offs that must be understood before committing to the sprint plan.
 
 ### 14.2.1 Capability-by-Capability Build Assessment
 
-| PipeLock Capability | Python Feasibility | Approach | Estimated Sprint Cost |
+| ToolTrust Capability | Python Feasibility | Approach | Estimated Sprint Cost |
 |---|---|---|---|
 | **11-layer URL scanner** | ✅ Full | `re`, `socket`, `urllib.parse`, existing `rate_limiter.py`, Redis | 1 sprint |
 | **DLP patterns (46 built-in)** | ✅ Full | Extend existing `injection_signatures.py`; compiled regex | 0.5 sprint (within URL scanner sprint) |
@@ -1665,7 +1665,7 @@ PipeLock is written in Go and achieves ~32μs per URL scan as a single binary. B
 
 ### 14.2.2 Performance Expectations
 
-| Operation | PipeLock (Go) | TFN Python Estimate | Impact on AgentPEP p99 |
+| Operation | ToolTrust (Go) | TFN Python Estimate | Impact on AgentPEP p99 |
 |---|---|---|---|
 | URL scan (11 layers) | ~32μs | ~300–500μs | +0.5ms on intercept path |
 | DLP pattern match (46 patterns, compiled) | ~15μs | ~100–200μs | Negligible |
@@ -1676,11 +1676,11 @@ PipeLock is written in Go and achieves ~32μs per URL scan as a single binary. B
 
 **Verdict:** Python is 10–15× slower than Go on CPU-bound scan operations. However, all TFN scanning runs **asynchronously and outside the critical intercept response path**. The intercept API returns its ALLOW/DENY decision from AgentPEP's existing pipeline. TFN scanning runs as a parallel async task or as a pre-intercept filter — it never blocks the <15ms p99 SLA unless a scan result is required to make the authorization decision (DLP pre-scan of tool args). Even then, adding 0.5–1ms is within the 5ms regression budget established in Phase 8.
 
-### 14.2.3 What TFN Does That PipeLock Cannot
+### 14.2.3 What TFN Does That ToolTrust Cannot
 
 The native Python build gains capabilities that a Go sidecar cannot offer:
 
-| Capability | TFN Advantage Over Standalone PipeLock |
+| Capability | TFN Advantage Over Standalone ToolTrust |
 |---|---|
 | **Taint auto-labeling from response scan** | When TFN injection scanner flags a fetched URL response, it directly calls `session_graph_manager.label()` to mark the content `QUARANTINE` — no IPC, no API call, same process |
 | **DLP risk signal in AgentPEP risk scorer** | `DataSensitivityScorer` (APEP-065) is enriched with TFN's DLP verdict on tool args in the same evaluation pipeline |
@@ -1776,7 +1776,7 @@ TFN is a new module within the AgentPEP backend, deployed as a second FastAPI ap
 
 ## 14.5 New Scan Modes and Actions
 
-TFN mirrors PipeLock's three security modes but integrates with AgentPEP's existing FAIL_CLOSED/FAIL_OPEN configuration:
+TFN mirrors ToolTrust's three security modes but integrates with AgentPEP's existing FAIL_CLOSED/FAIL_OPEN configuration:
 
 | Mode | Behavior | Maps To AgentPEP |
 |---|---|---|
@@ -1843,7 +1843,7 @@ TFN mirrors PipeLock's three security modes but integrates with AgentPEP's exist
 | APEP-373 | Implement request body DLP scan in forward proxy: buffer POST bodies up to configurable limit; run `NetworkDLPScanner`; block or warn on hits before forwarding | 5 | Security |
 | APEP-374 | Implement hostname-level blocking in forward proxy: check hostname against blocklist before opening CONNECT tunnel; return `403 Forbidden` with reason code | 3 | Backend |
 | APEP-375 | Implement optional TLS interception (MITM): generate per-domain leaf certificates signed by AgentPEP CA (using `cryptography` library ECDSA P-256); decrypt CONNECT tunnel for full body/header DLP scan; re-encrypt to upstream | 8 | Security |
-| APEP-376 | Implement `pipelock tls init` equivalent: `POST /v1/network/tls/init` generates AgentPEP CA keypair; `GET /v1/network/tls/ca.crt` exports the CA certificate for client trust installation | 3 | Backend |
+| APEP-376 | Implement `ToolTrust tls init` equivalent: `POST /v1/network/tls/init` generates AgentPEP CA keypair; `GET /v1/network/tls/ca.crt` exports the CA certificate for client trust installation | 3 | Backend |
 | APEP-377 | Implement WebSocket proxy: `GET /v1/ws?url=ws://...`; use `websockets` library; proxy bidirectional frames; reassemble fragmented messages before scanning | 5 | Backend |
 | APEP-378 | Implement WebSocket frame DLP + injection scanning: run `NetworkDLPScanner` and `ResponseInjectionScanner` on text frames in both directions; binary frames pass through with size limit enforcement | 5 | Security |
 | APEP-379 | Write integration tests: CONNECT tunnel through forward proxy; DLP hit on POST body → block; WebSocket frame injection → quarantine; SSRF attempt → 403 | 5 | Testing |
@@ -1895,7 +1895,7 @@ TFN mirrors PipeLock's three security modes but integrates with AgentPEP's exist
 
 ### Sprint 51 — Rule Bundles, Security Assessment & Network Audit Events
 
-**Goal:** Implement Ed25519-signed community rule bundles; build `pipelock assess`-equivalent security assessment; finalize MITRE ATT&CK event tagging; publish TFN documentation.
+**Goal:** Implement Ed25519-signed community rule bundles; build `ToolTrust assess`-equivalent security assessment; finalize MITRE ATT&CK event tagging; publish TFN documentation.
 
 | Story ID | Description | Points | Area |
 |---|---|---|---|
@@ -1942,12 +1942,12 @@ TFN mirrors PipeLock's three security modes but integrates with AgentPEP's exist
 
 ## 14.9 Build vs Integrate Decision
 
-**Recommendation: Build natively (TFN) rather than integrate PipeLock as a Go sidecar.**
+**Recommendation: Build natively (TFN) rather than integrate ToolTrust as a Go sidecar.**
 
-| Factor | TFN (Native Python) | PipeLock (Go Sidecar) |
+| Factor | TFN (Native Python) | ToolTrust (Go Sidecar) |
 |---|---|---|
 | **Taint integration** | Direct in-process call to `session_graph_manager` — zero IPC | Requires REST/gRPC call + session correlation over API |
-| **Risk scoring enrichment** | DLP findings injected directly into `PolicyEvaluator` pipeline | Requires two-phase evaluation: PipeLock scan → AgentPEP decision |
+| **Risk scoring enrichment** | DLP findings injected directly into `PolicyEvaluator` pipeline | Requires two-phase evaluation: ToolTrust scan → AgentPEP decision |
 | **Kill switch coherence** | Single `activate()` call locks both auth and network layers | Two separate kill switch APIs to coordinate |
 | **Deployment complexity** | One Docker image, one Helm chart | Two images, two services, mTLS between them |
 | **Injection pattern sync** | One `injection_signatures.py` singleton; zero drift | Two separate pattern libraries that can diverge |
@@ -1957,7 +1957,7 @@ TFN mirrors PipeLock's three security modes but integrates with AgentPEP's exist
 | **Enterprise deployment** | Existing Helm chart extended | Second Helm subchart required |
 | **Language boundary** | Eliminated | Permanent Go dependency in Python stack |
 
-**The scan speed difference (300μs vs 32μs) is the only meaningful advantage of keeping PipeLock as a sidecar.** Given that TFN scanning runs asynchronously outside the intercept critical path, and the existing p99 budget has 5ms headroom from Phase 8, this trade-off strongly favors native Python.
+**The scan speed difference (300μs vs 32μs) is the only meaningful advantage of keeping ToolTrust as a sidecar.** Given that TFN scanning runs asynchronously outside the intercept critical path, and the existing p99 budget has 5ms headroom from Phase 8, this trade-off strongly favors native Python.
 
 ---
 
@@ -1998,7 +1998,7 @@ TFN mirrors PipeLock's three security modes but integrates with AgentPEP's exist
 |---|---|---|
 | URL scanner latency (11 layers, Python) | < 1ms p99 | Prometheus histogram |
 | DLP pre-scan intercept latency impact | ≤ 2ms additional on p99 | Prometheus histogram delta |
-| Response injection detection rate | > 95% against PipeLock's published test matrix | Adversarial test suite (APEP-371) |
+| Response injection detection rate | > 95% against ToolTrust's published test matrix | Adversarial test suite (APEP-371) |
 | Tool call chain detection false positive rate | < 1% on benign agent workflows | Production traffic sampling |
 | Fetch proxy throughput | > 500 concurrent fetches/sec | k6 load test |
 | Kill switch activation to full block latency | < 100ms | Activation timestamp delta |
@@ -2012,21 +2012,21 @@ TFN mirrors PipeLock's three security modes but integrates with AgentPEP's exist
 
 ---
 
-# 15. CloneGuard-Inspired Roadmap v4: ML Injection Detection & Content Ingestion Security
+# 15. ToolTrust-Inspired Roadmap v4: ML Injection Detection & Content Ingestion Security
 
 ## 15.1 Overview
 
-This section documents enhancements to AgentPEP inspired by analysis of [Shivapas/cloneguard](https://github.com/Shivapas/cloneguard) — a Python library that guards AI coding agents from prompt injection attacks in untrusted content (cloned repositories, PRs, tool output, MCP responses). CloneGuard introduces two capabilities uniquely absent from the entire TrustFabric stack: a **pre-session repository scanner** (checks content before the agent starts) and an **ONNX semantic injection classifier** (fine-tuned MiniLM-L6-v2, 94.3% F1) that detects injection evasions that regex cannot touch.
+This section documents enhancements to AgentPEP inspired by analysis of [Shivapas/ToolTrust](https://github.com/Shivapas/ToolTrust) — a Python library that guards AI coding agents from prompt injection attacks in untrusted content (cloned repositories, PRs, tool output, MCP responses). ToolTrust introduces two capabilities uniquely absent from the entire TrustFabric stack: a **pre-session repository scanner** (checks content before the agent starts) and an **ONNX semantic injection classifier** (fine-tuned MiniLM-L6-v2, 94.3% F1) that detects injection evasions that regex cannot touch.
 
-**Reference:** [Shivapas/cloneguard](https://github.com/Shivapas/cloneguard) — forked from prodnull/cloneguard. Python 3.11+, Apache 2.0.
+**Reference:** [Shivapas/ToolTrust](https://github.com/Shivapas/ToolTrust) — forked from prodnull/ToolTrust. Python 3.11+, Apache 2.0.
 **Analysis Date:** April 2026
 **Scope:** 5 sprints (Sprints 52-56) · 40 stories · ~10 weeks
 
 ---
 
-## 15.2 CloneGuard Architecture Summary
+## 15.2 ToolTrust Architecture Summary
 
-CloneGuard operates across four hook layers and three detection tiers:
+ToolTrust operates across four hook layers and three detection tiers:
 
 ```
 Layer 0  Pre-execution wrapper    Scans entire repo before agent starts (~50ms)
@@ -2051,9 +2051,9 @@ Tier 2   Ollama LLM fallback      General-purpose; slower; used only without ONN
 
 ---
 
-## 15.3 Gap Analysis: CloneGuard Capabilities vs AgentPEP
+## 15.3 Gap Analysis: ToolTrust Capabilities vs AgentPEP
 
-| # | CloneGuard Capability | AgentPEP Current State | Gap | Priority |
+| # | ToolTrust Capability | AgentPEP Current State | Gap | Priority |
 |---|---|---|---|---|
 | 1 | **ONNX semantic injection classifier** — fine-tuned MiniLM-L6-v2, 94.3% F1, catches synonym substitution, homoglyphs, encoding evasion | injection_signatures.py: regex only, ~37% F1 on adversarial payloads | **Critical** | P0 |
 | 2 | **204 injection patterns across 25 categories** — validated against Mindgard AI IDE vulnerability taxonomy (20/22 patterns) | ~30 patterns in injection_signatures.py across 5 categories | **Major** | P0 |
@@ -2064,15 +2064,15 @@ Tier 2   Ollama LLM fallback      General-purpose; slower; used only without ONN
 | 7 | **YOLO mode detection and risk escalation** — detects --dangerously-skip-permissions; escalates MEDIUM to HIGH findings | No session-level agent operating-mode awareness; risk thresholds are static | **Moderate** | P1 |
 | 8 | **Scan modes (STRICT / STANDARD / LENIENT)** — per-file-type detection thresholds with mode-restricted patterns | No per-context scan mode; all evaluation uses same thresholds | **Moderate** | P1 |
 | 9 | **Trust cache** — SHA-256 file hash cache outside repo; skip re-scanning unchanged files; tamper-proof | DLP pre-scan cache (APEP-361) covers tool args; no file-level trust cache | **Moderate** | P1 |
-| 10 | **Self-protection against agent-initiated policy modification** — CLI guard (TTY check) + hook guard (blocks cloneguard allow commands) | Policy immutability via audit trail; no active block on agent-initiated modification | **Moderate** | P1 |
+| 10 | **Self-protection against agent-initiated policy modification** — CLI guard (TTY check) + hook guard (blocks ToolTrust allow commands) | Policy immutability via audit trail; no active block on agent-initiated modification | **Moderate** | P1 |
 | 11 | **Allowlist by content hash** — reviewed false-positive files allowlisted by SHA-256 hash; invalidated by any content change | No content-hash-based allowlisting for injection scan results | **Minor** | P2 |
-| 12 | **Layer 3 to Intercept API bridge** — CloneGuard Layer 3 PreToolUse calling AgentPEP Intercept API; scan verdict passed as taint signal | No integration bridge; the two tools operate independently | **Minor** | P2 |
+| 12 | **Layer 3 to Intercept API bridge** — ToolTrust Layer 3 PreToolUse calling AgentPEP Intercept API; scan verdict passed as taint signal | No integration bridge; the two tools operate independently | **Minor** | P2 |
 
 ---
 
 ## 15.4 Architecture: Content Ingestion Security Layer
 
-The CloneGuard-inspired enhancements add a **Content Ingestion Security (CIS)** layer operating before and during agent sessions to inspect content entering the agent context.
+The ToolTrust-inspired enhancements add a **Content Ingestion Security (CIS)** layer operating before and during agent sessions to inspect content entering the agent context.
 
 ```
 External repo / PR / MCP response / tool output
@@ -2137,7 +2137,7 @@ External repo / PR / MCP response / tool output
 
 ---
 
-## 15.6 Detailed Sprint Plans - Phase 11: CloneGuard-Inspired Roadmap v4
+## 15.6 Detailed Sprint Plans - Phase 11: ToolTrust-Inspired Roadmap v4
 
 ### Sprint 52 - Extended Pattern Library & Scan Mode Router
 
@@ -2145,18 +2145,18 @@ External repo / PR / MCP response / tool output
 
 | Story ID | Description | Points | Area |
 |---|---|---|---|
-| APEP-412 | Expand injection_signatures.py with 204 patterns across all 25 CloneGuard categories: instruction override (IO), authority impersonation (AI), behavioral manipulation (BM), privilege escalation (PE), encoding obfuscation (EO), unicode anomalies (UA), exfiltration (EX), credential harvesting (CH), environment variable hijacking (EV), build script attacks (BS) | 8 | Security |
+| APEP-412 | Expand injection_signatures.py with 204 patterns across all 25 ToolTrust categories: instruction override (IO), authority impersonation (AI), behavioral manipulation (BM), privilege escalation (PE), encoding obfuscation (EO), unicode anomalies (UA), exfiltration (EX), credential harvesting (CH), environment variable hijacking (EV), build script attacks (BS) | 8 | Security |
 | APEP-413 | Add remaining 15 pattern categories: CI/CD poisoning (CI), config file injection (CF), git hook exploitation (GH), MCP tool poisoning (MCP), reasoning hijack (RH), markdown/SVG injection (MS), terminal escape (TE), memory poisoning (MP), viral propagation (VP), dangerous agent flags (DF), symlink/path traversal (ST), process environment (PR), WSL cross-boundary (WSL), workspace config execution (WC), dedicated config file scanners (.claude/settings.json, .env, devcontainer.json) | 8 | Security |
 | APEP-414 | Implement ScanModeRouter: given file path and extension, determine STRICT/STANDARD/LENIENT mode; apply per-category mode restrictions (CI-001, CI-004, CI-006, SC-001, MCP-005 restricted to STRICT); expose mode override via CISScanRequest.scan_mode | 5 | Backend |
 | APEP-415 | Implement CISTrustCache: SHA-256 content hash cache stored in MongoDB collection cis_trust_cache outside agent-writable paths; TTL-indexed; keyed by {repo_root}:{relative_path}:{pattern_version}; skip rescan on cache hit | 5 | Backend |
 | APEP-416 | Implement CISAllowlist: content-hash-based false-positive allowlist; POST /v1/cis/allowlist requires authenticated console user (not agent API key); agent-initiated allowlist modification blocked at middleware level | 5 | Security |
 | APEP-417 | Implement YOLO mode detector: inspect AgentProfile.session_flags for dangerously_skip_permissions; when active, apply risk score multiplier (1.5x) in PolicyEvaluator and lower ESCALATE threshold by 0.15; CIS scanner automatically upgrades to STRICT mode | 5 | Security |
-| APEP-418 | Write pattern validation tests: all 204 patterns tested against known-malicious payloads from CloneGuard test suite; false-positive rate measured against benign corpus of 1,000 real repo files | 5 | Testing |
+| APEP-418 | Write pattern validation tests: all 204 patterns tested against known-malicious payloads from ToolTrust test suite; false-positive rate measured against benign corpus of 1,000 real repo files | 5 | Testing |
 | APEP-419 | Update injection_signatures.py hot-reload to support 204-pattern corpus without restart; version-stamp pattern set for trust cache invalidation | 3 | Backend |
 
 ### Sprint 53 - ONNX Semantic Injection Classifier (Tier 1)
 
-**Goal:** Integrate ONNX MiniLM-L6-v2 classifier as ONNXSemanticClassifier; wire as Tier 1 in CIS scanner pipeline; benchmark against CloneGuard published F1 metrics; implement graceful fallback.
+**Goal:** Integrate ONNX MiniLM-L6-v2 classifier as ONNXSemanticClassifier; wire as Tier 1 in CIS scanner pipeline; benchmark against ToolTrust published F1 metrics; implement graceful fallback.
 
 | Story ID | Description | Points | Area |
 |---|---|---|---|
@@ -2166,7 +2166,7 @@ External repo / PR / MCP response / tool output
 | APEP-423 | Implement text chunking for long content: split content into overlapping 512-token windows (MiniLM context limit); aggregate scores via max-pool; handles large files without truncation | 5 | Backend |
 | APEP-424 | Implement model-absent graceful fallback: when ONNX model not installed, CIS pipeline runs Tier 0 only; log TIER1_UNAVAILABLE warning metric; never fail closed due to missing model | 3 | Backend |
 | APEP-425 | Implement async batch inference: queue text chunks for batched ONNX inference (batch size 16); asyncio task pool; avoid blocking intercept API path | 5 | Performance |
-| APEP-426 | Benchmark ONNX classifier against CloneGuard published metrics: reproduce 5-fold CV on prodnull/prompt-injection-repo-dataset; verify >=94% F1; document results in docs/cis-benchmark.md | 5 | Testing |
+| APEP-426 | Benchmark ONNX classifier against ToolTrust published metrics: reproduce 5-fold CV on prodnull/prompt-injection-repo-dataset; verify >=94% F1; document results in docs/cis-benchmark.md | 5 | Testing |
 | APEP-427 | Add ONNX inference Prometheus metrics: cis_tier1_latency_ms histogram; cis_tier1_malicious_total; cis_tier1_unavailable_total; model version in /metrics info gauge | 2 | Observability |
 
 ### Sprint 54 - Pre-Session Repository Scanner & Agent Instruction File Scanner
@@ -2186,18 +2186,18 @@ External repo / PR / MCP response / tool output
 
 ### Sprint 55 - CaMeL SEQ Rules, Layer 3 Bridge & Self-Protection
 
-**Goal:** Import CloneGuard CaMeL-lite SEQ rules into Phase 10 tool call chain detector; build CloneGuard Layer 3 to AgentPEP Intercept bridge; implement agent-initiated policy modification self-protection.
+**Goal:** Import ToolTrust CaMeL-lite SEQ rules into Phase 10 tool call chain detector; build ToolTrust Layer 3 to AgentPEP Intercept bridge; implement agent-initiated policy modification self-protection.
 
 | Story ID | Description | Points | Area |
 |---|---|---|---|
-| APEP-436 | Import CloneGuard CaMeL-lite SEQ rules as named chain patterns in Phase 10 ToolCallChainDetector (APEP-388): SEQ-001 (read sensitive file -> WebFetch external), SEQ-002 (read sensitive file -> Bash curl/wget external), SEQ-005 (write agent/IDE config file) as enforcing; SEQ-003 (MCP frequency spike) and SEQ-004 (write build target -> build) as advisory | 5 | Security |
+| APEP-436 | Import ToolTrust CaMeL-lite SEQ rules as named chain patterns in Phase 10 ToolCallChainDetector (APEP-388): SEQ-001 (read sensitive file -> WebFetch external), SEQ-002 (read sensitive file -> Bash curl/wget external), SEQ-005 (write agent/IDE config file) as enforcing; SEQ-003 (MCP frequency spike) and SEQ-004 (write build target -> build) as advisory | 5 | Security |
 | APEP-437 | Implement session-wide typed marker system for SEQ-001/002: marker set when any read_file tool operates on sensitive path patterns (.env, *secret*, *credential*, *.pem, .npmrc); marker persists across arbitrary intervening tool calls; gap-tolerant | 5 | Backend |
-| APEP-438 | Implement CloneGuard -> AgentPEP Intercept bridge: agentpep-sdk module CloneGuardBridge that CloneGuard Layer 3 hook calls instead of making its own block decision; bridge submits ToolCallRequest to AgentPEP Intercept API; passes CloneGuard CIS scan verdict as taint signal; returns exit code 0/2 based on AgentPEP decision | 8 | SDK |
+| APEP-438 | Implement ToolTrust -> AgentPEP Intercept bridge: agentpep-sdk module ToolTrustBridge that ToolTrust Layer 3 hook calls instead of making its own block decision; bridge submits ToolCallRequest to AgentPEP Intercept API; passes ToolTrust CIS scan verdict as taint signal; returns exit code 0/2 based on AgentPEP decision | 8 | SDK |
 | APEP-439 | Implement CIS scan verdict as taint input: extend ToolCallRequest with optional cis_pre_scan_result: CISScanResult; PolicyEvaluator reads this field; if MALICIOUS finding present, auto-assign QUARANTINE to all tool args; if SUSPICIOUS, assign UNTRUSTED | 5 | Backend |
 | APEP-440 | Implement agent-initiated policy modification self-protection: add PolicyModificationGuard middleware; detect tool calls targeting AgentPEP API endpoints (/v1/policies, /v1/cis/allowlist, /v1/plans, /v1/network/killswitch); require console user JWT (not agent API key) for any modification; return DENY with SELF_MODIFICATION_BLOCKED | 5 | Security |
 | APEP-441 | Implement protected path patterns for PreToolUse: configure set of protected paths (~/.claude/settings.json, AgentPEP config files, CIS allowlist location); any tool call writing to protected paths -> DENY with PROTECTED_PATH_WRITE | 3 | Security |
-| APEP-442 | Write self-protection adversarial tests: agent attempts cloneguard allow equivalent via Bash tool -> blocked; agent attempts to call AgentPEP policy modification API with agent key -> blocked; agent attempts to write to .claude/settings.json -> DENY | 5 | Testing |
-| APEP-443 | Write CloneGuard bridge integration test: simulate CloneGuard Layer 3 hook calling AgentPEP Intercept API; verify CIS scan verdict propagated as taint; verify exit code matches AgentPEP decision | 3 | Testing |
+| APEP-442 | Write self-protection adversarial tests: agent attempts ToolTrust allow equivalent via Bash tool -> blocked; agent attempts to call AgentPEP policy modification API with agent key -> blocked; agent attempts to write to .claude/settings.json -> DENY | 5 | Testing |
+| APEP-443 | Write ToolTrust bridge integration test: simulate ToolTrust Layer 3 hook calling AgentPEP Intercept API; verify CIS scan verdict propagated as taint; verify exit code matches AgentPEP decision | 3 | Testing |
 
 ### Sprint 56 - YOLO Mode, Session Risk Multiplier & Developer Experience
 
@@ -2211,7 +2211,7 @@ External repo / PR / MCP response / tool output
 | APEP-447 | Build CIS Dashboard widget in Policy Console: repo scan history timeline; Tier 0/1/2 finding breakdown; trust cache hit rate; top attack categories detected; YOLO-mode sessions highlighted | 5 | Frontend |
 | APEP-448 | Add CIS scan results to compliance exports: DPDPA and CERT-In compliance reports include CIS scan history, QUARANTINE assignments from PostToolUse auto-scan, and pre-session scan results per agent session | 3 | Backend |
 | APEP-449 | Add CIS Prometheus metrics: cis_repo_scans_total; cis_files_scanned_total; cis_findings_total by tier/category/severity; cis_auto_quarantine_total; cis_trust_cache_hits_total; cis_yolo_sessions_total; extend Grafana dashboard | 3 | Observability |
-| APEP-450 | Publish CIS documentation: architecture guide, scan mode reference, ONNX model installation guide (online + air-gapped), CloneGuard bridge integration guide for Claude Code / Cursor / Gemini CLI, false-positive management guide | 3 | Docs |
+| APEP-450 | Publish CIS documentation: architecture guide, scan mode reference, ONNX model installation guide (online + air-gapped), ToolTrust bridge integration guide for Claude Code / Cursor / Gemini CLI, false-positive management guide | 3 | Docs |
 | APEP-451 | Write CIS end-to-end integration test: clone repo containing injected CLAUDE.md -> pre-session scan blocks session; clean repo -> session allowed; PostToolUse auto-QUARANTINE propagates to subsequent tool call DENY | 5 | Testing |
 
 ---
@@ -2220,17 +2220,17 @@ External repo / PR / MCP response / tool output
 
 | Sprint | Name | Phase | Stories |
 |---|---|---|---|
-| 52 | Extended Pattern Library & Scan Mode Router | Phase 11: CloneGuard-Inspired v4 | 8 |
-| 53 | ONNX Semantic Injection Classifier (Tier 1) | Phase 11: CloneGuard-Inspired v4 | 8 |
-| 54 | Pre-Session Repository Scanner & Instruction File Scanner | Phase 11: CloneGuard-Inspired v4 | 8 |
-| 55 | CaMeL SEQ Rules, Layer 3 Bridge & Self-Protection | Phase 11: CloneGuard-Inspired v4 | 8 |
-| 56 | YOLO Mode, Session Risk Multiplier & Developer Experience | Phase 11: CloneGuard-Inspired v4 | 8 |
+| 52 | Extended Pattern Library & Scan Mode Router | Phase 11: ToolTrust-Inspired v4 | 8 |
+| 53 | ONNX Semantic Injection Classifier (Tier 1) | Phase 11: ToolTrust-Inspired v4 | 8 |
+| 54 | Pre-Session Repository Scanner & Instruction File Scanner | Phase 11: ToolTrust-Inspired v4 | 8 |
+| 55 | CaMeL SEQ Rules, Layer 3 Bridge & Self-Protection | Phase 11: ToolTrust-Inspired v4 | 8 |
+| 56 | YOLO Mode, Session Risk Multiplier & Developer Experience | Phase 11: ToolTrust-Inspired v4 | 8 |
 
 ---
 
 ## 15.8 Enhancement Summary
 
-| Dimension | Before (v1.3) | After (v1.4 with CloneGuard Enhancements) |
+| Dimension | Before (v1.3) | After (v1.4 with ToolTrust Enhancements) |
 |---|---|---|
 | **Injection pattern coverage** | ~30 patterns, 5 categories, regex only | 204 patterns, 25 categories — validated against Mindgard AI IDE taxonomy |
 | **Injection detection accuracy** | ~37% F1 on adversarial payloads (regex) | **94.3% F1** — ONNX semantic classifier |
@@ -2240,8 +2240,8 @@ External repo / PR / MCP response / tool output
 | **Tool call chain patterns** | 10 enterprise patterns (Phase 10) | + 5 CaMeL-lite SEQ rules (coding-agent-specific) |
 | **Agent operating mode awareness** | Static risk thresholds | YOLO mode detection: 1.5x risk multiplier + STRICT scan mode auto-applied |
 | **Self-protection** | Policy audit trail | Active block: agent API key cannot modify policies, allowlists, or protected paths |
-| **Developer integration** | SDK @enforce decorator, taint labeling | + cis_scan() helper, CloneGuard bridge adapter, pre-session scan hook |
-| **Total stories** | ~411 (Sprints 1-51) | **~451** (+ 40 CloneGuard stories, Sprints 52-56) |
+| **Developer integration** | SDK @enforce decorator, taint labeling | + cis_scan() helper, ToolTrust bridge adapter, pre-session scan hook |
+| **Total stories** | ~411 (Sprints 1-51) | **~451** (+ 40 ToolTrust stories, Sprints 52-56) |
 
 ---
 
@@ -2250,7 +2250,7 @@ External repo / PR / MCP response / tool output
 | Risk | Impact | Likelihood | Mitigation |
 |---|---|---|---|
 | ONNX model 87MB increases Docker image significantly | Low | High | Optional install via POST /v1/cis/model/install; base image ships Tier 0 only; model mountable at /opt/agentpep/models/ |
-| False positive rate on security documentation READMEs | High | High | CISAllowlist by content hash; LENIENT mode for documentation paths; CloneGuard validates 3.8% false block rate |
+| False positive rate on security documentation READMEs | High | High | CISAllowlist by content hash; LENIENT mode for documentation paths; ToolTrust validates 3.8% false block rate |
 | ONNX inference latency adds to PostToolUse path | Medium | Medium | Async batch inference (APEP-425); PostToolUse scan decoupled via background queue |
 | require_clean_repo: true blocks legitimate sessions | Medium | Medium | Default false; audit mode available; per-path scan mode exceptions configurable |
 | YOLO mode 1.5x multiplier produces excessive ESCALATE volume | Medium | Medium | Multiplier configurable per tenant; approval memory (Phase 9) reduces repeat escalations |
@@ -2266,10 +2266,10 @@ External repo / PR / MCP response / tool output
 | ONNX classifier F1 (cross-validated) | >=94% F1 on prodnull/prompt-injection-repo-dataset | Benchmark reproduction (APEP-426) |
 | Pre-session repo scan latency | <100ms for repos <=1,000 files (Tier 0 only) | k6 benchmark |
 | PostToolUse auto-QUARANTINE coverage | 100% of tool results containing injection patterns auto-tagged | Audit completeness check |
-| False block rate (benign repo files) | <=5% (CloneGuard validated 3.8%) | Benign corpus evaluation |
+| False block rate (benign repo files) | <=5% (ToolTrust validated 3.8%) | Benign corpus evaluation |
 | YOLO mode risk multiplier accuracy | 0 YOLO-mode sessions escape STRICT scan mode | Session flag audit |
 | Self-protection bypass rate | 0 agent-initiated policy modifications succeed with agent API key | Adversarial test suite (APEP-442) |
-| CloneGuard bridge integration latency | <50ms additional over standalone Layer 3 hook decision | SDK benchmark |
+| ToolTrust bridge integration latency | <50ms additional over standalone Layer 3 hook decision | SDK benchmark |
 
 ---
 
