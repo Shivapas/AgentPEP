@@ -21,6 +21,7 @@ from agentpep.models import (
     TaintSource,
     ToolCallRequest,
 )
+from agentpep.execution_token import execution_token_validator
 from agentpep.tamper_detection import tamper_detector
 
 logger = logging.getLogger(__name__)
@@ -150,6 +151,13 @@ class AgentPEPClient:
                 tool_name=tool_name,
                 reason=response.reason,
                 decision=response.decision.value,
+            )
+        # APEP-232: Validate execution token before allowing tool execution
+        if response.execution_token is not None:
+            execution_token_validator.validate_and_consume(
+                response.execution_token,
+                expected_tool_name=tool_name,
+                expected_agent_id=agent_id,
             )
         return response
 
@@ -311,6 +319,13 @@ class AgentPEPClient:
                 tool_name=tool_name,
                 reason=response.reason,
                 decision=response.decision.value,
+            )
+        # APEP-232: Validate execution token before allowing tool execution
+        if response.execution_token is not None:
+            execution_token_validator.validate_and_consume(
+                response.execution_token,
+                expected_tool_name=tool_name,
+                expected_agent_id=agent_id,
             )
         return response
 

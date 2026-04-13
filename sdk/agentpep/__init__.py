@@ -4,6 +4,7 @@ __version__ = "1.0.0"
 
 from agentpep.client import AgentPEPClient
 from agentpep.decorator import enforce
+from agentpep.execution_token import ExecutionTokenValidator, execution_token_validator
 from agentpep.models import (
     PolicyDecision,
     PolicyDecisionResponse,
@@ -17,6 +18,8 @@ from agentpep.tamper_detection import TamperDetector, tamper_detector
 __all__ = [
     "AgentPEPClient",
     "enforce",
+    "ExecutionTokenValidator",
+    "execution_token_validator",
     "PolicyDecision",
     "PolicyDecisionResponse",
     "TaintLevel",

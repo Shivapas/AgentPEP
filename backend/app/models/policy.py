@@ -628,6 +628,11 @@ class PolicyDecisionResponse(BaseModel):
     reason: str = ""
     escalation_id: UUID | None = None
     latency_ms: int = 0
+    # Sprint 29 — APEP-232: Single-use execution token for ALLOW decisions
+    execution_token: str | None = Field(
+        default=None,
+        description="Single-use cryptographic token for authorized tool execution",
+    )
 
 
 # --- Escalation Ticket (Sprint 18 — APEP-143..APEP-147) ---

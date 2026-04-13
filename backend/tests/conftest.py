@@ -132,3 +132,11 @@ def mock_mongodb(monkeypatch):
         clear_active_proxies()
     except ImportError:
         pass
+
+    # Clear Sprint 29 execution token state
+    try:
+        from app.services.execution_token import execution_token_manager
+
+        execution_token_manager.reset()
+    except ImportError:
+        pass
