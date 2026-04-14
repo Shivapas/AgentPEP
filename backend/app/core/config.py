@@ -247,6 +247,24 @@ class Settings(BaseSettings):
     chain_detection_default_window_s: int = 600
     kafka_chain_detection_topic: str = "agentpep.chain_detection"
 
+    # Sprint 50 — APEP-396..403: Kill Switch, Filesystem Sentinel & Adaptive Threat Score
+    kill_switch_enabled: bool = True
+    kill_switch_activated: bool = False  # Config flag activation source (source 4)
+    kill_switch_sentinel_path: str = "/tmp/agentpep-killswitch"
+    kill_switch_sentinel_poll_s: float = 1.0
+    kill_switch_config_poll_s: float = 5.0
+    kill_switch_isolated_port_enabled: bool = False
+    kill_switch_isolated_port: int = 8890
+    kill_switch_isolated_host: str = "127.0.0.1"
+    filesystem_sentinel_enabled: bool = True
+    filesystem_sentinel_watch_paths: list[str] = ["/tmp", "/var/tmp"]
+    filesystem_sentinel_file_patterns: list[str] = ["*.env", "*.key", "*.pem", "*.secret", "*.credentials"]
+    filesystem_sentinel_max_scan_bytes: int = 1_048_576
+    adaptive_threat_score_enabled: bool = True
+    adaptive_threat_score_window_s: int = 600
+    adaptive_threat_score_escalation_threshold: float = 0.7
+    adaptive_threat_score_deescalation_threshold: float = 0.3
+
     model_config = {"env_prefix": "AGENTPEP_"}
 
 

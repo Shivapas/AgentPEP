@@ -35,6 +35,7 @@ from app.api.v1.dlp import router as dlp_router
 from app.api.v1.fetch import router as fetch_router
 from app.api.v1.forward_proxy import router as forward_proxy_router
 from app.api.v1.chain_detection import router as chain_detection_router
+from app.api.v1.kill_switch import router as kill_switch_router
 from app.core.config import settings
 from app.core.observability import get_metrics_app, setup_tracing
 from app.core.structured_logging import configure_logging, get_logger
@@ -275,6 +276,54 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     audit_log_writer.start()
 
+    # Sprint 50 (APEP-396): Start kill switch service
+    if settings.kill_switch_enabled:
+        from app.services.kill_switch import kill_switch_service
+
+        await kill_switch_service.start()
+        logger.info("kill_switch_started")
+
+    # Sprint 50 (APEP-398): Start kill switch isolated port
+    _kill_switch_server_task = None
+    if settings.kill_switch_isolated_port_enabled:
+        try:
+            from app.services.kill_switch_port import start_kill_switch_server
+
+            _kill_switch_server_task = await start_kill_switch_server(
+                host=settings.kill_switch_isolated_host,
+                port=settings.kill_switch_isolated_port,
+            )
+            logger.info(
+                "kill_switch_isolated_port_started",
+                port=settings.kill_switch_isolated_port,
+            )
+        except Exception:
+            logger.warning(
+                "kill_switch_isolated_port_failed",
+                exc_info=True,
+            )
+
+    # Sprint 50 (APEP-399): Start filesystem sentinel
+    if settings.filesystem_sentinel_enabled:
+        from app.models.kill_switch import SentinelConfig
+        from app.services.filesystem_sentinel import filesystem_sentinel
+
+        sentinel_config = SentinelConfig(
+            watch_paths=settings.filesystem_sentinel_watch_paths,
+            file_patterns=settings.filesystem_sentinel_file_patterns,
+            max_file_scan_bytes=settings.filesystem_sentinel_max_scan_bytes,
+        )
+        filesystem_sentinel.configure(sentinel_config)
+        await filesystem_sentinel.start()
+        logger.info("filesystem_sentinel_started")
+
+    # Sprint 50 (APEP-401): Start adaptive threat score engine
+    if settings.adaptive_threat_score_enabled:
+        from app.services.adaptive_threat_score import adaptive_threat_score
+
+        await adaptive_threat_score.start()
+        logger.info("adaptive_threat_score_started")
+
     # Start gRPC server if enabled
     if settings.grpc_enabled:
         try:
@@ -289,6 +338,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             )
 
     yield
+
+    # Sprint 50: Stop adaptive threat score engine
+    if settings.adaptive_threat_score_enabled:
+        from app.services.adaptive_threat_score import adaptive_threat_score
+
+        await adaptive_threat_score.stop()
+
+    # Sprint 50: Stop filesystem sentinel
+    if settings.filesystem_sentinel_enabled:
+        from app.services.filesystem_sentinel import filesystem_sentinel
+
+        await filesystem_sentinel.stop()
+
+    # Sprint 50: Stop kill switch service
+    if settings.kill_switch_enabled:
+        from app.services.kill_switch import kill_switch_service
+
+        await kill_switch_service.stop()
 
     # Sprint 37: Stop plan expiry job
     if settings.mission_plan_expiry_job_enabled:
@@ -400,6 +467,7 @@ app.include_router(dlp_router)
 app.include_router(fetch_router)
 app.include_router(forward_proxy_router)
 app.include_router(chain_detection_router)
+app.include_router(kill_switch_router)
 
 # Observability
 if settings.metrics_enabled:

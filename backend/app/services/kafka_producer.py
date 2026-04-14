@@ -333,6 +333,40 @@ class KafkaDecisionProducer:
             logger.exception("Failed to publish chain event")
             return False
 
+    # ------------------------------------------------------------------
+    # Sprint 50 — APEP-396: Kill switch events
+    # ------------------------------------------------------------------
+
+    async def publish_kill_switch_event(self, event: dict) -> bool:
+        """Publish a kill switch event to the agentpep.network topic.
+
+        Used by KillSwitchService to emit KILL_SWITCH_ACTIVATED and
+        KILL_SWITCH_DEACTIVATED events.
+        """
+        return await self.publish_network_event(event)
+
+    # ------------------------------------------------------------------
+    # Sprint 50 — APEP-399: Sentinel events
+    # ------------------------------------------------------------------
+
+    async def publish_sentinel_event(self, event: dict) -> bool:
+        """Publish a filesystem sentinel event to the agentpep.network topic.
+
+        Used by FilesystemSentinel to emit SENTINEL_HIT events.
+        """
+        return await self.publish_network_event(event)
+
+    # ------------------------------------------------------------------
+    # Sprint 50 — APEP-401: Threat score events
+    # ------------------------------------------------------------------
+
+    async def publish_threat_score_event(self, event: dict) -> bool:
+        """Publish a threat score update event to the agentpep.network topic.
+
+        Used by AdaptiveThreatScoreEngine to emit score changes.
+        """
+        return await self.publish_network_event(event)
+
     @property
     def is_running(self) -> bool:
         return self._started

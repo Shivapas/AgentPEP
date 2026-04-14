@@ -342,6 +342,25 @@ class PolicyEvaluator:
     ) -> PolicyDecisionResponse:
         """Core evaluation logic: resolve roles, fetch cached rules, match, decide."""
 
+        # --- Sprint 50 (APEP-396): Kill switch check ---
+        # If the kill switch is activated, immediately DENY all requests.
+        if settings.kill_switch_enabled:
+            try:
+                from app.services.kill_switch import kill_switch_service
+
+                if kill_switch_service.is_activated:
+                    elapsed_ms = int((time.monotonic() - start) * 1000)
+                    decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
+                    return PolicyDecisionResponse(
+                        request_id=request.request_id,
+                        decision=decision,
+                        reason="Kill switch activated — FAIL_CLOSED: all requests denied",
+                        risk_score=1.0,
+                        latency_ms=elapsed_ms,
+                    )
+            except Exception:
+                logger.warning("Kill switch check failed; proceeding", exc_info=True)
+
         # --- Sprint 37: Plan pipeline filters (pre-RBAC) ---
         if settings.mission_plan_enabled:
             plan_result = await self._check_plan_constraints(request, start)
