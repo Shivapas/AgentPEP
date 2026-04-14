@@ -1,12 +1,19 @@
 """Injection signature library — categorised prompt injection pattern detection.
 
-APEP-049: A curated library of injection signatures used to detect prompt
-injection attempts across five categories: prompt_override, role_hijack,
-system_escape, jailbreak, and encoding_bypass.
+APEP-049 / Sprint 52 (APEP-412, APEP-413): A curated library of 204 injection
+signatures used to detect prompt injection attempts across 25 categories,
+validated against the Mindgard AI IDE vulnerability taxonomy (20/22 patterns).
+
+Categories: prompt_override, role_hijack, system_escape, jailbreak,
+encoding_bypass, indirect_injection, multi_turn_attack, privilege_probe,
+social_engineering, reconnaissance, data_exfiltration, tool_manipulation,
+context_overflow, instruction_hierarchy, output_manipulation, goal_hijacking,
+resource_abuse, configuration_attack, supply_chain, persistence,
+dlp_api_key, dlp_token, dlp_credential, dlp_cloud_token, dlp_secret.
 
 Patterns are compiled at initialisation for runtime performance.  The module
 exposes a singleton ``injection_library`` for use by taint analysis and
-policy evaluation layers.
+policy evaluation layers.  Supports hot-reload via ``reload()`` (APEP-419).
 """
 
 from __future__ import annotations
