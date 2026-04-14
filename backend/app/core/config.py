@@ -241,6 +241,21 @@ class Settings(BaseSettings):
     dlp_taint_assignment_enabled: bool = True
     dlp_pattern_reload_interval_s: float = 600.0
 
+    # Sprint 48 — APEP-380..387: MCP Proxy Enhancement
+    mcp_dlp_scan_enabled: bool = True
+    mcp_poisoning_detection_enabled: bool = True
+    mcp_rug_pull_detection_enabled: bool = True
+    mcp_dlp_budget_enabled: bool = True
+    mcp_dlp_budget_max_findings: int = 10
+    mcp_dlp_budget_max_critical: int = 3
+    mcp_dlp_budget_max_outbound_bytes: int = 104_857_600  # 100MB
+    mcp_dlp_budget_max_inbound_bytes: int = 524_288_000  # 500MB
+    mcp_outbound_dlp_block_critical: bool = True
+    mcp_outbound_dlp_block_high: bool = False
+    mcp_reverse_proxy_enabled: bool = False
+    mcp_reverse_proxy_port: int = 8890
+    kafka_mcp_security_topic: str = "agentpep.mcp_security"
+
     # Sprint 49 — APEP-388..395: Tool Call Chain Detection Engine
     chain_detection_enabled: bool = True
     chain_detection_history_limit: int = 100

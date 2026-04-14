@@ -95,6 +95,11 @@ CHECKPOINT_ESCALATION_HISTORY = "checkpoint_escalation_history"
 # Sprint 45 — APEP-356..363: DLP Pre-Scan Hook
 DLP_PATTERNS = "dlp_patterns"
 DLP_SCAN_RESULTS = "dlp_scan_results"
+# Sprint 48 — APEP-380..387: MCP Proxy Enhancement
+MCP_DLP_SCAN_RESULTS = "mcp_dlp_scan_results"
+MCP_TOOL_POISONING_RESULTS = "mcp_tool_poisoning_results"
+MCP_RUG_PULL_DETECTIONS = "mcp_rug_pull_detections"
+MCP_SECURITY_EVENTS = "mcp_security_events"
 # Sprint 50 — APEP-396..403: Kill Switch, Filesystem Sentinel & Adaptive Threat Score
 KILL_SWITCH_ACTIVATIONS = "kill_switch_activations"
 SENTINEL_FINDINGS = "sentinel_findings"
@@ -546,6 +551,45 @@ async def init_collections() -> None:
             IndexModel([("session_id", ASCENDING)]),
             IndexModel([("agent_id", ASCENDING)]),
             IndexModel([("created_at", ASCENDING)], expireAfterSeconds=86400 * 7),
+        ]
+    )
+
+    # Sprint 48 — APEP-380..387: MCP Proxy Enhancement
+    mcp_dlp_scans = db[MCP_DLP_SCAN_RESULTS]
+    await mcp_dlp_scans.create_indexes(
+        [
+            IndexModel([("session_id", ASCENDING)]),
+            IndexModel([("agent_id", ASCENDING)]),
+            IndexModel([("direction", ASCENDING)]),
+            IndexModel([("scanned_at", ASCENDING)], expireAfterSeconds=86400 * 30),
+        ]
+    )
+
+    mcp_poisoning = db[MCP_TOOL_POISONING_RESULTS]
+    await mcp_poisoning.create_indexes(
+        [
+            IndexModel([("session_id", ASCENDING)]),
+            IndexModel([("agent_id", ASCENDING)]),
+            IndexModel([("scanned_at", ASCENDING)], expireAfterSeconds=86400 * 30),
+        ]
+    )
+
+    mcp_rug_pulls = db[MCP_RUG_PULL_DETECTIONS]
+    await mcp_rug_pulls.create_indexes(
+        [
+            IndexModel([("session_id", ASCENDING)]),
+            IndexModel([("agent_id", ASCENDING)]),
+            IndexModel([("detected_at", ASCENDING)], expireAfterSeconds=86400 * 30),
+        ]
+    )
+
+    mcp_sec_events = db[MCP_SECURITY_EVENTS]
+    await mcp_sec_events.create_indexes(
+        [
+            IndexModel([("session_id", ASCENDING)]),
+            IndexModel([("event_type", ASCENDING)]),
+            IndexModel([("agent_id", ASCENDING)]),
+            IndexModel([("timestamp", ASCENDING)], expireAfterSeconds=86400 * 90),
         ]
     )
 

@@ -255,6 +255,38 @@ class KafkaDecisionProducer:
             return False
 
     # ------------------------------------------------------------------
+    # Sprint 48 — APEP-380..387: MCP security events
+    # ------------------------------------------------------------------
+
+    async def publish_mcp_security_event(self, event: dict) -> bool:
+        """Publish an MCP security event to the agentpep.mcp_security topic.
+
+        Used by the MCP proxy to emit OUTBOUND_DLP_HIT, INBOUND_DLP_HIT,
+        TOOL_POISONING_DETECTED, RUG_PULL_DETECTED, and DLP_BUDGET_EXCEEDED
+        events.
+        """
+        if not self._started or self._producer is None:
+            return False
+
+        topic = getattr(
+            settings,
+            "kafka_mcp_security_topic",
+            "agentpep.mcp_security",
+        )
+
+        try:
+            key = event.get("session_id", event.get("event_id", ""))
+            await self._producer.send_and_wait(
+                topic=topic,
+                key=str(key),
+                value=event,
+            )
+            return True
+        except Exception:
+            logger.exception("Failed to publish MCP security event")
+            return False
+
+    # ------------------------------------------------------------------
     # Sprint 49 — APEP-394: Chain detection events
     # ------------------------------------------------------------------
 
@@ -366,6 +398,7 @@ class KafkaDecisionProducer:
         Used by AdaptiveThreatScoreEngine to emit score changes.
         """
         return await self.publish_network_event(event)
+
 
     @property
     def is_running(self) -> bool:
