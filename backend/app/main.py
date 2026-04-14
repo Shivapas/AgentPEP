@@ -34,6 +34,7 @@ from app.api.v1.sprint36 import router as sprint36_router
 from app.api.v1.dlp import router as dlp_router
 from app.api.v1.fetch import router as fetch_router
 from app.api.v1.forward_proxy import router as forward_proxy_router
+from app.api.v1.chain_detection import router as chain_detection_router
 from app.core.config import settings
 from app.core.observability import get_metrics_app, setup_tracing
 from app.core.structured_logging import configure_logging, get_logger
@@ -398,6 +399,7 @@ app.include_router(sprint36_router)
 app.include_router(dlp_router)
 app.include_router(fetch_router)
 app.include_router(forward_proxy_router)
+app.include_router(chain_detection_router)
 
 # Observability
 if settings.metrics_enabled:

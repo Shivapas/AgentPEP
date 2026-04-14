@@ -245,6 +245,44 @@ FETCH_AUTO_TAINT = Counter(
 )
 
 
+# --- Sprint 49 (APEP-394): Chain Detection Metrics ---
+
+CHAIN_DETECTION_TOTAL = Counter(
+    "agentpep_chain_detection_total",
+    "Total chain detection scans by result",
+    ["result"],  # detected, clean
+)
+
+CHAIN_DETECTION_LATENCY = Histogram(
+    "agentpep_chain_detection_latency_seconds",
+    "Chain detection scan latency",
+    buckets=[0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5],
+)
+
+CHAIN_MATCHES_TOTAL = Counter(
+    "agentpep_chain_matches_total",
+    "Total chain pattern matches by category and severity",
+    ["category", "severity"],
+)
+
+CHAIN_ESCALATIONS_TOTAL = Counter(
+    "agentpep_chain_escalations_total",
+    "Total chain detection escalations by priority",
+    ["priority"],
+)
+
+CHAIN_ACTIONS_TOTAL = Counter(
+    "agentpep_chain_actions_total",
+    "Total chain detection actions taken",
+    ["action"],  # ALERT, ESCALATE, DENY, LOG_ONLY
+)
+
+CHAIN_PATTERNS_ACTIVE = Gauge(
+    "agentpep_chain_patterns_active",
+    "Number of active chain detection patterns",
+)
+
+
 def get_metrics_app():  # type: ignore[no-untyped-def]
     """Return a Prometheus ASGI app to mount at /metrics."""
     return make_asgi_app()
