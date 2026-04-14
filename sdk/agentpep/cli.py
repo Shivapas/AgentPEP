@@ -561,6 +561,205 @@ def cmd_health(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
+# scope compile (Sprint 38 — APEP-305)
+# ---------------------------------------------------------------------------
+
+
+def cmd_scope_compile(args: argparse.Namespace) -> int:
+    """Compile a scope pattern to RBAC tool-name globs."""
+    import re
+
+    # Reuse the same validation logic as the backend without importing it
+    VALID_VERBS = {"read", "write", "delete", "execute", "send", "*"}
+    VALID_NAMESPACES = {"public", "secret", "internal", "external", "*"}
+    RESOURCE_RE = re.compile(r"^[\w\*\?\.\-/]+$")
+
+    VERB_PREFIXES = {
+        "read": ["file.read", "db.read", "api.get", "read"],
+        "write": ["file.write", "db.write", "api.post", "api.put", "write"],
+        "delete": ["file.delete", "db.drop", "db.delete", "api.delete", "delete"],
+        "execute": ["exec", "shell", "deploy", "execute"],
+        "send": ["email.send", "slack.send", "notify", "send"],
+        "*": ["*"],
+    }
+    NAMESPACE_SEGMENTS = {
+        "public": ["public"],
+        "secret": ["secret", "credential"],
+        "internal": ["internal", "admin"],
+        "external": ["external", "api"],
+        "*": ["*"],
+    }
+
+    pattern = args.pattern
+    parts = pattern.split(":")
+    if len(parts) != 3:
+        print(
+            f"ERROR: Invalid scope pattern '{pattern}': "
+            f"expected 'verb:namespace:resource'",
+            file=sys.stderr,
+        )
+        return 1
+
+    verb, namespace, resource = parts
+    verb = verb.lower()
+    namespace = namespace.lower()
+
+    if verb not in VALID_VERBS:
+        print(f"ERROR: Invalid verb '{verb}'. Valid: {', '.join(sorted(VALID_VERBS))}", file=sys.stderr)
+        return 1
+    if namespace not in VALID_NAMESPACES:
+        print(f"ERROR: Invalid namespace '{namespace}'. Valid: {', '.join(sorted(VALID_NAMESPACES))}", file=sys.stderr)
+        return 1
+    if not resource or not RESOURCE_RE.match(resource):
+        print(f"ERROR: Invalid resource glob '{resource}'", file=sys.stderr)
+        return 1
+
+    # Compile to RBAC patterns
+    if verb == "*" and namespace == "*" and resource == "*":
+        rbac_patterns = ["*"]
+    else:
+        rbac_patterns = []
+        prefixes = VERB_PREFIXES.get(verb, [verb])
+        segments = NAMESPACE_SEGMENTS.get(namespace, [namespace])
+        for prefix in prefixes:
+            for segment in segments:
+                if prefix == "*":
+                    if segment == "*":
+                        rbac_patterns.append(f"*.{resource}")
+                    else:
+                        rbac_patterns.append(f"*.{segment}.{resource}")
+                elif segment == "*":
+                    rbac_patterns.append(f"{prefix}.*.{resource}")
+                else:
+                    rbac_patterns.append(f"{prefix}.{segment}.{resource}")
+
+    # Deduplicate
+    seen: set[str] = set()
+    unique: list[str] = []
+    for p in rbac_patterns:
+        if p not in seen:
+            seen.add(p)
+            unique.append(p)
+    rbac_patterns = unique
+
+    if args.json:
+        output = {
+            "scope_pattern": f"{verb}:{namespace}:{resource}",
+            "verb": verb,
+            "namespace": namespace,
+            "resource_glob": resource,
+            "rbac_patterns": rbac_patterns,
+        }
+        print(json.dumps(output, indent=2))
+    else:
+        print(f"Scope pattern: {verb}:{namespace}:{resource}")
+        print(f"  Verb:      {verb}")
+        print(f"  Namespace: {namespace}")
+        print(f"  Resource:  {resource}")
+        print(f"  RBAC patterns ({len(rbac_patterns)}):")
+        for p in rbac_patterns:
+            print(f"    - {p}")
+
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# scope validate (Sprint 38 — APEP-306)
+# ---------------------------------------------------------------------------
+
+
+def cmd_scope_validate(args: argparse.Namespace) -> int:
+    """Validate scope patterns in a plan YAML file."""
+    import re
+
+    import yaml
+
+    VALID_VERBS = {"read", "write", "delete", "execute", "send", "*"}
+    VALID_NAMESPACES = {"public", "secret", "internal", "external", "*"}
+    RESOURCE_RE = re.compile(r"^[\w\*\?\.\-/]+$")
+
+    path = Path(args.file)
+    if not path.is_file():
+        print(f"ERROR: File not found: {args.file}", file=sys.stderr)
+        return 1
+
+    try:
+        data = yaml.safe_load(path.read_text())
+    except Exception as exc:
+        print(f"ERROR: Failed to parse YAML: {exc}", file=sys.stderr)
+        return 1
+
+    if not isinstance(data, dict):
+        print("ERROR: Plan YAML must be a mapping", file=sys.stderr)
+        return 1
+
+    # Collect scope patterns from known fields
+    scope_patterns: list[str] = []
+    for field in ("scope", "requires_checkpoint"):
+        value = data.get(field, [])
+        if isinstance(value, list):
+            scope_patterns.extend(value)
+
+    if not scope_patterns:
+        print("No scope patterns found in plan YAML.")
+        return 0
+
+    errors: list[str] = []
+    valid_count = 0
+
+    for pattern in scope_patterns:
+        parts = pattern.split(":")
+        if len(parts) != 3:
+            errors.append(
+                f"'{pattern}': expected 'verb:namespace:resource', "
+                f"got {len(parts)} part(s)"
+            )
+            continue
+
+        verb, namespace, resource = parts
+        verb = verb.lower()
+        namespace = namespace.lower()
+
+        if verb not in VALID_VERBS:
+            errors.append(f"'{pattern}': invalid verb '{verb}'")
+            continue
+        if namespace not in VALID_NAMESPACES:
+            errors.append(f"'{pattern}': invalid namespace '{namespace}'")
+            continue
+        if not resource or not RESOURCE_RE.match(resource):
+            errors.append(f"'{pattern}': invalid resource glob '{resource}'")
+            continue
+
+        valid_count += 1
+
+    total = len(scope_patterns)
+    invalid_count = len(errors)
+    all_valid = invalid_count == 0
+
+    if args.json:
+        output = {
+            "valid": all_valid,
+            "total_patterns": total,
+            "valid_patterns": valid_count,
+            "invalid_patterns": invalid_count,
+            "errors": errors,
+        }
+        print(json.dumps(output, indent=2))
+    else:
+        status = "VALID" if all_valid else "INVALID"
+        print(f"{status}: {args.file}")
+        print(f"  Total patterns: {total}")
+        print(f"  Valid: {valid_count}")
+        print(f"  Invalid: {invalid_count}")
+        if errors:
+            print("  Errors:")
+            for e in errors:
+                print(f"    - {e}")
+
+    return 0 if all_valid else 1
+
+
+# ---------------------------------------------------------------------------
 # Main parser
 # ---------------------------------------------------------------------------
 
@@ -645,6 +844,26 @@ def build_parser() -> argparse.ArgumentParser:
     verify_p.add_argument("--key-id", default="default", help="Key ID")
     verify_p.add_argument("--verbose", action="store_true")
 
+    # --- scope (Sprint 38 — APEP-305/306) ---
+    scope_parser = subparsers.add_parser("scope", help="Scope pattern commands")
+    scope_sub = scope_parser.add_subparsers(dest="scope_command")
+
+    # scope compile
+    compile_p = scope_sub.add_parser(
+        "compile",
+        help="Compile a scope pattern to RBAC tool-name globs",
+    )
+    compile_p.add_argument("pattern", help="Scope pattern (verb:namespace:resource)")
+    compile_p.add_argument("--json", action="store_true", help="Output as JSON")
+
+    # scope validate
+    validate_scope_p = scope_sub.add_parser(
+        "validate",
+        help="Validate scope patterns in a plan YAML file",
+    )
+    validate_scope_p.add_argument("file", help="Path to plan YAML file")
+    validate_scope_p.add_argument("--json", action="store_true", help="Output as JSON")
+
     # --- health ---
     health_p = subparsers.add_parser("health", help="Check server health")
     health_p.add_argument(
@@ -696,6 +915,15 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.receipt_command == "verify":
             return cmd_receipt_verify(args)
+
+    elif args.command == "scope":
+        if not hasattr(args, "scope_command") or args.scope_command is None:
+            parser.parse_args(["scope", "--help"])
+            return 0
+        if args.scope_command == "compile":
+            return cmd_scope_compile(args)
+        elif args.scope_command == "validate":
+            return cmd_scope_validate(args)
 
     elif args.command == "health":
         return cmd_health(args)

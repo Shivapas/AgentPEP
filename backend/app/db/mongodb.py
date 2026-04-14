@@ -82,6 +82,8 @@ TENANT_ISOLATION_VIOLATIONS = "tenant_isolation_violations"
 # Sprint 37 — APEP-292..298: MissionPlan
 MISSION_PLANS = "mission_plans"
 PLAN_SESSION_BINDINGS = "plan_session_bindings"
+# Sprint 38 — APEP-300..307: Scope Pattern Language
+SCOPE_PATTERNS = "scope_patterns"
 
 
 async def init_collections() -> None:
@@ -470,6 +472,20 @@ async def init_collections() -> None:
             IndexModel(
                 [("bound_at", ASCENDING)],
                 expireAfterSeconds=86400 * 30,  # 30-day TTL for bindings
+            ),
+        ]
+    )
+
+    # Sprint 38 — APEP-300..307: Scope Patterns
+    scope_patterns = db[SCOPE_PATTERNS]
+    await scope_patterns.create_indexes(
+        [
+            IndexModel([("pattern", ASCENDING)], unique=True),
+            IndexModel([("verb", ASCENDING)]),
+            IndexModel([("namespace", ASCENDING)]),
+            IndexModel(
+                [("created_at", ASCENDING)],
+                expireAfterSeconds=86400 * 90,  # 90-day TTL
             ),
         ]
     )

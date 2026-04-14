@@ -826,7 +826,9 @@ class PolicyEvaluator:
         Filters (in order):
           1. PlanBudgetGate -- deny if plan expired or budget exhausted.
           2. PlanDelegatesToFilter -- deny if agent not in delegates_to.
-          3. PlanCheckpointFilter -- escalate if action matches requires_checkpoint.
+          3. PlanScopeFilter -- deny if tool not within plan scope (Sprint 38).
+          4. PlanCheckpointFilter -- escalate if action matches requires_checkpoint
+             (enhanced with scope pattern matching in Sprint 38).
         """
         try:
             from app.services.mission_plan_service import mission_plan_service
@@ -864,15 +866,35 @@ class PolicyEvaluator:
                     latency_ms=elapsed_ms,
                 )
 
-            # --- PlanCheckpointFilter (pre-RBAC stage) ---
-            if mission_plan_service.check_requires_checkpoint(
+            # --- Sprint 38 (APEP-304): PlanScopeFilter (pre-RBAC stage) ---
+            from app.services.scope_filter import plan_scope_filter
+
+            scope_result = plan_scope_filter.check(plan, request.tool_name)
+            if not scope_result.allowed:
+                decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
+                return PolicyDecisionResponse(
+                    request_id=request.request_id,
+                    decision=decision,
+                    reason=f"Plan scope denied: {scope_result.reason}",
+                    latency_ms=elapsed_ms,
+                )
+
+            # --- Sprint 38 (APEP-303): PlanCheckpointFilter (pre-RBAC stage)
+            #     Enhanced with scope pattern matching ---
+            from app.services.scope_filter import plan_checkpoint_filter
+
+            checkpoint_result = plan_checkpoint_filter.check(
                 plan, request.tool_name
-            ):
+            )
+            if checkpoint_result.matches:
                 decision = Decision.DRY_RUN if request.dry_run else Decision.ESCALATE
                 return PolicyDecisionResponse(
                     request_id=request.request_id,
                     decision=decision,
-                    reason="Plan requires checkpoint approval for this tool",
+                    reason=(
+                        f"Plan requires checkpoint approval: "
+                        f"{checkpoint_result.reason}"
+                    ),
                     latency_ms=elapsed_ms,
                 )
 
