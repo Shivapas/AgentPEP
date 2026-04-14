@@ -252,6 +252,15 @@ class PlanDetailResponse(BaseModel):
     budget_exhausted: bool = False
 
 
+class PlanListResponse(BaseModel):
+    """Response body for GET /v1/plans (Sprint 42)."""
+
+    plans: list[PlanDetailResponse] = Field(default_factory=list)
+    total: int = 0
+    offset: int = 0
+    limit: int = 50
+
+
 # ---------------------------------------------------------------------------
 # APEP-296: Plan Revocation
 # ---------------------------------------------------------------------------

@@ -28,6 +28,7 @@ from app.models.mission_plan import (
     CreatePlanRequest,
     CreatePlanResponse,
     PlanDetailResponse,
+    PlanListResponse,
     RevokePlanResponse,
 )
 from app.models.plan_budget_gate import (
@@ -50,6 +51,61 @@ from app.services.receipt_chain import (
 )
 
 router = APIRouter(prefix="/v1", tags=["plans"])
+
+
+# ---------------------------------------------------------------------------
+# Sprint 42: GET /v1/plans — list plans with filtering & pagination
+# ---------------------------------------------------------------------------
+
+
+@router.get("/plans", response_model=PlanListResponse)
+async def list_plans(
+    status: str | None = None,
+    issuer: str | None = None,
+    sort_by: str = "issued_at",
+    sort_dir: str = "desc",
+    offset: int = 0,
+    limit: int = 50,
+) -> PlanListResponse:
+    """List all MissionPlans with optional filtering and pagination.
+
+    Supports filtering by status (ACTIVE, EXPIRED, REVOKED) and issuer,
+    with configurable sorting and pagination.
+    """
+    plans, total = await mission_plan_service.list_plans(
+        status=status,
+        issuer=issuer,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        offset=offset,
+        limit=limit,
+    )
+    return PlanListResponse(
+        plans=[
+            PlanDetailResponse(
+                plan_id=p.plan_id,
+                action=p.action,
+                issuer=p.issuer,
+                scope=p.scope,
+                requires_checkpoint=p.requires_checkpoint,
+                delegates_to=p.delegates_to,
+                budget=p.budget,
+                human_intent=p.human_intent,
+                status=p.status,
+                signature=p.signature,
+                issued_at=p.issued_at,
+                expires_at=p.expires_at,
+                delegation_count=p.delegation_count,
+                accumulated_risk=p.accumulated_risk,
+                is_active=p.is_active,
+                budget_exhausted=p.budget_exhausted,
+            )
+            for p in plans
+        ],
+        total=total,
+        offset=offset,
+        limit=limit,
+    )
 
 
 # ---------------------------------------------------------------------------

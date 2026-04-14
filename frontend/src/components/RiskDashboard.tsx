@@ -9,6 +9,7 @@ import { DecisionTrendChart } from "./DecisionTrendChart";
 import { TopBlockedTools } from "./TopBlockedTools";
 import { RiskHistogram } from "./RiskHistogram";
 import { AnomalyHighlight } from "./AnomalyHighlight";
+import { PlanBudgetWidget } from "./plans/PlanBudgetWidget";
 
 function Card({
   title,
@@ -82,10 +83,15 @@ export function RiskDashboard() {
             </Card>
           </div>
 
-          {/* Top blocked tools */}
-          <Card title="Top Blocked Tools">
-            <TopBlockedTools data={data.top_blocked} />
-          </Card>
+          {/* Plan budgets + top blocked tools */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card title="Active Plan Budgets">
+              <PlanBudgetWidget />
+            </Card>
+            <Card title="Top Blocked Tools">
+              <TopBlockedTools data={data.top_blocked} />
+            </Card>
+          </div>
 
           {/* Footer with metadata */}
           <p className="text-xs text-muted-foreground">

@@ -87,6 +87,51 @@ class MissionPlanService:
     # APEP-295: Retrieve plan
     # ------------------------------------------------------------------
 
+    async def list_plans(
+        self,
+        *,
+        status: str | None = None,
+        issuer: str | None = None,
+        sort_by: str = "issued_at",
+        sort_dir: str = "desc",
+        offset: int = 0,
+        limit: int = 50,
+    ) -> tuple[list[MissionPlan], int]:
+        """List plans with optional filtering, sorting, and pagination."""
+        db = db_module.get_database()
+        col = db[db_module.MISSION_PLANS]
+
+        query: dict = {}
+        if status:
+            query["status"] = status
+        if issuer:
+            query["issuer"] = {"$regex": issuer, "$options": "i"}
+
+        sort_field = sort_by if sort_by in ("issued_at", "action", "issuer", "status") else "issued_at"
+        sort_order = 1 if sort_dir == "asc" else -1
+
+        total = await col.count_documents(query)
+        cursor = col.find(query).sort(sort_field, sort_order).skip(offset).limit(limit)
+
+        plans: list[MissionPlan] = []
+        async for doc in cursor:
+            doc.pop("_id", None)
+            plan = MissionPlan(**doc)
+            # Auto-expire if needed
+            if (
+                plan.status == PlanStatus.ACTIVE
+                and plan.expires_at is not None
+                and datetime.now(UTC) >= plan.expires_at
+            ):
+                plan.status = PlanStatus.EXPIRED
+                await col.update_one(
+                    {"plan_id": str(plan.plan_id)},
+                    {"$set": {"status": PlanStatus.EXPIRED}},
+                )
+            plans.append(plan)
+
+        return plans, total
+
     async def get_plan(self, plan_id: UUID) -> MissionPlan | None:
         """Retrieve a MissionPlan by ID, refreshing expiry status."""
         db = db_module.get_database()

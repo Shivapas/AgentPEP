@@ -23,6 +23,10 @@ import { PolicyRules } from "./components/PolicyRules";
 import { AuditLog } from "./components/AuditLog";
 import { AgentProfiles } from "./components/AgentProfiles";
 import { UXSurvey } from "./components/UXSurvey";
+import { PlanManagementList } from "./components/plans/PlanManagementList";
+import { PlanIssuanceForm } from "./components/plans/PlanIssuanceForm";
+import { PlanDetailPage } from "./components/plans/PlanDetailPage";
+import { PlanExplorer } from "./components/plans/PlanExplorer";
 
 export function App() {
   return (
@@ -57,6 +61,10 @@ export function App() {
                 <Route path="/simulate" element={<SimulationBuilder />} />
                 <Route path="/simulate/compare" element={<SimulationCompare />} />
                 <Route path="/compliance" element={<ComplianceReports />} />
+                <Route path="/plans" element={<PlanManagementList />} />
+                <Route path="/plans/new" element={<PlanIssuanceForm />} />
+                <Route path="/plans/:planId" element={<PlanDetailPage />} />
+                <Route path="/plans/:planId/explorer" element={<PlanExplorer />} />
                 <Route path="/risk" element={<RiskDashboard />} />
                 <Route path="/ux-survey" element={<UXSurvey />} />
               </Route>
