@@ -993,6 +993,66 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
+# cis-scan (Sprint 54 — APEP-434)
+# ---------------------------------------------------------------------------
+
+
+def cmd_cis_scan(args: argparse.Namespace) -> int:
+    """Scan a file path or text through the CIS pipeline (APEP-434)."""
+    from agentpep.client import AgentPEPClient
+
+    client = AgentPEPClient(
+        base_url=args.base_url,
+        api_key=getattr(args, "api_key", None),
+        timeout=args.timeout,
+    )
+
+    try:
+        result = client.cis_scan_sync(
+            args.target,
+            session_id=getattr(args, "session_id", None),
+            scan_mode=args.scan_mode,
+        )
+
+        if args.json:
+            print(json.dumps(result, indent=2, default=str))
+        else:
+            allowed = result.get("allowed", True)
+            findings = result.get("findings", [])
+            verdict = result.get("verdict", "CLEAN")
+            latency = result.get("latency_ms", 0)
+
+            status = "PASS" if allowed else "BLOCKED"
+            print(f"  Status: {status}")
+            print(f"  Verdict: {verdict}")
+            print(f"  Findings: {len(findings)}")
+            print(f"  Latency: {latency}ms")
+
+            if result.get("scan_mode_applied"):
+                print(f"  Scan Mode: {result['scan_mode_applied']}")
+            if result.get("is_instruction_file"):
+                print(f"  Instruction File: {result.get('instruction_file_type', 'yes')}")
+            if result.get("taint_assigned"):
+                print(f"  Taint Assigned: {result['taint_assigned']}")
+            if result.get("cache_hit"):
+                print("  Cache Hit: yes")
+
+            for i, finding in enumerate(findings, 1):
+                sev = finding.get("severity", "MEDIUM")
+                rule = finding.get("rule_id", "unknown")
+                desc = finding.get("description", "")
+                print(f"\n  [{i}] {sev}: {rule}")
+                if desc:
+                    print(f"      {desc}")
+
+        return 0 if result.get("allowed", True) else 1
+
+    except Exception as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+
+# ---------------------------------------------------------------------------
 # Main parser
 # ---------------------------------------------------------------------------
 
@@ -1172,6 +1232,23 @@ def build_parser() -> argparse.ArgumentParser:
     fetch_p.add_argument("--json", action="store_true", help="Output as JSON")
     fetch_p.add_argument("--timeout", type=float, default=30.0, help="Request timeout")
 
+    # --- cis-scan (Sprint 54 — APEP-434) ---
+    cis_p = subparsers.add_parser("cis-scan", help="Scan file or text through CIS pipeline")
+    cis_p.add_argument("target", help="File path or text content to scan")
+    cis_p.add_argument(
+        "--base-url", default="http://localhost:8000",
+        help="AgentPEP server URL",
+    )
+    cis_p.add_argument("--api-key", help="API key for authentication")
+    cis_p.add_argument("--session-id", help="Session ID for taint propagation")
+    cis_p.add_argument(
+        "--scan-mode", default="STRICT",
+        choices=["STRICT", "STANDARD", "LENIENT"],
+        help="CIS scan mode (default: STRICT)",
+    )
+    cis_p.add_argument("--json", action="store_true", help="Output as JSON")
+    cis_p.add_argument("--timeout", type=float, default=10.0, help="Request timeout")
+
     # --- health ---
     health_p = subparsers.add_parser("health", help="Check server health")
     health_p.add_argument(
@@ -1239,6 +1316,9 @@ def main(argv: list[str] | None = None) -> int:
 
     elif args.command == "fetch":
         return cmd_fetch(args)
+
+    elif args.command == "cis-scan":
+        return cmd_cis_scan(args)
 
     elif args.command == "health":
         return cmd_health(args)

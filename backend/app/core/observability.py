@@ -428,6 +428,50 @@ ONNX_BENCHMARK_F1 = Gauge(
     ["dataset", "scan_mode"],
 )
 
+# --- Sprint 54 (APEP-428/430/431/432): CIS Scanner Metrics ---
+
+CIS_REPO_SCAN_TOTAL = Counter(
+    "agentpep_cis_repo_scan_total",
+    "Total pre-session repository scans by verdict",
+    ["verdict"],  # CLEAN, SUSPICIOUS, MALICIOUS
+)
+
+CIS_REPO_SCAN_LATENCY = Histogram(
+    "agentpep_cis_repo_scan_latency_seconds",
+    "Pre-session repository scan latency",
+    buckets=[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0],
+)
+
+CIS_FILE_SCAN_TOTAL = Counter(
+    "agentpep_cis_file_scan_total",
+    "Total individual file scans by verdict and instruction-file status",
+    ["verdict", "is_instruction"],
+)
+
+CIS_SESSION_SCAN_TOTAL = Counter(
+    "agentpep_cis_session_scan_total",
+    "Total scan-on-session-start invocations by allowed status",
+    ["session_allowed"],
+)
+
+CIS_POST_TOOL_SCAN_TOTAL = Counter(
+    "agentpep_cis_post_tool_scan_total",
+    "Total PostToolUse auto-scans by verdict and escalation status",
+    ["verdict", "escalated"],
+)
+
+CIS_INSTRUCTION_FILE_TOTAL = Counter(
+    "agentpep_cis_instruction_file_total",
+    "Total agent instruction files detected by type",
+    ["file_type"],  # CLAUDE.md, .cursorrules, AGENTS.md, etc.
+)
+
+CIS_FINDINGS_TOTAL = Counter(
+    "agentpep_cis_findings_total",
+    "Total CIS findings by severity and scanner",
+    ["severity", "scanner"],
+)
+
 
 def get_metrics_app():  # type: ignore[no-untyped-def]
     """Return a Prometheus ASGI app to mount at /metrics."""

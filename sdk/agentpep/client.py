@@ -504,6 +504,128 @@ class AgentPEPClient:
         except httpx.TimeoutException as exc:
             raise AgentPEPTimeoutError(f"Health check timed out: {exc}") from exc
 
+    # --- Sprint 54 (APEP-434): CIS scan helper ---
+
+    async def cis_scan(
+        self,
+        path_or_text: str,
+        *,
+        session_id: str | None = None,
+        scan_mode: str = "STRICT",
+        tiers: list[int] | None = None,
+    ) -> dict[str, Any]:
+        """Scan a file path or text content through the CIS pipeline (APEP-434).
+
+        Automatically detects whether *path_or_text* is a file path or inline
+        text and calls the appropriate endpoint:
+          - File path → POST /v1/cis/scan-file
+          - Text content → POST /v1/cis/scan-text
+
+        Args:
+            path_or_text: A filesystem path or raw text to scan.
+            session_id: Optional session ID for taint propagation.
+            scan_mode: CIS scan mode (STRICT, STANDARD, LENIENT).
+            tiers: Tiers to run (default [0, 1]).
+
+        Returns:
+            The scan result dict from the server.
+        """
+        import os
+
+        effective_tiers = tiers if tiers is not None else [0, 1]
+
+        # Heuristic: if it looks like a path (contains os.sep or /) treat as file.
+        is_path = os.sep in path_or_text or "/" in path_or_text
+
+        try:
+            client = await self._get_async_client()
+
+            if is_path:
+                payload: dict[str, Any] = {
+                    "file_path": path_or_text,
+                    "scan_mode": scan_mode,
+                    "tiers": effective_tiers,
+                }
+                if session_id:
+                    payload["session_id"] = session_id
+                resp = await client.post("/v1/cis/scan-file", json=payload)
+            else:
+                payload = {
+                    "text": path_or_text,
+                    "scan_mode": scan_mode,
+                    "tiers": effective_tiers,
+                }
+                if session_id:
+                    payload["session_id"] = session_id
+                resp = await client.post("/v1/cis/scan-text", json=payload)
+
+            resp.raise_for_status()
+            return resp.json()  # type: ignore[no-any-return]
+
+        except httpx.ConnectError as exc:
+            if self.fail_open:
+                logger.warning("AgentPEP unreachable — cis_scan fail_open, returning clean")
+                return {"allowed": True, "findings": [], "fail_open": True}
+            raise AgentPEPConnectionError(f"Cannot connect to AgentPEP: {exc}") from exc
+        except httpx.TimeoutException as exc:
+            if self.fail_open:
+                logger.warning("AgentPEP timeout — cis_scan fail_open, returning clean")
+                return {"allowed": True, "findings": [], "fail_open": True}
+            raise AgentPEPTimeoutError(f"cis_scan timed out: {exc}") from exc
+
+    def cis_scan_sync(
+        self,
+        path_or_text: str,
+        *,
+        session_id: str | None = None,
+        scan_mode: str = "STRICT",
+        tiers: list[int] | None = None,
+    ) -> dict[str, Any]:
+        """Scan a file path or text content through the CIS pipeline (sync).
+
+        See ``cis_scan`` for details.
+        """
+        import os
+
+        effective_tiers = tiers if tiers is not None else [0, 1]
+        is_path = os.sep in path_or_text or "/" in path_or_text
+
+        try:
+            client = self._get_sync_client()
+
+            if is_path:
+                payload: dict[str, Any] = {
+                    "file_path": path_or_text,
+                    "scan_mode": scan_mode,
+                    "tiers": effective_tiers,
+                }
+                if session_id:
+                    payload["session_id"] = session_id
+                resp = client.post("/v1/cis/scan-file", json=payload)
+            else:
+                payload = {
+                    "text": path_or_text,
+                    "scan_mode": scan_mode,
+                    "tiers": effective_tiers,
+                }
+                if session_id:
+                    payload["session_id"] = session_id
+                resp = client.post("/v1/cis/scan-text", json=payload)
+
+            resp.raise_for_status()
+            return resp.json()  # type: ignore[no-any-return]
+
+        except httpx.ConnectError as exc:
+            if self.fail_open:
+                logger.warning("AgentPEP unreachable — cis_scan_sync fail_open, returning clean")
+                return {"allowed": True, "findings": [], "fail_open": True}
+            raise AgentPEPConnectionError(f"Cannot connect to AgentPEP: {exc}") from exc
+        except httpx.TimeoutException as exc:
+            if self.fail_open:
+                logger.warning("AgentPEP timeout — cis_scan_sync fail_open, returning clean")
+                return {"allowed": True, "findings": [], "fail_open": True}
+            raise AgentPEPTimeoutError(f"cis_scan_sync timed out: {exc}") from exc
+
     def close(self) -> None:
         """Close the underlying sync HTTP client."""
         if self._sync_client and not self._sync_client.is_closed:
