@@ -86,6 +86,8 @@ PLAN_SESSION_BINDINGS = "plan_session_bindings"
 SCOPE_PATTERNS = "scope_patterns"
 # Sprint 39 — APEP-310: Receipt chain tracking
 RECEIPT_CHAINS = "receipt_chains"
+# Sprint 40 — APEP-321: Budget alert events
+PLAN_BUDGET_ALERTS = "plan_budget_alerts"
 
 
 async def init_collections() -> None:
@@ -488,6 +490,21 @@ async def init_collections() -> None:
             IndexModel(
                 [("created_at", ASCENDING)],
                 expireAfterSeconds=86400 * 90,  # 90-day TTL
+            ),
+        ]
+    )
+
+    # Sprint 40 — APEP-321: Plan budget alerts
+    plan_budget_alerts = db[PLAN_BUDGET_ALERTS]
+    await plan_budget_alerts.create_indexes(
+        [
+            IndexModel([("alert_id", ASCENDING)], unique=True),
+            IndexModel([("plan_id", ASCENDING)]),
+            IndexModel([("alert_level", ASCENDING)]),
+            IndexModel([("dimension", ASCENDING)]),
+            IndexModel(
+                [("timestamp", ASCENDING)],
+                expireAfterSeconds=86400 * 30,  # 30-day TTL
             ),
         ]
     )

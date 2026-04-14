@@ -8,6 +8,13 @@ APEP-297: POST /v1/plans/{plan_id}/bind -- bind plan to session.
 Sprint 39 — Receipt chaining with plan root:
 APEP-311: GET /v1/plans/{plan_id}/receipts -- return full receipt chain.
 APEP-312: GET /v1/plans/{plan_id}/receipts/summary -- return chain summary.
+
+Sprint 40 — Declarative Delegates-To & Plan Budget Gate:
+APEP-316.d: GET /v1/plans/{plan_id}/delegates/{agent_id} -- check delegation.
+APEP-318.d: GET /v1/plans/{plan_id}/budget -- budget gate status.
+APEP-319.d: POST /v1/plans/{plan_id}/budget/check -- budget enforcement check.
+APEP-320: GET /v1/plans/{plan_id}/budget -- budget status API.
+APEP-322: POST /v1/plans/{plan_id}/budget/reset -- reset plan budget.
 """
 
 from uuid import UUID
@@ -22,7 +29,15 @@ from app.models.mission_plan import (
     PlanDetailResponse,
     RevokePlanResponse,
 )
+from app.models.plan_budget_gate import (
+    BudgetResetRequest,
+    BudgetResetResponse,
+    BudgetStatusResponse,
+    DelegationCheckResult,
+)
 from app.services.mission_plan_service import mission_plan_service
+from app.services.plan_budget_gate import plan_budget_gate
+from app.services.plan_delegates_filter import plan_delegates_filter
 from app.services.receipt_chain import (
     ReceiptChainResponse,
     ReceiptChainSummary,
@@ -166,3 +181,81 @@ async def get_plan_receipts_summary(plan_id: UUID) -> ReceiptChainSummary:
         raise HTTPException(status_code=404, detail="Plan not found")
 
     return await receipt_chain_manager.get_summary(plan_id)
+
+
+# ---------------------------------------------------------------------------
+# Sprint 40 — APEP-316.d: GET /v1/plans/{plan_id}/delegates/{agent_id}
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/plans/{plan_id}/delegates/{agent_id}",
+    response_model=DelegationCheckResult,
+)
+async def check_delegation(
+    plan_id: UUID, agent_id: str
+) -> DelegationCheckResult:
+    """Check whether an agent is authorized under a plan's delegates_to list.
+
+    Returns authorization status and reason. Supports both exact match
+    and glob pattern matching against the plan's delegates_to whitelist.
+    """
+    plan = await mission_plan_service.get_plan(plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    return plan_delegates_filter.check(plan, agent_id)
+
+
+# ---------------------------------------------------------------------------
+# Sprint 40 — APEP-320: GET /v1/plans/{plan_id}/budget
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/plans/{plan_id}/budget",
+    response_model=BudgetStatusResponse,
+)
+async def get_budget_status(plan_id: UUID) -> BudgetStatusResponse:
+    """Retrieve the current budget status for a MissionPlan.
+
+    Returns delegation count, risk accumulation, TTL remaining,
+    exhausted dimensions, and utilization percentages.
+    """
+    plan = await mission_plan_service.get_plan(plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    return await plan_budget_gate.get_budget_status(plan)
+
+
+# ---------------------------------------------------------------------------
+# Sprint 40 — APEP-322: POST /v1/plans/{plan_id}/budget/reset
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/plans/{plan_id}/budget/reset",
+    response_model=BudgetResetResponse,
+)
+async def reset_plan_budget(
+    plan_id: UUID, request: BudgetResetRequest
+) -> BudgetResetResponse:
+    """Reset a plan's budget counters and optionally update budget limits.
+
+    Can reactivate an EXPIRED plan (budget-exhausted) by resetting its
+    counters and/or updating its limits. Revoked plans cannot be reset.
+    """
+    plan = await mission_plan_service.get_plan(plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    from app.models.mission_plan import PlanStatus
+
+    if plan.status == PlanStatus.REVOKED:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot reset budget for a revoked plan",
+        )
+
+    return await plan_budget_gate.reset_budget(plan, request)

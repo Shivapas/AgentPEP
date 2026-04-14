@@ -275,20 +275,22 @@ class PolicyEvaluator:
                 latency_ms=elapsed_ms,
             )
 
-        # Sprint 37: Record delegation against plan budget for ALLOW decisions
+        # Sprint 40 (APEP-319): Record delegation via PlanBudgetGate for ALLOW
+        # decisions — updates Redis + MongoDB budget state and emits alerts.
         if (
             settings.mission_plan_enabled
             and decision_response.decision == Decision.ALLOW
         ):
             try:
                 from app.services.mission_plan_service import mission_plan_service
+                from app.services.plan_budget_gate import plan_budget_gate
 
                 plan = await mission_plan_service.get_plan_for_session(
                     request.session_id
                 )
                 if plan is not None:
-                    await mission_plan_service.record_delegation(
-                        plan.plan_id, decision_response.risk_score
+                    await plan_budget_gate.record_delegation(
+                        plan, decision_response.risk_score
                     )
             except Exception:
                 logger.warning(
@@ -824,8 +826,10 @@ class PolicyEvaluator:
         or None if the request should proceed to normal RBAC evaluation.
 
         Filters (in order):
-          1. PlanBudgetGate -- deny if plan expired or budget exhausted.
-          2. PlanDelegatesToFilter -- deny if agent not in delegates_to.
+          1. PlanBudgetGate -- deny if plan expired or budget exhausted
+             (Sprint 40 — APEP-318/319: Redis-backed budget state).
+          2. PlanDelegatesToFilter -- deny if agent not in delegates_to
+             (Sprint 40 — APEP-316/317: glob-aware delegation whitelist).
           3. PlanScopeFilter -- deny if tool not within plan scope (Sprint 38).
           4. PlanCheckpointFilter -- escalate if action matches requires_checkpoint
              (enhanced with scope pattern matching in Sprint 38).
@@ -842,27 +846,31 @@ class PolicyEvaluator:
 
             elapsed_ms = int((time.monotonic() - start) * 1000)
 
-            # --- PlanBudgetGate (pre-evaluation stage) ---
-            denial = await mission_plan_service.check_plan_budget(plan)
-            if denial is not None:
+            # --- Sprint 40 (APEP-318/319): PlanBudgetGate (pre-evaluation) ---
+            from app.services.plan_budget_gate import plan_budget_gate
+
+            budget_result = await plan_budget_gate.check(plan)
+            if not budget_result.allowed:
                 decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
                 return PolicyDecisionResponse(
                     request_id=request.request_id,
                     decision=decision,
-                    reason=f"Plan denied: {denial.value}",
+                    reason=f"Plan denied: {budget_result.reason}",
                     latency_ms=elapsed_ms,
                 )
 
-            # --- PlanDelegatesToFilter (pre-confused-deputy stage) ---
-            if not mission_plan_service.check_agent_authorized(
+            # --- Sprint 40 (APEP-316/317): PlanDelegatesToFilter ---
+            from app.services.plan_delegates_filter import plan_delegates_filter
+
+            delegation_result = plan_delegates_filter.check(
                 plan, request.agent_id
-            ):
+            )
+            if not delegation_result.authorized:
                 decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
                 return PolicyDecisionResponse(
                     request_id=request.request_id,
                     decision=decision,
-                    reason=f"Plan denied: {Decision.DENY} -- "
-                    f"agent '{request.agent_id}' not in plan delegates_to",
+                    reason=f"Plan denied: {delegation_result.reason}",
                     latency_ms=elapsed_ms,
                 )
 
