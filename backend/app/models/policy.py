@@ -496,17 +496,26 @@ class RiskModelConfig(BaseModel):
 
 
 class InjectionSignature(BaseModel):
-    """A categorised injection signature pattern (APEP-049)."""
+    """A categorised injection signature pattern (APEP-049, expanded Sprint 52)."""
 
     signature_id: str = Field(..., description="Unique identifier e.g. INJ-001")
     category: str = Field(
         ...,
-        description="Category: prompt_override, role_hijack, "
-        "system_escape, jailbreak, encoding_bypass",
+        description="Category: prompt_override, role_hijack, system_escape, "
+        "jailbreak, encoding_bypass, indirect_injection, multi_turn_attack, "
+        "privilege_probe, social_engineering, reconnaissance, data_exfiltration, "
+        "tool_manipulation, context_overflow, instruction_hierarchy, "
+        "output_manipulation, goal_hijacking, resource_abuse, "
+        "configuration_attack, supply_chain, persistence, "
+        "dlp_api_key, dlp_token, dlp_credential, dlp_cloud_token, dlp_secret",
     )
     pattern: str = Field(..., description="Regex pattern string")
     severity: str = Field(default="HIGH", description="LOW, MEDIUM, HIGH, CRITICAL")
     description: str = Field(default="", description="Human-readable description")
+    scan_modes: list[str] = Field(
+        default_factory=lambda: ["STRICT", "STANDARD", "LENIENT"],
+        description="Scan modes in which this pattern is active",
+    )
 
 
 # --- Validator Pipeline Result (APEP-096) ---
