@@ -16,6 +16,8 @@ class PolicyDecision(str, Enum):
     # Sprint 33 — APEP-259/260: New decision types
     DEFER = "DEFER"
     MODIFY = "MODIFY"
+    # Sprint 36 — APEP-288: STEP_UP requires additional authentication
+    STEP_UP = "STEP_UP"
 
 
 class TaintLevel(str, Enum):
@@ -68,6 +70,10 @@ class PolicyDecisionResponse(BaseModel):
     # Sprint 33 — APEP-259/260: DEFER and MODIFY decision support
     modified_args: dict[str, Any] | None = None
     defer_timeout_s: int = 60
+    # Sprint 36 — APEP-287/288: DEFER reason and STEP_UP requirements
+    step_up_requirements: list[str] | None = None
+    step_up_challenge_id: str | None = None
+    defer_reason: str | None = None
 
 
 class TaintNodeResponse(BaseModel):

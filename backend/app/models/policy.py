@@ -19,6 +19,8 @@ class Decision(StrEnum):
     # Sprint 33 — APEP-259/260: New decision types
     DEFER = "DEFER"
     MODIFY = "MODIFY"
+    # Sprint 36 — APEP-288: STEP_UP requires additional authentication
+    STEP_UP = "STEP_UP"
 
 
 class TaintLevel(StrEnum):
@@ -139,6 +141,12 @@ class PolicyRule(BaseModel):
     data_boundary: str | None = Field(
         default=None,
         description="Required data boundary scope (USER_ONLY, TEAM, ORGANISATION)",
+    )
+    # Sprint 36 — APEP-288: STEP_UP auth requirements on rules
+    step_up_auth: list[str] = Field(
+        default_factory=list,
+        description="Additional auth factors required when action is STEP_UP "
+        "(e.g., ['mfa', 'biometric'])",
     )
     enabled: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
@@ -516,6 +524,8 @@ class AuditDecision(BaseModel):
     session_id: str
     agent_id: str
     agent_role: str
+    # Sprint 36 — APEP-290: Multi-tenancy isolation
+    tenant_id: str = Field(default="default", description="Tenant ID for data isolation")
     tool_name: str
     tool_args_hash: str = Field(..., description="SHA-256 of sanitised argument payload")
     taint_flags: list[str] = Field(default_factory=list)
@@ -676,6 +686,21 @@ class PolicyDecisionResponse(BaseModel):
     defer_timeout_s: int = Field(
         default=60,
         description="Seconds before auto-deny for DEFER decisions",
+    )
+    # Sprint 36 — APEP-288: STEP_UP authentication requirements
+    step_up_requirements: list[str] | None = Field(
+        default=None,
+        description="Additional authentication factors required for STEP_UP decisions "
+        "(e.g., 'mfa', 'biometric', 'manager_approval')",
+    )
+    step_up_challenge_id: str | None = Field(
+        default=None,
+        description="Challenge ID for STEP_UP verification flow",
+    )
+    # Sprint 36 — APEP-287: DEFER condition description
+    defer_reason: str | None = Field(
+        default=None,
+        description="Human-readable reason for DEFER decision",
     )
     # Sprint 35 — APEP-280: Adaptive hardening instructions
     hardening_instructions: list[str] | None = Field(

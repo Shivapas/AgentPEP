@@ -108,6 +108,62 @@ ADAPTIVE_TIMEOUT = Histogram(
 )
 
 
+# --- Sprint 36 (APEP-291): New capability metrics ---
+
+TRUST_DEGRADATION_EVENTS = Counter(
+    "agentpep_trust_degradation_events_total",
+    "Total trust degradation events by reason and session lock status",
+    ["reason", "locked"],
+)
+
+HASH_CHAIN_VERIFICATIONS = Counter(
+    "agentpep_hash_chain_verifications_total",
+    "Total hash chain verification attempts by result",
+    ["result"],  # valid, tampered
+)
+
+HASH_CHAIN_ENTRIES = Counter(
+    "agentpep_hash_chain_entries_total",
+    "Total hash chain entries appended",
+)
+
+DEFER_DECISIONS = Counter(
+    "agentpep_defer_decisions_total",
+    "Total DEFER decisions by condition and resolution",
+    ["condition", "resolution"],
+)
+
+STEP_UP_CHALLENGES = Counter(
+    "agentpep_step_up_challenges_total",
+    "Total STEP_UP challenges by status",
+    ["status"],  # PENDING, VERIFIED, FAILED, EXPIRED
+)
+
+POLICY_CONFLICTS_DETECTED = Counter(
+    "agentpep_policy_conflicts_detected_total",
+    "Total policy conflicts detected by severity",
+    ["severity"],
+)
+
+TENANT_ISOLATION_VIOLATIONS = Counter(
+    "agentpep_tenant_isolation_violations_total",
+    "Total tenant isolation violations",
+    ["source_tenant", "resource_type"],
+)
+
+TRUST_CEILING_HISTOGRAM = Histogram(
+    "agentpep_trust_ceiling",
+    "Current trust ceiling distribution across sessions",
+    buckets=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+)
+
+CONFLICT_SCAN_DURATION = Histogram(
+    "agentpep_conflict_scan_duration_seconds",
+    "Duration of policy conflict scans",
+    buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0],
+)
+
+
 def get_metrics_app():  # type: ignore[no-untyped-def]
     """Return a Prometheus ASGI app to mount at /metrics."""
     return make_asgi_app()

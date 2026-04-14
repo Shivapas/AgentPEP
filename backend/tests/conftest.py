@@ -172,3 +172,11 @@ def mock_mongodb(monkeypatch):
         risk_engine.aggregator._cached_config = None
     except ImportError:
         pass
+
+    # Clear Sprint 36 singletons
+    try:
+        from app.services.tenant_isolation import tenant_isolation_guard
+
+        tenant_isolation_guard.invalidate_cache()
+    except ImportError:
+        pass
