@@ -11,11 +11,13 @@ from datetime import UTC, datetime
 from app.db.mongodb import (
     AGENT_PROFILES,
     AUDIT_DECISIONS,
+    CHECKPOINT_ESCALATION_HISTORY,
     SECURITY_ALERTS,
     get_database,
 )
 from app.models.compliance import (
     CERTInAgentEntry,
+    CERTInCheckpointSummary,
     CERTInSecurityAlertSummary,
     ComplianceReport,
     ReportStatus,
@@ -150,10 +152,38 @@ async def generate_certin_bom_report(
                 }
             )
 
+        # --- Section 4 (Sprint 41 — APEP-330): Checkpoint Escalation Summary ---
+        checkpoint_coll = db[CHECKPOINT_ESCALATION_HISTORY]
+        cp_pipeline = [
+            {"$match": {"created_at": {"$gte": period_start, "$lte": period_end}}},
+            {
+                "$group": {
+                    "_id": None,
+                    "total": {"$sum": 1},
+                    "patterns": {"$addToSet": "$matched_pattern"},
+                    "agents": {"$addToSet": "$agent_id"},
+                    "intents": {"$addToSet": "$human_intent"},
+                }
+            },
+        ]
+
+        checkpoint_summary = CERTInCheckpointSummary()
+        async for doc in checkpoint_coll.aggregate(cp_pipeline):
+            checkpoint_summary.total_checkpoint_escalations = doc.get("total", 0)
+            checkpoint_summary.checkpoint_patterns = doc.get("patterns", [])
+            checkpoint_summary.agents_with_checkpoints = doc.get("agents", [])
+            raw_intents = doc.get("intents", [])
+            checkpoint_summary.human_intents = [
+                i for i in raw_intents if i
+            ]
+
         report.content = {
             "agent_bill_of_materials": agent_entries,
             "security_alert_summary": alert_summary.model_dump(mode="json"),
             "incident_timeline": incident_timeline,
+            "checkpoint_escalation_summary": checkpoint_summary.model_dump(
+                mode="json"
+            ),
         }
         report.status = ReportStatus.COMPLETED
         report.generated_at = datetime.now(UTC)

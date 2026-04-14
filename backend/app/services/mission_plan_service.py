@@ -57,6 +57,7 @@ class MissionPlanService:
             requires_checkpoint=request.requires_checkpoint,
             delegates_to=request.delegates_to,
             budget=request.budget,
+            human_intent=request.human_intent,
             status=PlanStatus.ACTIVE,
             issued_at=now,
             expires_at=expires_at,

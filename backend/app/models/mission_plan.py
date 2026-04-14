@@ -96,6 +96,11 @@ class MissionPlan(BaseModel):
         default_factory=PlanBudget,
         description="Budget constraints (TTL, max_delegations, max_risk_total)",
     )
+    # Sprint 41 — APEP-327: Human intent propagation
+    human_intent: str = Field(
+        default="",
+        description="Explicit human intent to propagate through the pipeline",
+    )
     status: PlanStatus = Field(
         default=PlanStatus.ACTIVE,
         description="Current plan lifecycle state",
@@ -201,6 +206,12 @@ class CreatePlanRequest(BaseModel):
         default_factory=PlanBudget,
         description="Budget constraints",
     )
+    # Sprint 41 — APEP-327: Human intent propagation
+    human_intent: str = Field(
+        default="",
+        max_length=1000,
+        description="Explicit human intent to propagate through the evaluation pipeline",
+    )
 
 
 class CreatePlanResponse(BaseModel):
@@ -230,6 +241,7 @@ class PlanDetailResponse(BaseModel):
     requires_checkpoint: list[str]
     delegates_to: list[str]
     budget: PlanBudget
+    human_intent: str = ""
     status: PlanStatus
     signature: str
     issued_at: datetime

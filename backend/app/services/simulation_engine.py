@@ -19,6 +19,7 @@ from app.models.policy import (
     PolicyRule,
     ToolCallRequest,
 )
+from app.models.scope_pattern import CheckpointScopeMatch
 from app.services.confused_deputy import confused_deputy_detector
 from app.services.role_resolver import role_resolver
 from app.services.rule_cache import rule_cache
@@ -254,6 +255,21 @@ class SimulationEngine:
         """Core simulation logic with step-by-step tracing."""
         result: dict[str, Any] = {}
 
+        # Sprint 41 — APEP-328: Checkpoint pattern testing (pre-RBAC)
+        if settings.mission_plan_enabled:
+            checkpoint_eval = await self._simulate_checkpoint(request, steps)
+            if checkpoint_eval is not None:
+                result["decision"] = checkpoint_eval["decision"]
+                result["reason"] = checkpoint_eval["reason"]
+                result["checkpoint_match"] = checkpoint_eval.get(
+                    "checkpoint_match", {}
+                )
+                result["human_intent"] = checkpoint_eval.get(
+                    "human_intent", ""
+                )
+                if checkpoint_eval["decision"] == Decision.ESCALATE:
+                    return result
+
         # Step 1: Confused-deputy check
         chain_result: dict[str, Any] = {"checked": False}
         if request.delegation_hops:
@@ -422,6 +438,89 @@ class SimulationEngine:
         result["decision"] = decision
         result["reason"] = reason
         return result
+
+    async def _simulate_checkpoint(
+        self,
+        request: ToolCallRequest,
+        steps: list[SimulationStepResult],
+    ) -> dict[str, Any] | None:
+        """Sprint 41 — APEP-328: Simulate checkpoint pattern matching.
+
+        If the session is bound to a plan, checks whether the tool call
+        matches any requires_checkpoint pattern. Returns escalation info
+        or None if no checkpoint matched.
+        """
+        try:
+            from app.services.mission_plan_service import mission_plan_service
+            from app.services.scope_filter import plan_checkpoint_filter
+
+            plan = await mission_plan_service.get_plan_for_session(
+                request.session_id
+            )
+            if plan is None:
+                steps.append(SimulationStepResult(
+                    "checkpoint_filter",
+                    True,
+                    "No plan bound to session — checkpoint check skipped",
+                ))
+                return None
+
+            # Resolve human_intent
+            human_intent = request.human_intent
+            if not human_intent and plan.human_intent:
+                human_intent = plan.human_intent
+            elif not human_intent and plan.action:
+                human_intent = plan.action
+
+            checkpoint_result: CheckpointScopeMatch = plan_checkpoint_filter.check(
+                plan, request.tool_name
+            )
+            checkpoint_eval: dict[str, Any] = {
+                "checked": True,
+                "matches": checkpoint_result.matches,
+                "matched_pattern": checkpoint_result.matched_pattern,
+                "reason": checkpoint_result.reason,
+            }
+
+            if checkpoint_result.matches:
+                steps.append(SimulationStepResult(
+                    "checkpoint_filter",
+                    False,
+                    f"Checkpoint match — would ESCALATE: {checkpoint_result.reason}",
+                ))
+                return {
+                    "decision": Decision.ESCALATE,
+                    "reason": (
+                        f"Plan requires checkpoint approval: "
+                        f"{checkpoint_result.reason}"
+                    ),
+                    "checkpoint_match": checkpoint_eval,
+                    "human_intent": human_intent,
+                }
+
+            steps.append(SimulationStepResult(
+                "checkpoint_filter",
+                True,
+                f"No checkpoint match for '{request.tool_name}'",
+            ))
+            return {
+                "decision": Decision.ALLOW,
+                "reason": "",
+                "checkpoint_match": checkpoint_eval,
+                "human_intent": human_intent,
+            }
+
+        except Exception:
+            logger.warning(
+                "Checkpoint simulation failed; skipping",
+                exc_info=True,
+            )
+            steps.append(SimulationStepResult(
+                "checkpoint_filter",
+                True,
+                "Checkpoint simulation failed — skipped",
+            ))
+            return None
 
     async def compare(
         self,

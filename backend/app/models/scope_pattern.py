@@ -10,6 +10,7 @@ APEP-304: PlanScopeFilter scope allow-check model.
 from __future__ import annotations
 
 from enum import StrEnum
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -235,3 +236,68 @@ class ScopeValidationResult(BaseModel):
         default_factory=list,
         description="All compiled RBAC patterns from valid scope patterns",
     )
+
+
+# ---------------------------------------------------------------------------
+# Sprint 41 — APEP-325: Checkpoint Escalation Reason
+# ---------------------------------------------------------------------------
+
+
+class CheckpointEscalationRecord(BaseModel):
+    """Record propagated to Escalation Manager when a checkpoint match triggers ESCALATE.
+
+    APEP-325: Captures the full checkpoint match context so the escalation
+    ticket carries a structured reason explaining *why* the checkpoint fired.
+    """
+
+    record_id: UUID = Field(default_factory=uuid4)
+    plan_id: UUID = Field(..., description="MissionPlan that owns the checkpoint")
+    session_id: str = Field(..., description="Session in which the checkpoint fired")
+    agent_id: str = Field(..., description="Agent that attempted the tool call")
+    tool_name: str = Field(..., description="Tool name that matched the checkpoint")
+    matched_pattern: str = Field(
+        ..., description="The requires_checkpoint pattern that matched"
+    )
+    match_reason: str = Field(
+        ..., description="Human-readable explanation of why the match occurred"
+    )
+    human_intent: str = Field(
+        default="",
+        description="Human intent label from the originating request (APEP-327)",
+    )
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
+# ---------------------------------------------------------------------------
+# Sprint 41 — APEP-326: Plan-Scoped Checkpoint Approval Memory
+# ---------------------------------------------------------------------------
+
+
+class PlanCheckpointApproval(BaseModel):
+    """Approval memory entry scoped to a specific plan.
+
+    APEP-326: Unlike the global ApprovalMemoryEntry (APEP-077), this entry
+    is scoped to a plan_id so that checkpoint approvals in one plan do not
+    leak to another plan.
+    """
+
+    approval_id: UUID = Field(default_factory=uuid4)
+    plan_id: UUID = Field(..., description="Plan this approval is scoped to")
+    agent_id: str = Field(..., description="Agent that was approved")
+    tool_name: str = Field(..., description="Tool name that was approved")
+    matched_pattern: str = Field(
+        ..., description="Checkpoint pattern that was originally matched"
+    )
+    tool_args_hash: str = Field(
+        default="",
+        description="SHA-256 hash of tool arguments (empty = pattern-level approval)",
+    )
+    approved_by: str = Field(..., description="Human who approved this checkpoint")
+    original_ticket_id: UUID = Field(
+        ..., description="Escalation ticket that was approved"
+    )
+    expires_at: datetime | None = Field(
+        default=None,
+        description="Optional expiry for this approval (None = until plan ends)",
+    )
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

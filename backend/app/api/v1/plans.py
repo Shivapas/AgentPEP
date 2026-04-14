@@ -20,6 +20,7 @@ APEP-322: POST /v1/plans/{plan_id}/budget/reset -- reset plan budget.
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 from app.models.mission_plan import (
     BindPlanRequest,
@@ -34,6 +35,10 @@ from app.models.plan_budget_gate import (
     BudgetResetResponse,
     BudgetStatusResponse,
     DelegationCheckResult,
+)
+from app.models.scope_pattern import (
+    CheckpointEscalationRecord,
+    PlanCheckpointApproval,
 )
 from app.services.mission_plan_service import mission_plan_service
 from app.services.plan_budget_gate import plan_budget_gate
@@ -259,3 +264,141 @@ async def reset_plan_budget(
         )
 
     return await plan_budget_gate.reset_budget(plan, request)
+
+
+# ---------------------------------------------------------------------------
+# Sprint 41 — APEP-324.d: GET /v1/plans/{plan_id}/checkpoints
+# ---------------------------------------------------------------------------
+
+
+class CheckpointHistoryResponse(BaseModel):
+    """Response body for checkpoint escalation history."""
+
+    records: list[CheckpointEscalationRecord] = Field(default_factory=list)
+    total: int = 0
+
+
+@router.get(
+    "/plans/{plan_id}/checkpoints",
+    response_model=CheckpointHistoryResponse,
+)
+async def get_checkpoint_history(plan_id: UUID) -> CheckpointHistoryResponse:
+    """Retrieve the checkpoint escalation history for a MissionPlan.
+
+    Returns all checkpoint-triggered escalation records for the given plan,
+    ordered by creation time (newest first).
+    """
+    plan = await mission_plan_service.get_plan(plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    from app.db import mongodb as db_module
+    from app.db.mongodb import CHECKPOINT_ESCALATION_HISTORY
+
+    db = db_module.get_database()
+    records: list[CheckpointEscalationRecord] = []
+    cursor = (
+        db[CHECKPOINT_ESCALATION_HISTORY]
+        .find({"plan_id": str(plan_id)})
+        .sort("created_at", -1)
+    )
+    async for doc in cursor:
+        records.append(
+            CheckpointEscalationRecord(
+                **{k: v for k, v in doc.items() if k != "_id"}
+            )
+        )
+
+    return CheckpointHistoryResponse(records=records, total=len(records))
+
+
+# ---------------------------------------------------------------------------
+# Sprint 41 — APEP-326.d: GET /v1/plans/{plan_id}/checkpoint-approvals
+# ---------------------------------------------------------------------------
+
+
+class CheckpointApprovalsResponse(BaseModel):
+    """Response body for plan-scoped checkpoint approvals."""
+
+    approvals: list[PlanCheckpointApproval] = Field(default_factory=list)
+    total: int = 0
+
+
+@router.get(
+    "/plans/{plan_id}/checkpoint-approvals",
+    response_model=CheckpointApprovalsResponse,
+)
+async def get_checkpoint_approvals(
+    plan_id: UUID,
+) -> CheckpointApprovalsResponse:
+    """List all checkpoint approvals scoped to a MissionPlan.
+
+    Returns approval memory entries that allow agents to skip re-escalation
+    for previously approved checkpoint patterns within this plan.
+    """
+    plan = await mission_plan_service.get_plan(plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    from app.services.checkpoint_approval_memory import (
+        checkpoint_approval_memory,
+    )
+
+    approvals = await checkpoint_approval_memory.list_approvals(plan_id)
+    return CheckpointApprovalsResponse(
+        approvals=approvals, total=len(approvals)
+    )
+
+
+# ---------------------------------------------------------------------------
+# Sprint 41 — APEP-326.d: DELETE /v1/plans/{plan_id}/checkpoint-approvals
+# ---------------------------------------------------------------------------
+
+
+class RevokeApprovalsRequest(BaseModel):
+    """Request to revoke checkpoint approvals."""
+
+    agent_id: str | None = Field(
+        default=None, description="Filter by agent ID (None = all agents)"
+    )
+    tool_name: str | None = Field(
+        default=None, description="Filter by tool name (None = all tools)"
+    )
+
+
+class RevokeApprovalsResponse(BaseModel):
+    """Response from revoking checkpoint approvals."""
+
+    revoked_count: int
+
+
+@router.delete(
+    "/plans/{plan_id}/checkpoint-approvals",
+    response_model=RevokeApprovalsResponse,
+)
+async def revoke_checkpoint_approvals(
+    plan_id: UUID,
+    request: RevokeApprovalsRequest | None = None,
+) -> RevokeApprovalsResponse:
+    """Revoke checkpoint approvals for a MissionPlan.
+
+    Revokes all matching checkpoint approval memory entries, forcing
+    agents to re-escalate on the next checkpoint match.
+    """
+    plan = await mission_plan_service.get_plan(plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    from app.services.checkpoint_approval_memory import (
+        checkpoint_approval_memory,
+    )
+
+    agent_id = request.agent_id if request else None
+    tool_name = request.tool_name if request else None
+
+    count = await checkpoint_approval_memory.revoke(
+        plan_id=plan_id,
+        agent_id=agent_id,
+        tool_name=tool_name,
+    )
+    return RevokeApprovalsResponse(revoked_count=count)
