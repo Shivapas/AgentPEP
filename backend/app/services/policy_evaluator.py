@@ -625,6 +625,48 @@ class PolicyEvaluator:
                     exc_info=True,
                 )
 
+        # --- Sprint 46 (APEP-365/366): Response Injection Scanner pipeline hook ---
+        # When tool_args contain a 'url' or 'response_body' field, run the
+        # ResponseNormalizer + ResponseInjectionScanner to detect injection in
+        # web-sourced content flowing into the tool call.
+        if settings.response_injection_scanner_enabled:
+            try:
+                response_text = (request.tool_args or {}).get("response_body") or (
+                    request.tool_args or {}
+                ).get("body") or ""
+                if response_text and len(response_text) > 20:
+                    from app.services.response_normalizer import response_normalizer
+                    from app.services.response_injection_scanner import response_injection_scanner
+
+                    norm_result = response_normalizer.normalize(response_text)
+                    inj_result = response_injection_scanner.scan(
+                        raw_text=response_text,
+                        normalized_text=norm_result.normalized_text,
+                    )
+                    if inj_result.injection_detected and inj_result.highest_severity in (
+                        "CRITICAL", "HIGH",
+                    ):
+                        # Auto-taint QUARANTINE (APEP-367)
+                        try:
+                            graph = session_graph_manager.get_or_create(request.session_id)
+                            from app.models.policy import TaintLevel as _TL
+
+                            graph.add_node(
+                                value=f"injection_scan:{inj_result.findings[0].signature_id}",
+                                taint_level=_TL.QUARANTINE,
+                                source="TOOL_OUTPUT",
+                            )
+                            taint_flags.append("QUARANTINE")
+                        except Exception:
+                            pass
+                        if decision == Decision.ALLOW:
+                            decision = Decision.ESCALATE
+            except Exception:
+                logger.warning(
+                    "Response injection scan failed; proceeding without",
+                    exc_info=True,
+                )
+
         # --- Risk scoring (APEP-070) ---
         risk_score = 0.0
         risk_factors: list = []

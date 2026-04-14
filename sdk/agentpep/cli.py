@@ -924,6 +924,75 @@ def cmd_scope_simulate(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
+# fetch (Sprint 46 — APEP-370)
+# ---------------------------------------------------------------------------
+
+
+def cmd_fetch(args: argparse.Namespace) -> int:
+    """Fetch a URL through the AgentPEP security proxy (APEP-370)."""
+    from agentpep.client import AgentPEPClient
+
+    client = AgentPEPClient(
+        base_url=args.base_url,
+        api_key=getattr(args, "api_key", None),
+        timeout=args.timeout,
+    )
+
+    try:
+        result = client.fetch_safe_sync(
+            url=args.url,
+            session_id=getattr(args, "session_id", None),
+            agent_id=getattr(args, "agent_id", None),
+            scan_response=not args.no_scan,
+            max_bytes=args.max_bytes,
+        )
+
+        if args.json:
+            print(json.dumps(result.model_dump(mode="json"), indent=2, default=str))
+        else:
+            status_symbol = {
+                "ALLOWED": "PASS",
+                "BLOCKED": "BLOCKED",
+                "QUARANTINED": "QUARANTINE",
+                "SANITIZED": "SANITIZED",
+            }.get(result.status, result.status)
+
+            print(f"  Status: {status_symbol}")
+            print(f"  URL: {result.url}")
+            print(f"  HTTP Status: {result.http_status}")
+            print(f"  Content-Type: {result.content_type}")
+            print(f"  Body Length: {result.body_length}")
+            print(f"  Truncated: {result.truncated}")
+            print(f"  Action: {result.action_taken}")
+            print(f"  Latency: {result.latency_ms}ms")
+
+            if result.injection_detected:
+                print(f"  Injection Detected: YES ({result.injection_finding_count} findings, severity={result.injection_highest_severity})")
+            else:
+                print("  Injection Detected: no")
+
+            if result.dlp_findings_count > 0:
+                print(f"  DLP Findings: {result.dlp_findings_count} (blocked={result.dlp_blocked})")
+
+            if result.taint_applied:
+                print(f"  Taint Applied: {result.taint_applied} (node={result.taint_node_id})")
+
+            if result.status == "BLOCKED":
+                print("\n  Response body was blocked due to security findings.")
+            elif result.body:
+                preview = result.body[:500]
+                if len(result.body) > 500:
+                    preview += "... [truncated]"
+                print(f"\n  Body preview:\n{preview}")
+
+        return 0 if result.status in ("ALLOWED", "SANITIZED") else 1
+
+    except Exception as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+
+# ---------------------------------------------------------------------------
 # Main parser
 # ---------------------------------------------------------------------------
 
@@ -1082,6 +1151,27 @@ def build_parser() -> argparse.ArgumentParser:
     )
     simulate_scope_p.add_argument("--json", action="store_true", help="Output as JSON")
 
+    # --- fetch (Sprint 46 — APEP-370) ---
+    fetch_p = subparsers.add_parser("fetch", help="Fetch a URL through the security proxy")
+    fetch_p.add_argument("url", help="URL to fetch")
+    fetch_p.add_argument(
+        "--base-url", default="http://localhost:8000",
+        help="AgentPEP server URL",
+    )
+    fetch_p.add_argument("--api-key", help="API key for authentication")
+    fetch_p.add_argument("--session-id", help="Session ID for taint propagation")
+    fetch_p.add_argument("--agent-id", help="Agent ID context")
+    fetch_p.add_argument(
+        "--no-scan", action="store_true",
+        help="Skip injection and DLP scanning",
+    )
+    fetch_p.add_argument(
+        "--max-bytes", type=int, default=1_048_576,
+        help="Max response body size in bytes (default 1MB)",
+    )
+    fetch_p.add_argument("--json", action="store_true", help="Output as JSON")
+    fetch_p.add_argument("--timeout", type=float, default=30.0, help="Request timeout")
+
     # --- health ---
     health_p = subparsers.add_parser("health", help="Check server health")
     health_p.add_argument(
@@ -1146,6 +1236,9 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_scope_validate(args)
         elif args.scope_command == "simulate":
             return cmd_scope_simulate(args)
+
+    elif args.command == "fetch":
+        return cmd_fetch(args)
 
     elif args.command == "health":
         return cmd_health(args)

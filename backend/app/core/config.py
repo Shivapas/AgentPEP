@@ -222,6 +222,15 @@ class Settings(BaseSettings):
     domain_data_budget_bytes: int = 10_485_760  # 10 MB
     kafka_network_topic: str = "agentpep.network"
 
+    # Sprint 46 — APEP-364..371: Fetch Proxy & Response Injection Scanner
+    fetch_proxy_enabled: bool = True
+    fetch_proxy_timeout_s: float = 30.0
+    fetch_proxy_max_body_bytes: int = 1_048_576  # 1 MB
+    response_normalizer_enabled: bool = True
+    response_injection_scanner_enabled: bool = True
+    response_dlp_scan_enabled: bool = True
+    kafka_fetch_topic: str = "agentpep.fetch"
+
     # Sprint 45 — APEP-356..363: DLP Pre-Scan Hook
     dlp_pre_scan_enabled: bool = False
     dlp_cache_enabled: bool = True

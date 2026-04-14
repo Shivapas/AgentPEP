@@ -85,3 +85,37 @@ class TaintNodeResponse(BaseModel):
     source: TaintSource
     propagated_from: list[UUID] = Field(default_factory=list)
     value_hash: str | None = None
+
+
+# --- Sprint 46 — APEP-364/370: Fetch Proxy SDK models ---
+
+
+class FetchStatus(str, Enum):
+    """Overall status of a fetch proxy request."""
+
+    ALLOWED = "ALLOWED"
+    BLOCKED = "BLOCKED"
+    QUARANTINED = "QUARANTINED"
+    SANITIZED = "SANITIZED"
+
+
+class FetchSafeResponse(BaseModel):
+    """Response from the GET /v1/fetch proxy endpoint (SDK model)."""
+
+    fetch_id: UUID | None = None
+    url: str = ""
+    status: FetchStatus = FetchStatus.ALLOWED
+    http_status: int = 0
+    content_type: str = ""
+    body: str = ""
+    body_length: int = 0
+    truncated: bool = False
+    injection_detected: bool = False
+    injection_finding_count: int = 0
+    injection_highest_severity: str = "INFO"
+    dlp_findings_count: int = 0
+    dlp_blocked: bool = False
+    taint_applied: str | None = None
+    taint_node_id: str | None = None
+    action_taken: str = "ALLOW"
+    latency_ms: int = 0

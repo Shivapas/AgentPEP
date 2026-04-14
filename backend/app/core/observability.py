@@ -207,6 +207,43 @@ DLP_PATTERN_RELOADS = Counter(
     ["status"],  # success, error
 )
 
+# --- Sprint 46 (APEP-364..371): Fetch Proxy & Response Injection Scanner ---
+
+FETCH_PROXY_REQUESTS = Counter(
+    "agentpep_fetch_proxy_requests_total",
+    "Total fetch proxy requests by status",
+    ["status"],  # ALLOWED, BLOCKED, QUARANTINED, SANITIZED
+)
+
+FETCH_PROXY_LATENCY = Histogram(
+    "agentpep_fetch_proxy_latency_seconds",
+    "Fetch proxy request latency",
+    buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0],
+)
+
+RESPONSE_INJECTION_DETECTIONS = Counter(
+    "agentpep_response_injection_detections_total",
+    "Total response injection detections by severity",
+    ["severity"],
+)
+
+RESPONSE_NORMALIZER_CHANGES = Counter(
+    "agentpep_response_normalizer_changes_total",
+    "Total character changes by normalization pass",
+    ["pass_name"],
+)
+
+RESPONSE_DLP_HITS = Counter(
+    "agentpep_response_dlp_hits_total",
+    "Total DLP hits on fetched response bodies",
+)
+
+FETCH_AUTO_TAINT = Counter(
+    "agentpep_fetch_auto_taint_total",
+    "Total auto-taint assignments from fetch proxy",
+    ["taint_level"],
+)
+
 
 def get_metrics_app():  # type: ignore[no-untyped-def]
     """Return a Prometheus ASGI app to mount at /metrics."""
