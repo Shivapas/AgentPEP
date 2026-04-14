@@ -137,6 +137,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await _loki_audit.initialize()
         logger.info("loki_audit_initialized")
 
+    # Sprint 39 (APEP-309): Initialize per-receipt Ed25519 signing
+    if settings.per_receipt_signing_enabled:
+        import base64 as _receipt_b64
+
+        per_receipt_key = (
+            _receipt_b64.urlsafe_b64decode(settings.per_receipt_signing_key)
+            if settings.per_receipt_signing_key
+            else None
+        )
+        audit_logger.configure_receipt_signing(private_key=per_receipt_key)
+        logger.info("per_receipt_signing_initialized")
+
     # Sprint 32 (APEP-256): Initialize receipt signer
     if settings.receipt_signing_enabled:
         import base64

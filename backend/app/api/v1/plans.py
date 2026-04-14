@@ -4,6 +4,10 @@ APEP-294: POST /v1/plans -- create and issue a signed plan.
 APEP-295: GET /v1/plans/{plan_id} -- retrieve plan with budget status.
 APEP-296: DELETE /v1/plans/{plan_id} -- revoke plan.
 APEP-297: POST /v1/plans/{plan_id}/bind -- bind plan to session.
+
+Sprint 39 — Receipt chaining with plan root:
+APEP-311: GET /v1/plans/{plan_id}/receipts -- return full receipt chain.
+APEP-312: GET /v1/plans/{plan_id}/receipts/summary -- return chain summary.
 """
 
 from uuid import UUID
@@ -19,6 +23,11 @@ from app.models.mission_plan import (
     RevokePlanResponse,
 )
 from app.services.mission_plan_service import mission_plan_service
+from app.services.receipt_chain import (
+    ReceiptChainResponse,
+    ReceiptChainSummary,
+    receipt_chain_manager,
+)
 
 router = APIRouter(prefix="/v1", tags=["plans"])
 
@@ -113,3 +122,47 @@ async def bind_plan_to_session(
             detail="Plan not found or not active",
         )
     return result
+
+
+# ---------------------------------------------------------------------------
+# APEP-311: GET /v1/plans/{plan_id}/receipts
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/plans/{plan_id}/receipts",
+    response_model=ReceiptChainResponse,
+)
+async def get_plan_receipts(plan_id: UUID) -> ReceiptChainResponse:
+    """Retrieve the full receipt chain for a MissionPlan.
+
+    Returns all audit decision receipts linked to the plan in sequence
+    order, including hash chain integrity status.
+    """
+    plan = await mission_plan_service.get_plan(plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    return await receipt_chain_manager.get_chain(plan_id)
+
+
+# ---------------------------------------------------------------------------
+# APEP-312: GET /v1/plans/{plan_id}/receipts/summary
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/plans/{plan_id}/receipts/summary",
+    response_model=ReceiptChainSummary,
+)
+async def get_plan_receipts_summary(plan_id: UUID) -> ReceiptChainSummary:
+    """Retrieve a summary of the receipt chain for a MissionPlan.
+
+    Returns aggregate statistics: receipt count, decision breakdown,
+    unique agents/tools, accumulated risk, and chain depth.
+    """
+    plan = await mission_plan_service.get_plan(plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    return await receipt_chain_manager.get_summary(plan_id)

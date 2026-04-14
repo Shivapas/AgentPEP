@@ -540,6 +540,19 @@ class AuditDecision(BaseModel):
     previous_hash: str = Field(default="", description="SHA-256 hash of the previous audit record")
     record_hash: str = Field(default="", description="SHA-256 hash of this record (chained)")
     sequence_number: int = Field(default=0, description="Monotonic sequence number for ordering")
+    # Sprint 39 — APEP-308: Receipt chaining with plan root
+    plan_id: UUID | None = Field(
+        default=None,
+        description="MissionPlan ID this decision belongs to (receipt chain root)",
+    )
+    parent_receipt_id: UUID | None = Field(
+        default=None,
+        description="Decision ID of the parent receipt in the chain (None for root)",
+    )
+    receipt_signature: str = Field(
+        default="",
+        description="Per-receipt Ed25519 signature for this decision",
+    )
 
 
 class AuditIntegrityResult(BaseModel):
