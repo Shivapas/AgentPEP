@@ -470,6 +470,8 @@ class RiskWeightConfig(BaseModel):
     tool_combination: float = Field(default=0.15, ge=0.0)
     velocity_anomaly: float = Field(default=0.10, ge=0.0)
     echo_detection: float = Field(default=0.10, ge=0.0)
+    # Sprint 45 — APEP-357: DLP sensitivity weight
+    dlp_sensitivity: float = Field(default=0.20, ge=0.0)
 
 
 class RiskModelConfig(BaseModel):
@@ -760,6 +762,11 @@ class PolicyDecisionResponse(BaseModel):
         default=None,
         description="Structured reason when escalation was triggered by a checkpoint pattern",
     )
+    # Sprint 45 — APEP-359: DLP findings attached to decision response
+    dlp_findings: list["DLPFinding"] | None = Field(
+        default=None,
+        description="DLP scan findings when pre-scan detected sensitive data in tool arguments",
+    )
 
 
 # --- Escalation Ticket (Sprint 18 — APEP-143..APEP-147) ---
@@ -831,3 +838,95 @@ class BulkApproveRequest(BaseModel):
     tool_pattern: str = Field(..., description="Glob pattern to match tool_name")
     comment: str = Field(default="", description="Reviewer comment for all approvals")
     resolved_by: str = Field(default="console_user")
+
+
+# ---------------------------------------------------------------------------
+# Sprint 45 — DLP Pre-Scan Hook in Intercept Pipeline
+# ---------------------------------------------------------------------------
+
+
+class DLPPatternType(StrEnum):
+    """Categories of DLP data patterns (Sprint 44/45)."""
+
+    API_KEY = "API_KEY"
+    TOKEN = "TOKEN"
+    CREDENTIAL = "CREDENTIAL"
+    PII = "PII"
+    FINANCIAL = "FINANCIAL"
+    SECRET = "SECRET"
+    CERTIFICATE = "CERTIFICATE"
+
+
+class DLPSeverity(StrEnum):
+    """Severity levels for DLP findings."""
+
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+
+class DLPFinding(BaseModel):
+    """A single DLP finding representing detected sensitive data (APEP-356).
+
+    Part of the DLPPreScanStage output; attached to PolicyDecisionResponse
+    via APEP-359.
+    """
+
+    pattern_id: str = Field(..., description="DLP pattern ID, e.g. DLP-001")
+    pattern_type: DLPPatternType = Field(..., description="Category of the detected pattern")
+    severity: DLPSeverity = Field(default=DLPSeverity.HIGH, description="Severity of the finding")
+    matched_arg: str = Field(default="", description="Tool argument key that contained the match")
+    description: str = Field(default="", description="Human-readable description of the finding")
+    redacted_snippet: str = Field(
+        default="",
+        description="Redacted snippet showing context of the match (no raw secrets)",
+    )
+
+
+class DLPScanResult(BaseModel):
+    """Result of a DLP pre-scan on tool arguments (APEP-356).
+
+    Produced by NetworkDLPScanner.scan_tool_args() and consumed by
+    DLPPreScanStage in the PolicyEvaluator pipeline.
+    """
+
+    scanned: bool = Field(default=True, description="Whether the scan completed successfully")
+    findings: list[DLPFinding] = Field(default_factory=list)
+    risk_elevation: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Risk score elevation based on DLP findings (APEP-357)",
+    )
+    taint_action: TaintLevel | None = Field(
+        default=None,
+        description="Taint level to assign when credentials are detected (APEP-358)",
+    )
+    scan_duration_ms: float = Field(default=0.0, description="Time taken for the scan")
+    cache_hit: bool = Field(default=False, description="Whether the result was served from cache")
+
+    @property
+    def has_findings(self) -> bool:
+        return len(self.findings) > 0
+
+    @property
+    def max_severity(self) -> DLPSeverity | None:
+        if not self.findings:
+            return None
+        severity_order = {
+            DLPSeverity.LOW: 0,
+            DLPSeverity.MEDIUM: 1,
+            DLPSeverity.HIGH: 2,
+            DLPSeverity.CRITICAL: 3,
+        }
+        return max(self.findings, key=lambda f: severity_order.get(f.severity, 0)).severity
+
+
+class DLPScanRequest(BaseModel):
+    """Request to scan tool arguments for DLP patterns (APEP-356.d)."""
+
+    session_id: str = Field(..., description="Session ID for context")
+    agent_id: str = Field(..., description="Agent making the tool call")
+    tool_name: str = Field(..., description="Name of the tool being called")
+    tool_args: dict[str, Any] = Field(default_factory=dict, description="Tool arguments to scan")

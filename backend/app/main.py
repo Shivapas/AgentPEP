@@ -30,6 +30,7 @@ from app.api.v1.plans import router as plans_router
 from app.api.v1.scope import router as scope_router
 from app.api.v1.scope_simulator import router as scope_simulator_router
 from app.api.v1.sprint36 import router as sprint36_router
+from app.api.v1.dlp import router as dlp_router
 from app.core.config import settings
 from app.core.observability import get_metrics_app, setup_tracing
 from app.core.structured_logging import configure_logging, get_logger
@@ -390,6 +391,7 @@ app.include_router(plans_router)
 app.include_router(scope_router)
 app.include_router(scope_simulator_router)
 app.include_router(sprint36_router)
+app.include_router(dlp_router)
 
 # Observability
 if settings.metrics_enabled:
