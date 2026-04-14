@@ -12,7 +12,7 @@
 | **Status** | DRAFT — For Internal Review |
 | **Classification** | Confidential |
 | **Stack** | Python · FastAPI · React · MongoDB |
-| **Sprint Count** | 56 Sprints · ~28 Months |
+| **Sprint Count** | 56 Sprints (Sprints 36–56 decomposed into 231 sub-sprints) · ~28 Months |
 | **Total Stories** | ~451 User Stories |
 
 ---
@@ -540,7 +540,7 @@ Each sprint is 2 weeks. Story points use a Fibonacci scale (1–8). Total estima
 | 33 | ToolTrust — Framework Integrations (OpenAI Agents, LangGraph) | Phase 8: ToolTrust Roadmap v1 | 8 |
 | 34 | ToolTrust — Testing Utilities, Simulation & Enhanced CLI | Phase 8: ToolTrust Roadmap v1 | 9 |
 | 35 | ToolTrust — Injection Library, Arg Validation & Risk Scoring | Phase 8: ToolTrust Roadmap v1 | 9 |
-| 36 | ToolTrust — Conflict Detection, Metrics, Tamper Detection & Multi-Tenancy | Phase 8: ToolTrust Roadmap v1 | 8 |
+| 36 | ToolTrust — Conflict Detection, Metrics, Tamper Detection & Multi-Tenancy | Phase 8: ToolTrust Roadmap v1 | 7 stories → 11 sub-sprints |
 
 ---
 
@@ -1202,15 +1202,118 @@ The Intercept API response schema will be extended:
 
 **Goal:** Hash-chained context tamper detection; DEFER and STEP_UP decision types; policy conflict resolution engine; enhanced multi-tenancy isolation; comprehensive enhancement metrics.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-285 | Implement `HashChainedContext`: per-session tamper-evident context entries with SHA-256 hash linking; detect unauthorised historical modifications | 8 | Security |
-| APEP-286 | Implement `TrustDegradationEngine`: per-session trust ceiling that degrades irreversibly when untrusted or derived content contaminates context | 5 | Backend |
-| APEP-287 | Implement DEFER decision type: suspend authorisation, create deferral ticket, enforce configurable timeout-to-deny (default 60s) | 5 | Backend |
-| APEP-288 | Implement STEP_UP decision type: dynamic human approval triggered by pattern detection (hardening escalation, PII accumulation, post-denial retry) | 5 | Backend |
-| APEP-289 | Enhance policy conflict detection: identify not just shadowed rules but circular dependencies, permission gaps, and over-broad grants | 5 | Backend |
-| APEP-290 | Implement multi-tenancy data isolation: per-tenant encryption keys, tenant-scoped backend instances, cross-tenant access prevention | 5 | Security |
-| APEP-291 | Publish Prometheus metrics for all new capabilities: trust_degradation_events, tool_combo_alerts, pii_redactions, defer_count, stepup_count, receipt_verifications | 3 | Observability |
+#### Sub-Sprint 36.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 36 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-285.a | APEP-285 | Design security architecture and threat model for HashChainedContext | 1 | Security |
+| APEP-286.a | APEP-286 | Design data model and interface for TrustDegradationEngine | 1 | Backend |
+| APEP-287.a | APEP-287 | Design data model and interface for DEFER decision type | 1 | Backend |
+| APEP-288.a | APEP-288 | Design data model and interface for STEP_UP decision type | 1 | Backend |
+| APEP-289.a | APEP-289 | Design data model and interface for policy conflict detection | 1 | Backend |
+| APEP-290.a | APEP-290 | Design security model and threat surface for multi-tenancy data isolation | 1 | Security |
+| APEP-291.a | APEP-291 | Design metrics schema and dashboard layout for Prometheus metrics for all new capabilities | 1 | Observability |
+
+#### Sub-Sprint 36.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 36 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-285.b | APEP-285 | Define data model and schema for HashChainedContext | 1 | Backend |
+| APEP-286.b | APEP-286 | Implement Pydantic model and MongoDB schema for TrustDegradationEngine | 1 | Backend |
+| APEP-287.b | APEP-287 | Implement Pydantic model and MongoDB schema for DEFER decision type | 1 | Backend |
+| APEP-288.b | APEP-288 | Implement Pydantic model and MongoDB schema for STEP_UP decision type | 1 | Backend |
+| APEP-289.b | APEP-289 | Implement Pydantic model and MongoDB schema for policy conflict detection | 1 | Backend |
+
+#### Sub-Sprint 36.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for HashChainedContext; TrustDegradationEngine; DEFER decision type.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-285.c | APEP-285 | Implement core security logic: HashChainedContext | 2 | Security |
+| APEP-286.c | APEP-286 | Implement core business logic: TrustDegradationEngine | 1 | Backend |
+| APEP-287.c | APEP-287 | Implement core business logic: DEFER decision type | 1 | Backend |
+
+#### Sub-Sprint 36.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for STEP_UP decision type; policy conflict detection; multi-tenancy data isolation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-288.c | APEP-288 | Implement core business logic: STEP_UP decision type | 1 | Backend |
+| APEP-289.c | APEP-289 | Implement core business logic: policy conflict detection | 1 | Backend |
+| APEP-290.b | APEP-290 | Implement core security logic: multi-tenancy data isolation | 1 | Security |
+
+#### Sub-Sprint 36.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 36 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-286.d | APEP-286 | Wire API endpoint and service layer for TrustDegradationEngine | 1 | Backend |
+| APEP-287.d | APEP-287 | Wire API endpoint and service layer for DEFER decision type | 1 | Backend |
+| APEP-288.d | APEP-288 | Wire API endpoint and service layer for STEP_UP decision type | 1 | Backend |
+| APEP-289.d | APEP-289 | Wire API endpoint and service layer for policy conflict detection | 1 | Backend |
+
+#### Sub-Sprint 36.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 36.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-285.d | APEP-285 | Implement security guards and crypto: HashChainedContext | 1 | Security |
+| APEP-290.c | APEP-290 | Implement security guards and validation: multi-tenancy data isolation | 1 | Security |
+
+#### Sub-Sprint 36.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 36 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-285.e | APEP-285 | Integrate into enforcement pipeline: HashChainedContext | 1 | Security |
+| APEP-290.d | APEP-290 | Integrate into enforcement pipeline: multi-tenancy data isolation | 1 | Security |
+
+#### Sub-Sprint 36.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 36 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S36.8 | — | Update SDK documentation and CLI help text for Sprint 36 | 0 | SDK |
+
+#### Sub-Sprint 36.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 36 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-285.f | APEP-285 | Write unit tests for HashChainedContext | 1 | Testing |
+| APEP-286.e | APEP-286 | Write unit tests for TrustDegradationEngine | 1 | Testing |
+| APEP-287.e | APEP-287 | Write unit tests for DEFER decision type | 1 | Testing |
+| APEP-288.e | APEP-288 | Write unit tests for STEP_UP decision type | 1 | Testing |
+| APEP-289.e | APEP-289 | Write unit tests for policy conflict detection | 1 | Testing |
+| APEP-290.e | APEP-290 | Write security validation tests for multi-tenancy data isolation | 1 | Testing |
+
+#### Sub-Sprint 36.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 36.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-285.g | APEP-285 | Write adversarial tests for HashChainedContext | 1 | Testing |
+
+#### Sub-Sprint 36.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 36 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-291.b | APEP-291 | Implement Prometheus metrics and Grafana dashboards: Prometheus metrics for all new capabilities | 2 | Observability |
+
 
 ---
 
@@ -1229,7 +1332,7 @@ The Intercept API response schema will be extended:
 | **Agent memory** | No memory governance | Memory access control gate: write/read authorisation with retention enforcement |
 | **Audit backends** | MongoDB + Kafka | + CloudWatch, Datadog, Loki, configurable verbosity |
 | **Developer experience** | SDK + DRY_RUN API | + CLI tool (validate, diff, simulate, redteam, verify), offline evaluation |
-| **Total stories** | ~224 (Sprints 1–28) | ~291 (+ 67 ToolTrust enhancement stories) |
+| **Total stories** | ~224 (Sprints 1–28) | ~291 (+ 67 ToolTrust enhancement stories; Sprint 36 decomposed into 11 sub-sprints) |
 
 ## 12.7 Risk Assessment
 
@@ -1448,106 +1551,826 @@ A new sub-reason for `DENY` decisions when a plan-level constraint blocks execut
 
 **Goal:** Introduce `MissionPlan` as a first-class data model; implement plan issuance, retrieval, revocation, and Ed25519 signing; bind plans to sessions.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-292 | Design `MissionPlan` Pydantic model with all fields; add MongoDB collection `mission_plans` with compound indexes on `issuer`, `status`, and `expires_at` | 5 | Backend |
-| APEP-293 | Implement Ed25519 plan signing using PyNaCl: sign canonical JSON of `(plan_id, issuer, scope, delegates_to, requires_checkpoint, budget, issued_at)`; store public key in tenant config | 8 | Security |
-| APEP-294 | Implement `POST /v1/plans` — create and issue a signed plan; validate scope patterns and budget fields; return plan with signature | 5 | Backend |
-| APEP-295 | Implement `GET /v1/plans/{plan_id}` — retrieve plan with budget status (delegations_used, risk_accumulated, time_remaining) | 3 | Backend |
-| APEP-296 | Implement `DELETE /v1/plans/{plan_id}` — revoke plan (sets status=REVOKED); propagates DENY to any active sessions bound to plan | 5 | Backend |
-| APEP-297 | Implement plan-session binding: `POST /v1/sessions/{session_id}/bind-plan` — associate plan with session; validates agent_id in delegates_to | 5 | Backend |
-| APEP-298 | Implement plan TTL expiry background job: every 60s, scan `mission_plans` for expired plans and update status; emit Kafka event | 3 | Backend |
-| APEP-299 | Write integration tests: plan issuance → session binding → expiry → revocation lifecycle | 5 | Testing |
+#### Sub-Sprint 37.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 37 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-292.a | APEP-292 | Design data model and interface for MissionPlan Pydantic model with all fields; add Mon | 1 | Backend |
+| APEP-293.a | APEP-293 | Design security architecture and threat model for Ed25519 plan signing using PyNaCl | 1 | Security |
+| APEP-294.a | APEP-294 | Design data model and interface for POST /v1/plans — create and issue a signed plan; | 1 | Backend |
+| APEP-295.a | APEP-295 | Design data model and interface for GET /v1/plans/{plan_id} — retrieve plan with bud | 1 | Backend |
+| APEP-296.a | APEP-296 | Design data model and interface for DELETE /v1/plans/{plan_id} — revoke plan (sets s | 1 | Backend |
+| APEP-297.a | APEP-297 | Design data model and interface for plan-session binding | 1 | Backend |
+| APEP-298.a | APEP-298 | Design data model and interface for plan TTL expiry background job | 1 | Backend |
+
+#### Sub-Sprint 37.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 37 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-292.b | APEP-292 | Implement Pydantic model and MongoDB schema for MissionPlan Pydantic model with all fields; add Mon | 1 | Backend |
+| APEP-293.b | APEP-293 | Define data model and schema for Ed25519 plan signing using PyNaCl | 1 | Backend |
+| APEP-294.b | APEP-294 | Implement Pydantic model and MongoDB schema for POST /v1/plans — create and issue a signed plan; | 1 | Backend |
+| APEP-296.b | APEP-296 | Implement Pydantic model and MongoDB schema for DELETE /v1/plans/{plan_id} — revoke plan (sets s | 1 | Backend |
+| APEP-297.b | APEP-297 | Implement Pydantic model and MongoDB schema for plan-session binding | 1 | Backend |
+
+#### Sub-Sprint 37.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for MissionPlan Pydantic model with all field; Ed25519 plan signing using PyNaCl; POST /v1/plans — create and issue a si.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-292.c | APEP-292 | Implement core business logic: MissionPlan Pydantic model with all fields; add Mon | 1 | Backend |
+| APEP-293.c | APEP-293 | Implement core security logic: Ed25519 plan signing using PyNaCl | 2 | Security |
+| APEP-294.c | APEP-294 | Implement core business logic: POST /v1/plans — create and issue a signed plan; | 1 | Backend |
+| APEP-295.b | APEP-295 | Implement core logic: GET /v1/plans/{plan_id} — retrieve plan with bud | 1 | Backend |
+
+#### Sub-Sprint 37.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for DELETE /v1/plans/{plan_id} — revoke pl; plan-session binding; plan TTL expiry background job.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-296.c | APEP-296 | Implement core business logic: DELETE /v1/plans/{plan_id} — revoke plan (sets s | 1 | Backend |
+| APEP-297.c | APEP-297 | Implement core business logic: plan-session binding | 1 | Backend |
+| APEP-298.b | APEP-298 | Implement core logic: plan TTL expiry background job | 1 | Backend |
+
+#### Sub-Sprint 37.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 37 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-292.d | APEP-292 | Wire API endpoint and service layer for MissionPlan Pydantic model with all fields; add Mon | 1 | Backend |
+| APEP-294.d | APEP-294 | Wire API endpoint and service layer for POST /v1/plans — create and issue a signed plan; | 1 | Backend |
+| APEP-296.d | APEP-296 | Wire API endpoint and service layer for DELETE /v1/plans/{plan_id} — revoke plan (sets s | 1 | Backend |
+| APEP-297.d | APEP-297 | Wire API endpoint and service layer for plan-session binding | 1 | Backend |
+
+#### Sub-Sprint 37.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 37.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-293.d | APEP-293 | Implement security guards and crypto: Ed25519 plan signing using PyNaCl | 1 | Security |
+
+#### Sub-Sprint 37.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 37 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-293.e | APEP-293 | Integrate into enforcement pipeline: Ed25519 plan signing using PyNaCl | 1 | Security |
+
+#### Sub-Sprint 37.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 37 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S37.8 | — | Update SDK documentation and CLI help text for Sprint 37 | 0 | SDK |
+
+#### Sub-Sprint 37.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 37 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-292.e | APEP-292 | Write unit tests for MissionPlan Pydantic model with all fields; add Mon | 1 | Testing |
+| APEP-293.f | APEP-293 | Write unit tests for Ed25519 plan signing using PyNaCl | 1 | Testing |
+| APEP-294.e | APEP-294 | Write unit tests for POST /v1/plans — create and issue a signed plan; | 1 | Testing |
+| APEP-295.c | APEP-295 | Write unit tests for GET /v1/plans/{plan_id} — retrieve plan with bud | 1 | Testing |
+| APEP-296.e | APEP-296 | Write unit tests for DELETE /v1/plans/{plan_id} — revoke plan (sets s | 1 | Testing |
+| APEP-297.e | APEP-297 | Write unit tests for plan-session binding | 1 | Testing |
+| APEP-298.c | APEP-298 | Write unit tests for plan TTL expiry background job | 1 | Testing |
+| APEP-299.a | APEP-299 | Write unit and component tests: integration tests | 2 | Testing |
+
+#### Sub-Sprint 37.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 37.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-293.g | APEP-293 | Write adversarial tests for Ed25519 plan signing using PyNaCl | 1 | Testing |
+| APEP-299.b | APEP-299 | Write integration and adversarial tests: integration tests | 3 | Testing |
+
+#### Sub-Sprint 37.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 37 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S37.11 | — | Sprint 37 documentation and deliverable validation | 0 | Docs |
+
+---
 
 ### Sprint 38 — Scope Pattern Language & DSL Compiler
 
 **Goal:** Implement `verb:namespace:resource` scope notation; build pattern compiler that maps scope patterns to RBAC tool-name globs; integrate scope matching into PolicyEvaluator.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-300 | Design and document scope pattern syntax: verb (read/write/delete/execute/send/list), namespace (public/internal/secret/external/any), resource (glob); define escaping and wildcard rules | 3 | Backend |
-| APEP-301 | Implement `ScopePatternParser`: parse `verb:namespace:resource` string into structured `ScopePattern` object; validate all components | 5 | Backend |
-| APEP-302 | Implement `ScopePatternCompiler`: translate parsed scope pattern to equivalent RBAC tool_name glob(s) and arg constraints for PolicyEvaluator consumption | 8 | Backend |
-| APEP-303 | Implement scope matching in `PlanCheckpointFilter`: check if incoming tool_call action matches any `requires_checkpoint` pattern; return ESCALATE if matched | 5 | Backend |
-| APEP-304 | Implement scope allow-check in `PlanScopeFilter`: check if action matches any `scope` pattern; DENY with `PLAN_AGENT_NOT_AUTHORIZED` if no match (plan-aware sessions only) | 5 | Backend |
-| APEP-305 | Add `agentpep scope compile <pattern>` CLI command: shows mapped RBAC globs and arg constraints | 3 | SDK |
-| APEP-306 | Add `agentpep scope validate <plan.yaml>` CLI command: validates all scope patterns in a plan file and reports any unsupported or conflicting patterns | 3 | SDK |
-| APEP-307 | Write unit tests: scope pattern parsing, compilation edge cases, checkpoint matching, allow-check matching | 5 | Testing |
+#### Sub-Sprint 38.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 38 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-300.a | APEP-300 | Design data model and interface for and document scope pattern syntax | 1 | Backend |
+| APEP-301.a | APEP-301 | Design data model and interface for ScopePatternParser | 1 | Backend |
+| APEP-302.a | APEP-302 | Design architecture and interfaces for ScopePatternCompiler | 1 | Backend |
+| APEP-303.a | APEP-303 | Design data model and interface for scope matching in PlanCheckpointFilter | 1 | Backend |
+| APEP-304.a | APEP-304 | Design data model and interface for scope allow-check in PlanScopeFilter | 1 | Backend |
+| APEP-305.a | APEP-305 | Design SDK/CLI interface for agentpep scope compile <pattern> CLI command | 1 | SDK |
+| APEP-306.a | APEP-306 | Design SDK/CLI interface for agentpep scope validate <plan.yaml> CLI command | 1 | SDK |
+
+#### Sub-Sprint 38.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 38 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-301.b | APEP-301 | Implement Pydantic model and MongoDB schema for ScopePatternParser | 1 | Backend |
+| APEP-302.b | APEP-302 | Implement Pydantic model and MongoDB schema for ScopePatternCompiler | 1 | Backend |
+| APEP-303.b | APEP-303 | Implement Pydantic model and MongoDB schema for scope matching in PlanCheckpointFilter | 1 | Backend |
+| APEP-304.b | APEP-304 | Implement Pydantic model and MongoDB schema for scope allow-check in PlanScopeFilter | 1 | Backend |
+
+#### Sub-Sprint 38.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for and document scope pattern syntax; ScopePatternParser; ScopePatternCompiler.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-300.b | APEP-300 | Implement core logic: and document scope pattern syntax | 1 | Backend |
+| APEP-301.c | APEP-301 | Implement core business logic: ScopePatternParser | 1 | Backend |
+| APEP-302.c | APEP-302 | Implement core logic: ScopePatternCompiler | 2 | Backend |
+| APEP-303.c | APEP-303 | Implement core business logic: scope matching in PlanCheckpointFilter | 1 | Backend |
+
+#### Sub-Sprint 38.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for scope allow-check in PlanScopeFilter; agentpep scope compile <pattern> CLI command; agentpep scope validate <plan.yaml> CLI command.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-304.c | APEP-304 | Implement core business logic: scope allow-check in PlanScopeFilter | 1 | Backend |
+
+#### Sub-Sprint 38.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 38 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-301.d | APEP-301 | Wire API endpoint and service layer for ScopePatternParser | 1 | Backend |
+| APEP-302.d | APEP-302 | Wire API endpoint and service layer for ScopePatternCompiler | 1 | Backend |
+| APEP-303.d | APEP-303 | Wire API endpoint and service layer for scope matching in PlanCheckpointFilter | 1 | Backend |
+| APEP-304.d | APEP-304 | Wire API endpoint and service layer for scope allow-check in PlanScopeFilter | 1 | Backend |
+
+#### Sub-Sprint 38.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 38.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S38.6 | — | Security review and input validation audit for Sprint 38 | 0 | Security |
+
+#### Sub-Sprint 38.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 38 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-302.e | APEP-302 | Integrate into pipeline: ScopePatternCompiler | 1 | Backend |
+
+#### Sub-Sprint 38.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 38 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-305.b | APEP-305 | Implement SDK/CLI: agentpep scope compile <pattern> CLI command | 1 | SDK |
+| APEP-306.b | APEP-306 | Implement SDK/CLI: agentpep scope validate <plan.yaml> CLI command | 1 | SDK |
+
+#### Sub-Sprint 38.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 38 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-300.c | APEP-300 | Write unit tests for and document scope pattern syntax | 1 | Testing |
+| APEP-301.e | APEP-301 | Write unit tests for ScopePatternParser | 1 | Testing |
+| APEP-302.f | APEP-302 | Write unit tests for ScopePatternCompiler | 1 | Testing |
+| APEP-303.e | APEP-303 | Write unit tests for scope matching in PlanCheckpointFilter | 1 | Testing |
+| APEP-304.e | APEP-304 | Write unit tests for scope allow-check in PlanScopeFilter | 1 | Testing |
+| APEP-305.c | APEP-305 | Write tests for SDK/CLI: agentpep scope compile <pattern> CLI command | 1 | Testing |
+| APEP-306.c | APEP-306 | Write tests for SDK/CLI: agentpep scope validate <plan.yaml> CLI command | 1 | Testing |
+| APEP-307.a | APEP-307 | Write unit and component tests: unit tests | 2 | Testing |
+
+#### Sub-Sprint 38.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 38.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-302.g | APEP-302 | Write integration tests for ScopePatternCompiler | 1 | Testing |
+| APEP-307.b | APEP-307 | Write integration and adversarial tests: unit tests | 3 | Testing |
+
+#### Sub-Sprint 38.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 38 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S38.11 | — | Sprint 38 documentation and deliverable validation | 0 | Docs |
+
+---
 
 ### Sprint 39 — Receipt Chaining with Plan Root
 
 **Goal:** Extend `AuditDecision` with `plan_id` and `parent_receipt_id`; implement per-receipt Ed25519 signing; add plan-scoped receipt retrieval API; implement independent offline verifier.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-308 | Extend `AuditDecision` Pydantic model with `plan_id`, `parent_receipt_id`, `receipt_signature`, and `human_intent` fields; add MongoDB index on `plan_id` | 3 | Backend |
-| APEP-309 | Implement per-receipt Ed25519 signing in `AuditLogger`: sign canonical `(decision_id, plan_id, parent_receipt_id, agent_id, tool_name, decision, timestamp)` for every ALLOW decision | 8 | Security |
-| APEP-310 | Implement `ReceiptChainManager`: tracks latest receipt per session per plan in Redis; sets `parent_receipt_id` on each new receipt to prior receipt in chain | 5 | Backend |
-| APEP-311 | Implement `GET /v1/plans/{plan_id}/receipts` — return full receipt tree as nested JSON; parent nodes contain list of child receipts | 5 | Backend |
-| APEP-312 | Implement `GET /v1/plans/{plan_id}/receipts/summary` — return counts, total risk accumulated, ALLOW/DENY/ESCALATE breakdown, budget remaining | 3 | Backend |
-| APEP-313 | Implement `OfflineReceiptVerifier`: given a list of receipts and the tenant's Ed25519 public key, verify the full chain without server access; report VERIFIED / BROKEN / TAMPERED per node | 8 | Security |
-| APEP-314 | Add `agentpep receipt verify-chain --plan <plan_id> --export receipts.json` CLI command: exports chain and verifies locally | 3 | SDK |
-| APEP-315 | Write adversarial tests: tampered receipt detection, broken parent chain, out-of-order receipts, cross-plan receipt injection | 5 | Testing |
+#### Sub-Sprint 39.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 39 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-308.a | APEP-308 | Design data model and interface for Extend AuditDecision Pydantic model with plan_id, paren | 1 | Backend |
+| APEP-309.a | APEP-309 | Design security architecture and threat model for per-receipt Ed25519 signing in AuditLogger | 1 | Security |
+| APEP-310.a | APEP-310 | Design data model and interface for ReceiptChainManager | 1 | Backend |
+| APEP-311.a | APEP-311 | Design data model and interface for GET /v1/plans/{plan_id}/receipts — return full r | 1 | Backend |
+| APEP-312.a | APEP-312 | Design data model and interface for GET /v1/plans/{plan_id}/receipts/summary — retur | 1 | Backend |
+| APEP-313.a | APEP-313 | Design security architecture and threat model for OfflineReceiptVerifier | 1 | Security |
+| APEP-314.a | APEP-314 | Design SDK/CLI interface for agentpep receipt verify-chain --plan <plan_id> --export receipts.json CLI com... | 1 | SDK |
+
+#### Sub-Sprint 39.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 39 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-309.b | APEP-309 | Define data model and schema for per-receipt Ed25519 signing in AuditLogger | 1 | Backend |
+| APEP-310.b | APEP-310 | Implement Pydantic model and MongoDB schema for ReceiptChainManager | 1 | Backend |
+| APEP-311.b | APEP-311 | Implement Pydantic model and MongoDB schema for GET /v1/plans/{plan_id}/receipts — return full r | 1 | Backend |
+| APEP-313.b | APEP-313 | Define data model and schema for OfflineReceiptVerifier | 1 | Backend |
+
+#### Sub-Sprint 39.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for Extend AuditDecision Pydantic model with plan_i; per-receipt Ed25519 signing in AuditLogger; ReceiptChainManager.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-308.b | APEP-308 | Implement core logic: Extend AuditDecision Pydantic model with plan_id, paren | 1 | Backend |
+| APEP-309.c | APEP-309 | Implement core security logic: per-receipt Ed25519 signing in AuditLogger | 2 | Security |
+| APEP-310.c | APEP-310 | Implement core business logic: ReceiptChainManager | 1 | Backend |
+| APEP-311.c | APEP-311 | Implement core business logic: GET /v1/plans/{plan_id}/receipts — return full r | 1 | Backend |
+
+#### Sub-Sprint 39.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for GET /v1/plans/{plan_id}/receipts/summar; OfflineReceiptVerifier; agentpep receipt verify-chain --plan <plan_id> --export receipts.json CLI command.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-312.b | APEP-312 | Implement core logic: GET /v1/plans/{plan_id}/receipts/summary — retur | 1 | Backend |
+| APEP-313.c | APEP-313 | Implement core security logic: OfflineReceiptVerifier | 2 | Security |
+
+#### Sub-Sprint 39.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 39 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-310.d | APEP-310 | Wire API endpoint and service layer for ReceiptChainManager | 1 | Backend |
+| APEP-311.d | APEP-311 | Wire API endpoint and service layer for GET /v1/plans/{plan_id}/receipts — return full r | 1 | Backend |
+
+#### Sub-Sprint 39.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 39.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-309.d | APEP-309 | Implement security guards and crypto: per-receipt Ed25519 signing in AuditLogger | 1 | Security |
+| APEP-313.d | APEP-313 | Implement security guards and crypto: OfflineReceiptVerifier | 1 | Security |
+
+#### Sub-Sprint 39.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 39 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-309.e | APEP-309 | Integrate into enforcement pipeline: per-receipt Ed25519 signing in AuditLogger | 1 | Security |
+| APEP-313.e | APEP-313 | Integrate into enforcement pipeline: OfflineReceiptVerifier | 1 | Security |
+
+#### Sub-Sprint 39.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 39 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-314.b | APEP-314 | Implement SDK/CLI: agentpep receipt verify-chain --plan <plan_id> --export receipts.json CLI com... | 1 | SDK |
+
+#### Sub-Sprint 39.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 39 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-308.c | APEP-308 | Write unit tests for Extend AuditDecision Pydantic model with plan_id, paren | 1 | Testing |
+| APEP-309.f | APEP-309 | Write unit tests for per-receipt Ed25519 signing in AuditLogger | 1 | Testing |
+| APEP-310.e | APEP-310 | Write unit tests for ReceiptChainManager | 1 | Testing |
+| APEP-311.e | APEP-311 | Write unit tests for GET /v1/plans/{plan_id}/receipts — return full r | 1 | Testing |
+| APEP-312.c | APEP-312 | Write unit tests for GET /v1/plans/{plan_id}/receipts/summary — retur | 1 | Testing |
+| APEP-313.f | APEP-313 | Write unit tests for OfflineReceiptVerifier | 1 | Testing |
+| APEP-314.c | APEP-314 | Write tests for SDK/CLI: agentpep receipt verify-chain --plan <plan_id> --export receipts.json CLI com... | 1 | Testing |
+| APEP-315.a | APEP-315 | Write unit and component tests: adversarial tests | 2 | Testing |
+
+#### Sub-Sprint 39.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 39.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-309.g | APEP-309 | Write adversarial tests for per-receipt Ed25519 signing in AuditLogger | 1 | Testing |
+| APEP-313.g | APEP-313 | Write adversarial tests for OfflineReceiptVerifier | 1 | Testing |
+| APEP-315.b | APEP-315 | Write integration and adversarial tests: adversarial tests | 3 | Testing |
+
+#### Sub-Sprint 39.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 39 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S39.11 | — | Sprint 39 documentation and deliverable validation | 0 | Docs |
+
+---
 
 ### Sprint 40 — Declarative Delegates-To & Plan Budget Gate
 
 **Goal:** Implement `PlanDelegatesToFilter` as pre-stage in PolicyEvaluator; implement `PlanBudgetGate` with Redis-backed budget state tracking; enforce TTL, delegation count, and risk budget.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-316 | Implement `PlanDelegatesToFilter`: fast-path check before confused-deputy detector — if `agent_id` not in plan's `delegates_to` list, return DENY with `PLAN_AGENT_NOT_AUTHORIZED` immediately | 5 | Backend |
-| APEP-317 | Implement `delegates_to: []` enforcement: plans with empty `delegates_to` block all sub-agent delegation, enforcing leaf-agent constraint | 3 | Backend |
-| APEP-318 | Implement `PlanBudgetGate`: Redis-backed budget state per plan — tracks `delegations_used` (inc on ALLOW), `risk_accumulated` (add risk_score on ALLOW), `elapsed_seconds` | 8 | Backend |
-| APEP-319 | Implement budget exhaustion enforcement: check all three budget dimensions before PolicyEvaluator stages; return DENY with appropriate `PLAN_*` reason code | 5 | Backend |
-| APEP-320 | Implement budget status API: `GET /v1/plans/{plan_id}/budget` returns current usage vs limits with percentage and time-remaining | 3 | Backend |
-| APEP-321 | Implement budget alert events: Kafka event `agentpep.plan_budget` when plan reaches 80% of any budget dimension; console warning badge | 3 | Backend |
-| APEP-322 | Implement plan budget reset: `POST /v1/plans/{plan_id}/budget/reset` for security admins; requires peer approval via console review workflow | 3 | Backend |
-| APEP-323 | Write integration tests: delegation count exhaustion, risk budget exhaustion, TTL expiry, delegates_to block, simultaneous budget races | 5 | Testing |
+#### Sub-Sprint 40.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 40 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-316.a | APEP-316 | Design data model and interface for PlanDelegatesToFilter | 1 | Backend |
+| APEP-317.a | APEP-317 | Design data model and interface for delegates_to | 1 | Backend |
+| APEP-318.a | APEP-318 | Design architecture and interfaces for PlanBudgetGate | 1 | Backend |
+| APEP-319.a | APEP-319 | Design data model and interface for budget exhaustion enforcement | 1 | Backend |
+| APEP-320.a | APEP-320 | Design data model and interface for budget status API | 1 | Backend |
+| APEP-321.a | APEP-321 | Design data model and interface for budget alert events | 1 | Backend |
+| APEP-322.a | APEP-322 | Design data model and interface for plan budget reset | 1 | Backend |
+
+#### Sub-Sprint 40.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 40 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-316.b | APEP-316 | Implement Pydantic model and MongoDB schema for PlanDelegatesToFilter | 1 | Backend |
+| APEP-318.b | APEP-318 | Implement Pydantic model and MongoDB schema for PlanBudgetGate | 1 | Backend |
+| APEP-319.b | APEP-319 | Implement Pydantic model and MongoDB schema for budget exhaustion enforcement | 1 | Backend |
+
+#### Sub-Sprint 40.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for PlanDelegatesToFilter; delegates_to; PlanBudgetGate.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-316.c | APEP-316 | Implement core business logic: PlanDelegatesToFilter | 1 | Backend |
+| APEP-317.b | APEP-317 | Implement core logic: delegates_to | 1 | Backend |
+| APEP-318.c | APEP-318 | Implement core logic: PlanBudgetGate | 2 | Backend |
+| APEP-319.c | APEP-319 | Implement core business logic: budget exhaustion enforcement | 1 | Backend |
+
+#### Sub-Sprint 40.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for budget status API; budget alert events; plan budget reset.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-320.b | APEP-320 | Implement core logic: budget status API | 1 | Backend |
+| APEP-321.b | APEP-321 | Implement core logic: budget alert events | 1 | Backend |
+| APEP-322.b | APEP-322 | Implement core logic: plan budget reset | 1 | Backend |
+
+#### Sub-Sprint 40.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 40 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-316.d | APEP-316 | Wire API endpoint and service layer for PlanDelegatesToFilter | 1 | Backend |
+| APEP-318.d | APEP-318 | Wire API endpoint and service layer for PlanBudgetGate | 1 | Backend |
+| APEP-319.d | APEP-319 | Wire API endpoint and service layer for budget exhaustion enforcement | 1 | Backend |
+
+#### Sub-Sprint 40.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 40.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S40.6 | — | Security review and input validation audit for Sprint 40 | 0 | Security |
+
+#### Sub-Sprint 40.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 40 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-318.e | APEP-318 | Integrate into pipeline: PlanBudgetGate | 1 | Backend |
+
+#### Sub-Sprint 40.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 40 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S40.8 | — | Update SDK documentation and CLI help text for Sprint 40 | 0 | SDK |
+
+#### Sub-Sprint 40.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 40 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-316.e | APEP-316 | Write unit tests for PlanDelegatesToFilter | 1 | Testing |
+| APEP-317.c | APEP-317 | Write unit tests for delegates_to | 1 | Testing |
+| APEP-318.f | APEP-318 | Write unit tests for PlanBudgetGate | 1 | Testing |
+| APEP-319.e | APEP-319 | Write unit tests for budget exhaustion enforcement | 1 | Testing |
+| APEP-320.c | APEP-320 | Write unit tests for budget status API | 1 | Testing |
+| APEP-321.c | APEP-321 | Write unit tests for budget alert events | 1 | Testing |
+| APEP-322.c | APEP-322 | Write unit tests for plan budget reset | 1 | Testing |
+| APEP-323.a | APEP-323 | Write unit and component tests: integration tests | 2 | Testing |
+
+#### Sub-Sprint 40.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 40.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-318.g | APEP-318 | Write integration tests for PlanBudgetGate | 1 | Testing |
+| APEP-323.b | APEP-323 | Write integration and adversarial tests: integration tests | 3 | Testing |
+
+#### Sub-Sprint 40.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 40 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S40.11 | — | Sprint 40 documentation and deliverable validation | 0 | Docs |
+
+---
 
 ### Sprint 41 — Checkpoint-Declared Escalation & Human Intent
 
 **Goal:** Integrate `requires_checkpoint` as a pre-RBAC PolicyEvaluator stage that unconditionally triggers ESCALATE for matched actions; add `human_intent` field propagation through the evaluation pipeline.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-324 | Implement `PlanCheckpointFilter` as the first stage in PolicyEvaluator (before RBAC): match incoming action against plan's `requires_checkpoint` patterns; return ESCALATE if matched | 5 | Backend |
-| APEP-325 | Propagate checkpoint match reason to Escalation Manager: escalation ticket includes checkpoint pattern matched, plan action (human intent), issuer identity, and budget remaining | 5 | Backend |
-| APEP-326 | Implement checkpoint approval memory scoped to plan: if approver approves a checkpoint-triggered action, subsequent identical actions within the plan's remaining TTL are auto-approved | 5 | Backend |
-| APEP-327 | Add `human_intent` field propagation: copy plan's `action` string into every audit record, escalation ticket, and Kafka event emitted under that plan | 3 | Backend |
-| APEP-328 | Add checkpoint pattern testing to policy simulation: `POST /v1/simulate` with `plan_id` shows whether action hits checkpoint before RBAC evaluation | 3 | Backend |
-| APEP-329 | Build Checkpoint History view in Escalation Queue console screen: filter escalations by plan; show checkpoint pattern matched; display human intent from plan | 5 | Frontend |
-| APEP-330 | Update compliance reports (DPDPA / CERT-In): include plan-level intent field and checkpoint audit records in exported reports | 3 | Backend |
-| APEP-331 | Write integration tests: checkpoint matched before RBAC; checkpoint with approval memory; no-plan session not affected by checkpoint logic | 3 | Testing |
+#### Sub-Sprint 41.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 41 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-324.a | APEP-324 | Design data model and interface for PlanCheckpointFilter as the first stage in PolicyEvaluator (before RBAC) | 1 | Backend |
+| APEP-325.a | APEP-325 | Design data model and interface for Propagate checkpoint match reason to Escalation Manager | 1 | Backend |
+| APEP-326.a | APEP-326 | Design data model and interface for checkpoint approval memory scoped to plan | 1 | Backend |
+| APEP-327.a | APEP-327 | Design data model and interface for human_intent field propagation | 1 | Backend |
+| APEP-328.a | APEP-328 | Design data model and interface for checkpoint pattern testing to policy simulation | 1 | Backend |
+| APEP-329.a | APEP-329 | Design component wireframes and state model for Checkpoint History view in Escalation Queue console screen | 1 | Frontend |
+| APEP-330.a | APEP-330 | Design data model and interface for Update compliance reports (DPDPA / CERT-In) | 1 | Backend |
+
+#### Sub-Sprint 41.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 41 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-324.b | APEP-324 | Implement Pydantic model and MongoDB schema for PlanCheckpointFilter as the first stage in PolicyEvaluator (before RBAC) | 1 | Backend |
+| APEP-325.b | APEP-325 | Implement Pydantic model and MongoDB schema for Propagate checkpoint match reason to Escalation Manager | 1 | Backend |
+| APEP-326.b | APEP-326 | Implement Pydantic model and MongoDB schema for checkpoint approval memory scoped to plan | 1 | Backend |
+
+#### Sub-Sprint 41.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for PlanCheckpointFilter as the first stage in PolicyEvaluator (before RBAC); Propagate checkpoint match reason to Escalation Manager; checkpoint approval memory scoped to plan.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-324.c | APEP-324 | Implement core business logic: PlanCheckpointFilter as the first stage in PolicyEvaluator (before RBAC) | 1 | Backend |
+| APEP-325.c | APEP-325 | Implement core business logic: Propagate checkpoint match reason to Escalation Manager | 1 | Backend |
+| APEP-326.c | APEP-326 | Implement core business logic: checkpoint approval memory scoped to plan | 1 | Backend |
+| APEP-327.b | APEP-327 | Implement core logic: human_intent field propagation | 1 | Backend |
+
+#### Sub-Sprint 41.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for checkpoint pattern testing to policy simulation; Checkpoint History view in Escalation Queue console screen; Update compliance reports (DPDPA / CERT-In).
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-328.b | APEP-328 | Implement core logic: checkpoint pattern testing to policy simulation | 1 | Backend |
+| APEP-330.b | APEP-330 | Implement core logic: Update compliance reports (DPDPA / CERT-In) | 1 | Backend |
+
+#### Sub-Sprint 41.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 41 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-324.d | APEP-324 | Wire API endpoint and service layer for PlanCheckpointFilter as the first stage in PolicyEvaluator (before RBAC) | 1 | Backend |
+| APEP-325.d | APEP-325 | Wire API endpoint and service layer for Propagate checkpoint match reason to Escalation Manager | 1 | Backend |
+| APEP-326.d | APEP-326 | Wire API endpoint and service layer for checkpoint approval memory scoped to plan | 1 | Backend |
+
+#### Sub-Sprint 41.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 41.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S41.6 | — | Security review and input validation audit for Sprint 41 | 0 | Security |
+
+#### Sub-Sprint 41.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 41 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S41.7 | — | Wire Kafka events and pipeline hooks for Sprint 41 components | 0 | Backend |
+
+#### Sub-Sprint 41.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 41 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-329.b | APEP-329 | Implement UI component: Checkpoint History view in Escalation Queue console screen | 2 | Frontend |
+
+#### Sub-Sprint 41.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 41 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-324.e | APEP-324 | Write unit tests for PlanCheckpointFilter as the first stage in PolicyEvaluator (before RBAC) | 1 | Testing |
+| APEP-325.e | APEP-325 | Write unit tests for Propagate checkpoint match reason to Escalation Manager | 1 | Testing |
+| APEP-326.e | APEP-326 | Write unit tests for checkpoint approval memory scoped to plan | 1 | Testing |
+| APEP-327.c | APEP-327 | Write unit tests for human_intent field propagation | 1 | Testing |
+| APEP-328.c | APEP-328 | Write unit tests for checkpoint pattern testing to policy simulation | 1 | Testing |
+| APEP-329.c | APEP-329 | Write component tests for Checkpoint History view in Escalation Queue console screen | 1 | Testing |
+| APEP-330.c | APEP-330 | Write unit tests for Update compliance reports (DPDPA / CERT-In) | 1 | Testing |
+| APEP-331.a | APEP-331 | Write unit and component tests: integration tests | 2 | Testing |
+
+#### Sub-Sprint 41.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 41.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-329.d | APEP-329 | Write E2E tests for Checkpoint History view in Escalation Queue console screen | 1 | Testing |
+| APEP-331.b | APEP-331 | Write integration and adversarial tests: integration tests | 1 | Testing |
+
+#### Sub-Sprint 41.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 41 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S41.11 | — | Sprint 41 documentation and deliverable validation | 0 | Docs |
+
+---
 
 ### Sprint 42 — Plan Console UI & Plan-Scoped Audit Tree
 
 **Goal:** Add Plan Management and Plan Explorer screens to Policy Console; implement plan-centric audit tree visualisation; add plan budget dashboard widget.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-332 | Build Plan Management list screen: table of plans with status badge (ACTIVE/EXPIRED/REVOKED), issuer, human intent, budget utilisation bars, time remaining | 5 | Frontend |
-| APEP-333 | Build Plan Issuance form: scope pattern builder with live validation, delegates_to agent picker from registry, requires_checkpoint pattern builder, budget fields | 8 | Frontend |
-| APEP-334 | Build Plan Detail screen: full plan fields, signature verification status, budget gauges, receipt count, quick-revoke button with confirmation | 5 | Frontend |
-| APEP-335 | Build Plan Explorer — receipt tree view: collapsible nested tree of all receipts under a plan; each node shows agent_id, action, decision, risk_score, timestamp | 8 | Frontend |
-| APEP-336 | Implement receipt node drill-down: click receipt to see full AuditDecision detail including taint flags, matched rule, delegation chain, and receipt signature | 3 | Frontend |
-| APEP-337 | Add plan budget widget to Risk Dashboard: top-N plans by budget consumption; plans approaching expiry or exhaustion highlighted in amber/red | 3 | Frontend |
-| APEP-338 | Add plan filter to Audit Explorer: filter all audit records by plan_id; display human_intent as contextual header | 3 | Frontend |
-| APEP-339 | Write Playwright E2E tests: plan issuance form, receipt tree drill-down, revocation flow | 3 | Testing |
+#### Sub-Sprint 42.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 42 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-332.a | APEP-332 | Design component wireframes and state model for Plan Management list screen | 1 | Frontend |
+| APEP-333.a | APEP-333 | Design component wireframes, state model, and data flow for Plan Issuance form | 1 | Frontend |
+| APEP-334.a | APEP-334 | Design component wireframes and state model for Plan Detail screen | 1 | Frontend |
+| APEP-335.a | APEP-335 | Design component wireframes, state model, and data flow for Plan Explorer — receipt tree view | 1 | Frontend |
+| APEP-336.a | APEP-336 | Design component wireframes and state model for receipt node drill-down | 1 | Frontend |
+| APEP-337.a | APEP-337 | Design component wireframes and state model for plan budget widget to Risk Dashboard | 1 | Frontend |
+
+#### Sub-Sprint 42.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 42 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-338.a | APEP-338 | Define schema for component wireframes and state model for plan filter to Audit Explorer | 1 | Frontend |
+
+#### Sub-Sprint 42.3 — Core Component Logic (Part 1)
+
+**Goal:** Implement core business logic for Plan Management list screen; Plan Issuance form; Plan Detail screen.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-333.b | APEP-333 | Implement component structure and state management: Plan Issuance form | 2 | Frontend |
+| APEP-335.b | APEP-335 | Implement component structure and state management: Plan Explorer — receipt tree view | 2 | Frontend |
+
+#### Sub-Sprint 42.4 — Core Component Logic (Part 2)
+
+**Goal:** Implement core business logic for receipt node drill-down; plan budget widget to Risk Dashboard; plan filter to Audit Explorer.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-333.c | APEP-333 | Implement component rendering and interaction: Plan Issuance form | 2 | Frontend |
+| APEP-335.c | APEP-335 | Implement component rendering and interaction: Plan Explorer — receipt tree view | 2 | Frontend |
+
+#### Sub-Sprint 42.5 — API Integration & Data Fetching
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 42 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S42.5 | — | Review API contracts and OpenAPI spec for Sprint 42 endpoints | 0 | Backend |
+
+#### Sub-Sprint 42.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 42.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S42.6 | — | Security review and input validation audit for Sprint 42 | 0 | Security |
+
+#### Sub-Sprint 42.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 42 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S42.7 | — | Wire Kafka events and pipeline hooks for Sprint 42 components | 0 | Backend |
+
+#### Sub-Sprint 42.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 42 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-332.b | APEP-332 | Implement UI component: Plan Management list screen | 2 | Frontend |
+| APEP-333.d | APEP-333 | Polish and integrate UI component: Plan Issuance form | 1 | Frontend |
+| APEP-334.b | APEP-334 | Implement UI component: Plan Detail screen | 2 | Frontend |
+| APEP-335.d | APEP-335 | Polish and integrate UI component: Plan Explorer — receipt tree view | 1 | Frontend |
+| APEP-336.b | APEP-336 | Implement UI component: receipt node drill-down | 1 | Frontend |
+| APEP-337.b | APEP-337 | Implement UI component: plan budget widget to Risk Dashboard | 1 | Frontend |
+| APEP-338.b | APEP-338 | Implement UI component: plan filter to Audit Explorer | 1 | Frontend |
+
+#### Sub-Sprint 42.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 42 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-332.c | APEP-332 | Write component tests for Plan Management list screen | 1 | Testing |
+| APEP-333.e | APEP-333 | Write component tests for Plan Issuance form | 1 | Testing |
+| APEP-334.c | APEP-334 | Write component tests for Plan Detail screen | 1 | Testing |
+| APEP-335.e | APEP-335 | Write component tests for Plan Explorer — receipt tree view | 1 | Testing |
+| APEP-336.c | APEP-336 | Write component tests for receipt node drill-down | 1 | Testing |
+| APEP-337.c | APEP-337 | Write component tests for plan budget widget to Risk Dashboard | 1 | Testing |
+| APEP-338.c | APEP-338 | Write component tests for plan filter to Audit Explorer | 1 | Testing |
+| APEP-339.a | APEP-339 | Write unit and component tests: Playwright E2E tests | 2 | Testing |
+
+#### Sub-Sprint 42.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 42.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-332.d | APEP-332 | Write E2E tests for Plan Management list screen | 1 | Testing |
+| APEP-333.f | APEP-333 | Write E2E tests for Plan Issuance form | 1 | Testing |
+| APEP-334.d | APEP-334 | Write E2E tests for Plan Detail screen | 1 | Testing |
+| APEP-335.f | APEP-335 | Write E2E tests for Plan Explorer — receipt tree view | 1 | Testing |
+| APEP-339.b | APEP-339 | Write integration and adversarial tests: Playwright E2E tests | 1 | Testing |
+
+#### Sub-Sprint 42.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 42 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S42.11 | — | Sprint 42 documentation and deliverable validation | 0 | Docs |
+
+---
 
 ### Sprint 43 — Scope Simulator, Pattern Library & SDK Plan API
 
 **Goal:** Build interactive scope simulator in console and CLI; publish curated enterprise scope pattern library; add plan-aware session API to SDK.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-340 | Build scope simulator UI: paste a `verb:namespace:resource` pattern, select a plan, submit an action — shows checkpoint check → scope check → RBAC evaluation → final decision with stage-by-stage trace | 8 | Frontend |
-| APEP-341 | Add `agentpep scope simulate --plan plan.yaml --action "delete:finance:report.pdf"` CLI command: runs full evaluation pipeline offline and outputs decision with stage trace | 5 | SDK |
-| APEP-342 | Build enterprise scope pattern library: 30+ curated scope patterns for file access, email, database, Slack/Teams, calendar, code execution, and API calls; stored as importable YAML templates | 8 | Backend |
-| APEP-343 | Implement pattern library UI: browse, search, and import scope patterns into new plan; preview what each pattern allows/blocks with example actions | 5 | Frontend |
-| APEP-344 | Implement `ToolTrustSession` SDK class: wraps `AgentPEPClient` with plan-aware `issue_plan()`, `delegate()`, and `audit()` methods mirroring ToolTrust's API surface for easy migration | 8 | SDK |
-| APEP-345 | Implement SDK `delegate()` method: calls `POST /v1/intercept` with plan context; returns `DelegationResult(ok, reason, receipt)` matching ToolTrust's response shape | 3 | SDK |
-| APEP-346 | Write ToolTrust migration guide: document how to convert an ToolTrust `issue_plan()` / `delegate()` / `audit()` workflow to use AgentPEP's plan-aware SDK | 3 | Docs |
-| APEP-347 | Write integration tests: `ToolTrustSession` full lifecycle — issue plan → bind session → delegate → receipt chain → audit tree → revoke | 3 | Testing |
+#### Sub-Sprint 43.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 43 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-340.a | APEP-340 | Design component wireframes, state model, and data flow for scope simulator UI | 1 | Frontend |
+| APEP-341.a | APEP-341 | Design SDK/CLI interface for agentpep scope simulate --plan plan.yaml --action "delete | 1 | SDK |
+| APEP-342.a | APEP-342 | Design architecture and interfaces for enterprise scope pattern library | 1 | Backend |
+| APEP-343.a | APEP-343 | Design component wireframes and state model for pattern library UI | 1 | Frontend |
+| APEP-344.a | APEP-344 | Design SDK/CLI interface for ToolTrustSession SDK class | 1 | SDK |
+| APEP-345.a | APEP-345 | Design SDK/CLI interface for SDK delegate() method | 1 | SDK |
+| APEP-346.a | APEP-346 | Outline documentation structure for ToolTrust migration guide | 1 | Docs |
+
+#### Sub-Sprint 43.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 43 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-342.b | APEP-342 | Implement Pydantic model and MongoDB schema for enterprise scope pattern library | 1 | Backend |
+
+#### Sub-Sprint 43.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for scope simulator UI; agentpep scope simulate --plan plan.yaml --action "delete; enterprise scope pattern library.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-341.b | APEP-341 | Implement core logic: agentpep scope simulate --plan plan.yaml --action "delete | 1 | Backend |
+| APEP-342.c | APEP-342 | Implement core logic: enterprise scope pattern library | 2 | Backend |
+
+#### Sub-Sprint 43.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for ToolTrustSession SDK class; SDK delegate() method; ToolTrust migration guide.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-344.b | APEP-344 | Implement core logic: ToolTrustSession SDK class | 2 | Backend |
+
+#### Sub-Sprint 43.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 43 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-342.d | APEP-342 | Wire API endpoint and service layer for enterprise scope pattern library | 1 | Backend |
+| APEP-344.d | APEP-344 | Wire API endpoints for ToolTrustSession SDK class | 1 | Backend |
+
+#### Sub-Sprint 43.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 43.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S43.6 | — | Security review and input validation audit for Sprint 43 | 0 | Security |
+
+#### Sub-Sprint 43.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 43 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-342.e | APEP-342 | Integrate into pipeline: enterprise scope pattern library | 1 | Backend |
+
+#### Sub-Sprint 43.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 43 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-340.b | APEP-340 | Implement component structure and state management: scope simulator UI | 2 | Frontend |
+| APEP-340.c | APEP-340 | Implement component rendering and interaction: scope simulator UI | 2 | Frontend |
+| APEP-340.d | APEP-340 | Polish and integrate UI component: scope simulator UI | 1 | Frontend |
+| APEP-341.c | APEP-341 | Implement SDK/CLI wrapper: agentpep scope simulate --plan plan.yaml --action "delete | 2 | SDK |
+| APEP-343.b | APEP-343 | Implement UI component: pattern library UI | 2 | Frontend |
+| APEP-344.c | APEP-344 | Implement SDK/CLI wrapper: ToolTrustSession SDK class | 2 | SDK |
+| APEP-345.b | APEP-345 | Implement SDK/CLI: SDK delegate() method | 1 | SDK |
+
+#### Sub-Sprint 43.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 43 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-340.e | APEP-340 | Write component tests for scope simulator UI | 1 | Testing |
+| APEP-341.d | APEP-341 | Write unit tests for agentpep scope simulate --plan plan.yaml --action "delete | 1 | Testing |
+| APEP-342.f | APEP-342 | Write unit tests for enterprise scope pattern library | 1 | Testing |
+| APEP-343.c | APEP-343 | Write component tests for pattern library UI | 1 | Testing |
+| APEP-344.e | APEP-344 | Write unit tests for ToolTrustSession SDK class | 1 | Testing |
+| APEP-345.c | APEP-345 | Write tests for SDK/CLI: SDK delegate() method | 1 | Testing |
+| APEP-347.a | APEP-347 | Write unit and component tests: integration tests | 2 | Testing |
+
+#### Sub-Sprint 43.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 43.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-340.f | APEP-340 | Write E2E tests for scope simulator UI | 1 | Testing |
+| APEP-342.g | APEP-342 | Write integration tests for enterprise scope pattern library | 1 | Testing |
+| APEP-343.d | APEP-343 | Write E2E tests for pattern library UI | 1 | Testing |
+| APEP-344.f | APEP-344 | Write integration tests for ToolTrustSession SDK class | 1 | Testing |
+| APEP-347.b | APEP-347 | Write integration and adversarial tests: integration tests | 1 | Testing |
+
+#### Sub-Sprint 43.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 43 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-346.b | APEP-346 | Write and publish documentation: ToolTrust migration guide | 2 | Docs |
+
 
 ---
 
@@ -1555,13 +2378,13 @@ A new sub-reason for `DENY` decisions when a plan-level constraint blocks execut
 
 | Sprint | Name | Phase | Stories |
 |---|---|---|---|
-| 37 | Mission Plan: Model, API & Lifecycle | Phase 9: ToolTrust Roadmap v2 | 8 |
-| 38 | Scope Pattern Language & DSL Compiler | Phase 9: ToolTrust Roadmap v2 | 8 |
-| 39 | Receipt Chaining with Plan Root | Phase 9: ToolTrust Roadmap v2 | 8 |
-| 40 | Declarative Delegates-To & Plan Budget Gate | Phase 9: ToolTrust Roadmap v2 | 8 |
-| 41 | Checkpoint-Declared Escalation & Human Intent | Phase 9: ToolTrust Roadmap v2 | 8 |
-| 42 | Plan Console UI & Plan-Scoped Audit Tree | Phase 9: ToolTrust Roadmap v2 | 8 |
-| 43 | Scope Simulator, Pattern Library & SDK Plan API | Phase 9: ToolTrust Roadmap v2 | 8 |
+| 37 | Mission Plan: Model, API & Lifecycle | Phase 9: ToolTrust Roadmap v2 | 8 stories → 11 sub-sprints |
+| 38 | Scope Pattern Language & DSL Compiler | Phase 9: ToolTrust Roadmap v2 | 8 stories → 11 sub-sprints |
+| 39 | Receipt Chaining with Plan Root | Phase 9: ToolTrust Roadmap v2 | 8 stories → 11 sub-sprints |
+| 40 | Declarative Delegates-To & Plan Budget Gate | Phase 9: ToolTrust Roadmap v2 | 8 stories → 11 sub-sprints |
+| 41 | Checkpoint-Declared Escalation & Human Intent | Phase 9: ToolTrust Roadmap v2 | 8 stories → 11 sub-sprints |
+| 42 | Plan Console UI & Plan-Scoped Audit Tree | Phase 9: ToolTrust Roadmap v2 | 8 stories → 11 sub-sprints |
+| 43 | Scope Simulator, Pattern Library & SDK Plan API | Phase 9: ToolTrust Roadmap v2 | 8 stories → 11 sub-sprints |
 
 ---
 
@@ -1580,7 +2403,7 @@ A new sub-reason for `DENY` decisions when a plan-level constraint blocks execut
 | **Human context** | Technical audit records (tool names, arg hashes) | + `human_intent` field from plan in every audit record |
 | **SDK surface** | `@enforce` decorator, session taint labeling | + `ToolTrustSession` plan-aware API (`issue_plan`, `delegate`, `audit`) |
 | **Scope tooling** | YAML policy authoring, CLI validation | + Scope simulator, pattern library (30+ templates), DSL compiler |
-| **Total stories** | ~291 (Sprints 1–36) | **~347** (+ 56 ToolTrust enhancement stories, Sprints 37–43) |
+| **Total stories** | ~291 (Sprints 1–36) | **~347** (+ 56 stories decomposed into sub-tasks across 77 sub-sprints, Sprints 37–43) |
 
 ---
 
@@ -1792,121 +2615,949 @@ TFN mirrors ToolTrust's three security modes but integrates with AgentPEP's exis
 
 **Goal:** Build the `NetworkDLPScanner` and `URLScanner` service with all 11 layers; extend `injection_signatures.py` to 46 DLP patterns covering API keys, tokens, and credentials; add entropy and SSRF analysis.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-348 | Design `NetworkDLPScanner` service: extend `injection_signatures.py` with 46 DLP patterns (API keys for all major providers, OAuth tokens, private keys, database connection strings, financial identifiers) | 8 | Backend |
-| APEP-349 | Implement `URLScanner` pipeline: scheme validation (block `file://`, `ftp://`, `gopher://`), CRLF injection detection, path traversal blocking (`../`, `%2F..`) | 3 | Backend |
-| APEP-350 | Implement domain blocklist lookup: configurable YAML blocklist; fast `frozenset` lookup; `GET /v1/network/blocklist` management API | 3 | Backend |
-| APEP-351 | Implement DLP pattern matching stage in URLScanner: run all 46 patterns against full URL string; return finding with matched pattern ID and severity | 5 | Backend |
-| APEP-352 | Implement `EntropyAnalyzer`: Shannon entropy of URL path segments and subdomains; configurable thresholds; flag high-entropy strings as potential exfiltration | 5 | Backend |
-| APEP-353 | Implement `SSRFGuard`: resolve hostname via `aiodns`, validate against RFC 1918, loopback, link-local, IANA reserved ranges; block DNS rebinding by re-resolving before connection | 5 | Security |
-| APEP-354 | Implement per-domain rate limiting and per-domain data budget in URLScanner: reuse existing Redis-backed `rate_limiter.py`; add `data_budget_bytes` counter per domain per session | 3 | Backend |
-| APEP-355 | Implement `POST /v1/scan` endpoint: accepts `NetworkScanRequest`; runs appropriate scanner(s); returns `NetworkScanResult` with findings and MITRE ATT&CK IDs | 5 | Backend |
+#### Sub-Sprint 44.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 44 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-348.a | APEP-348 | Design architecture and interfaces for NetworkDLPScanner service | 1 | Backend |
+| APEP-349.a | APEP-349 | Design data model and interface for URLScanner pipeline | 1 | Backend |
+| APEP-350.a | APEP-350 | Design data model and interface for domain blocklist lookup | 1 | Backend |
+| APEP-351.a | APEP-351 | Design data model and interface for DLP pattern matching stage in URLScanner | 1 | Backend |
+| APEP-352.a | APEP-352 | Design data model and interface for EntropyAnalyzer | 1 | Backend |
+| APEP-353.a | APEP-353 | Design security model and threat surface for SSRFGuard | 1 | Security |
+| APEP-354.a | APEP-354 | Design data model and interface for per-domain rate limiting and per-domain data budget in URLScanner | 1 | Backend |
+| APEP-355.a | APEP-355 | Design data model and interface for POST /v1/scan endpoint | 1 | Backend |
+
+#### Sub-Sprint 44.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 44 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-348.b | APEP-348 | Implement Pydantic model and MongoDB schema for NetworkDLPScanner service | 1 | Backend |
+| APEP-351.b | APEP-351 | Implement Pydantic model and MongoDB schema for DLP pattern matching stage in URLScanner | 1 | Backend |
+| APEP-352.b | APEP-352 | Implement Pydantic model and MongoDB schema for EntropyAnalyzer | 1 | Backend |
+| APEP-355.b | APEP-355 | Implement Pydantic model and MongoDB schema for POST /v1/scan endpoint | 1 | Backend |
+
+#### Sub-Sprint 44.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for NetworkDLPScanner service; URLScanner pipeline; domain blocklist lookup.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-348.c | APEP-348 | Implement core logic: NetworkDLPScanner service | 2 | Backend |
+| APEP-349.b | APEP-349 | Implement core logic: URLScanner pipeline | 1 | Backend |
+| APEP-350.b | APEP-350 | Implement core logic: domain blocklist lookup | 1 | Backend |
+| APEP-351.c | APEP-351 | Implement core business logic: DLP pattern matching stage in URLScanner | 1 | Backend |
+
+#### Sub-Sprint 44.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for EntropyAnalyzer; SSRFGuard; per-domain rate limiting and per-domain data budget in URLScanner.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-352.c | APEP-352 | Implement core business logic: EntropyAnalyzer | 1 | Backend |
+| APEP-353.b | APEP-353 | Implement core security logic: SSRFGuard | 1 | Security |
+| APEP-354.b | APEP-354 | Implement core logic: per-domain rate limiting and per-domain data budget in URLScanner | 1 | Backend |
+| APEP-355.c | APEP-355 | Implement core business logic: POST /v1/scan endpoint | 1 | Backend |
+
+#### Sub-Sprint 44.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 44 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-348.d | APEP-348 | Wire API endpoint and service layer for NetworkDLPScanner service | 1 | Backend |
+| APEP-351.d | APEP-351 | Wire API endpoint and service layer for DLP pattern matching stage in URLScanner | 1 | Backend |
+| APEP-352.d | APEP-352 | Wire API endpoint and service layer for EntropyAnalyzer | 1 | Backend |
+| APEP-355.d | APEP-355 | Wire API endpoint and service layer for POST /v1/scan endpoint | 1 | Backend |
+
+#### Sub-Sprint 44.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 44.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-353.c | APEP-353 | Implement security guards and validation: SSRFGuard | 1 | Security |
+
+#### Sub-Sprint 44.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 44 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-348.e | APEP-348 | Integrate into pipeline: NetworkDLPScanner service | 1 | Backend |
+| APEP-353.d | APEP-353 | Integrate into enforcement pipeline: SSRFGuard | 1 | Security |
+
+#### Sub-Sprint 44.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 44 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S44.8 | — | Update SDK documentation and CLI help text for Sprint 44 | 0 | SDK |
+
+#### Sub-Sprint 44.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 44 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-348.f | APEP-348 | Write unit tests for NetworkDLPScanner service | 1 | Testing |
+| APEP-349.c | APEP-349 | Write unit tests for URLScanner pipeline | 1 | Testing |
+| APEP-350.c | APEP-350 | Write unit tests for domain blocklist lookup | 1 | Testing |
+| APEP-351.e | APEP-351 | Write unit tests for DLP pattern matching stage in URLScanner | 1 | Testing |
+| APEP-352.e | APEP-352 | Write unit tests for EntropyAnalyzer | 1 | Testing |
+| APEP-353.e | APEP-353 | Write security validation tests for SSRFGuard | 1 | Testing |
+| APEP-354.c | APEP-354 | Write unit tests for per-domain rate limiting and per-domain data budget in URLScanner | 1 | Testing |
+| APEP-355.e | APEP-355 | Write unit tests for POST /v1/scan endpoint | 1 | Testing |
+
+#### Sub-Sprint 44.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 44.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-348.g | APEP-348 | Write integration tests for NetworkDLPScanner service | 1 | Testing |
+
+#### Sub-Sprint 44.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 44 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S44.11 | — | Sprint 44 documentation and deliverable validation | 0 | Docs |
+
+---
 
 ### Sprint 45 — DLP Pre-Scan Hook in Intercept Pipeline
 
 **Goal:** Integrate `NetworkDLPScanner` into the existing `PolicyEvaluator` pipeline as a pre-evaluation stage; auto-elevate risk score when DLP hits are found in tool arguments; auto-taint tool arg values containing credentials.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-356 | Implement `DLPPreScanStage` in `PolicyEvaluator`: serialize tool args to string; run `NetworkDLPScanner`; inject DLP findings as additional risk signals before `DataSensitivityScorer` | 8 | Backend |
-| APEP-357 | Implement DLP-to-risk mapping: CRITICAL DLP hit → risk score += 0.3; HIGH → += 0.2; MEDIUM → += 0.1; cumulative cap at 0.95 | 3 | Backend |
-| APEP-358 | Implement DLP-to-taint assignment: if a tool arg value matches a credential pattern, auto-assign `QUARANTINE` taint to that arg's taint node in the session graph | 5 | Security |
-| APEP-359 | Add DLP findings to `PolicyDecisionResponse`: new `dlp_findings` field listing matched patterns and severities; include in audit decision record | 3 | Backend |
-| APEP-360 | Add DLP metrics to Prometheus: `dlp_hits_total` by pattern_id and severity; `dlp_quarantine_assignments_total` | 2 | Observability |
-| APEP-361 | Implement DLP pre-scan caching: hash tool args + pattern version; cache scan result in Redis with 60s TTL to avoid redundant scans on identical args | 3 | Performance |
-| APEP-362 | Write adversarial tests: API key in URL arg → QUARANTINE taint; credential in file path → risk elevation; DLP cache hit returns same result | 5 | Testing |
-| APEP-363 | Implement DLP pattern hot-reload: pattern updates loaded without restart via existing config watcher | 3 | Backend |
+#### Sub-Sprint 45.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 45 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-356.a | APEP-356 | Design architecture and interfaces for DLPPreScanStage in PolicyEvaluator | 1 | Backend |
+| APEP-357.a | APEP-357 | Design data model and interface for DLP-to-risk mapping | 1 | Backend |
+| APEP-358.a | APEP-358 | Design security model and threat surface for DLP-to-taint assignment | 1 | Security |
+| APEP-359.a | APEP-359 | Design data model and interface for DLP findings to PolicyDecisionResponse | 1 | Backend |
+| APEP-360.a | APEP-360 | Design metrics schema and dashboard layout for DLP metrics to Prometheus | 1 | Observability |
+| APEP-361.a | APEP-361 | Design data model and interface for DLP pre-scan caching | 1 | Backend |
+| APEP-363.a | APEP-363 | Design data model and interface for DLP pattern hot-reload | 1 | Backend |
+
+#### Sub-Sprint 45.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 45 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-356.b | APEP-356 | Implement Pydantic model and MongoDB schema for DLPPreScanStage in PolicyEvaluator | 1 | Backend |
+
+#### Sub-Sprint 45.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for DLPPreScanStage in PolicyEvaluator; DLP-to-risk mapping; DLP-to-taint assignment.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-356.c | APEP-356 | Implement core logic: DLPPreScanStage in PolicyEvaluator | 2 | Backend |
+| APEP-357.b | APEP-357 | Implement core logic: DLP-to-risk mapping | 1 | Backend |
+| APEP-358.b | APEP-358 | Implement core security logic: DLP-to-taint assignment | 1 | Security |
+| APEP-359.b | APEP-359 | Implement core logic: DLP findings to PolicyDecisionResponse | 1 | Backend |
+
+#### Sub-Sprint 45.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for DLP metrics to Prometheus; DLP pre-scan caching; adversarial tests.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-361.b | APEP-361 | Implement core logic: DLP pre-scan caching | 1 | Backend |
+| APEP-363.b | APEP-363 | Implement core logic: DLP pattern hot-reload | 1 | Backend |
+
+#### Sub-Sprint 45.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 45 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-356.d | APEP-356 | Wire API endpoint and service layer for DLPPreScanStage in PolicyEvaluator | 1 | Backend |
+
+#### Sub-Sprint 45.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 45.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-358.c | APEP-358 | Implement security guards and validation: DLP-to-taint assignment | 1 | Security |
+
+#### Sub-Sprint 45.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 45 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-356.e | APEP-356 | Integrate into pipeline: DLPPreScanStage in PolicyEvaluator | 1 | Backend |
+| APEP-358.d | APEP-358 | Integrate into enforcement pipeline: DLP-to-taint assignment | 1 | Security |
+
+#### Sub-Sprint 45.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 45 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S45.8 | — | Update SDK documentation and CLI help text for Sprint 45 | 0 | SDK |
+
+#### Sub-Sprint 45.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 45 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-356.f | APEP-356 | Write unit tests for DLPPreScanStage in PolicyEvaluator | 1 | Testing |
+| APEP-357.c | APEP-357 | Write unit tests for DLP-to-risk mapping | 1 | Testing |
+| APEP-358.e | APEP-358 | Write security validation tests for DLP-to-taint assignment | 1 | Testing |
+| APEP-359.c | APEP-359 | Write unit tests for DLP findings to PolicyDecisionResponse | 1 | Testing |
+| APEP-361.c | APEP-361 | Write unit tests for DLP pre-scan caching | 1 | Testing |
+| APEP-362.a | APEP-362 | Write unit and component tests: adversarial tests | 2 | Testing |
+| APEP-363.c | APEP-363 | Write unit tests for DLP pattern hot-reload | 1 | Testing |
+
+#### Sub-Sprint 45.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 45.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-356.g | APEP-356 | Write integration tests for DLPPreScanStage in PolicyEvaluator | 1 | Testing |
+| APEP-362.b | APEP-362 | Write integration and adversarial tests: adversarial tests | 3 | Testing |
+
+#### Sub-Sprint 45.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 45 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-360.b | APEP-360 | Implement Prometheus metrics and Grafana dashboards: DLP metrics to Prometheus | 1 | Observability |
+
+---
 
 ### Sprint 46 — Fetch Proxy & Multi-Pass Response Injection Scanner
 
 **Goal:** Build `/v1/fetch` fetch proxy endpoint; implement `ResponseInjectionScanner` with 6-pass Unicode normalization; auto-taint QUARANTINE when injection detected; integrate with session graph.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-364 | Implement `GET /v1/fetch?url=...` fetch proxy: use `httpx.AsyncClient`; run `URLScanner` before fetch; extract text content from HTML via `html.parser`; return `FetchResult` | 5 | Backend |
-| APEP-365 | Implement 6-pass `ResponseNormalizer`: (1) NFKC Unicode normalization via `unicodedata`; (2) zero-width char stripping (`\u200b`–`\u200f`, `\uFEFF`); (3) homoglyph substitution (custom 400-entry map); (4) leetspeak substitution; (5) base64 unwrap and re-scan; (6) HTML entity decode | 8 | Security |
-| APEP-366 | Implement `ResponseInjectionScanner`: run normalized text through `injection_signatures.py`; add 23 response-specific patterns (jailbreak phrases, credential solicitation, memory persistence, CJK instruction overrides) | 8 | Security |
-| APEP-367 | Implement auto-taint on injection detection: when `ResponseInjectionScanner` finds a match, call `session_graph_manager.label(content, taint=QUARANTINE, source=WEB)` directly; no manual SDK call required | 5 | Security |
-| APEP-368 | Implement fetch proxy DLP scan on response body: run `NetworkDLPScanner` on response text; flag any credential patterns in server responses (exfiltration canary detection) | 3 | Security |
-| APEP-369 | Implement configurable response actions: `block` (return error, do not deliver content), `strip` (remove injection pattern match, deliver remainder), `warn` (deliver with warning header), `ask` (ESCALATE to human approval queue) | 5 | Backend |
-| APEP-370 | Implement SDK `fetch_safe()` method: wraps `GET /v1/fetch`; auto-labels returned content with taint level from scan result; drop-in replacement for raw `httpx.get()` | 3 | SDK |
-| APEP-371 | Write adversarial tests: prompt injection in web response → QUARANTINE; base64-encoded injection → normalized and caught; homoglyph evasion → normalized and caught | 5 | Testing |
+#### Sub-Sprint 46.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 46 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-364.a | APEP-364 | Design data model and interface for GET /v1/fetch?url=... fetch proxy | 1 | Backend |
+| APEP-365.a | APEP-365 | Design security architecture and threat model for 6-pass ResponseNormalizer | 1 | Security |
+| APEP-366.a | APEP-366 | Design security architecture and threat model for ResponseInjectionScanner | 1 | Security |
+| APEP-367.a | APEP-367 | Design security model and threat surface for auto-taint on injection detection | 1 | Security |
+| APEP-368.a | APEP-368 | Design security model for fetch proxy DLP scan on response body | 1 | Security |
+| APEP-369.a | APEP-369 | Design data model and interface for configurable response actions | 1 | Backend |
+| APEP-370.a | APEP-370 | Design SDK/CLI interface for SDK fetch_safe() method | 1 | SDK |
+
+#### Sub-Sprint 46.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 46 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-364.b | APEP-364 | Implement Pydantic model and MongoDB schema for GET /v1/fetch?url=... fetch proxy | 1 | Backend |
+| APEP-365.b | APEP-365 | Define data model and schema for 6-pass ResponseNormalizer | 1 | Backend |
+| APEP-366.b | APEP-366 | Define data model and schema for ResponseInjectionScanner | 1 | Backend |
+| APEP-369.b | APEP-369 | Implement Pydantic model and MongoDB schema for configurable response actions | 1 | Backend |
+
+#### Sub-Sprint 46.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for GET /v1/fetch?url=... fetch proxy; 6-pass ResponseNormalizer; ResponseInjectionScanner.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-364.c | APEP-364 | Implement core business logic: GET /v1/fetch?url=... fetch proxy | 1 | Backend |
+| APEP-365.c | APEP-365 | Implement core security logic: 6-pass ResponseNormalizer | 2 | Security |
+| APEP-366.c | APEP-366 | Implement core security logic: ResponseInjectionScanner | 2 | Security |
+| APEP-367.b | APEP-367 | Implement core security logic: auto-taint on injection detection | 1 | Security |
+
+#### Sub-Sprint 46.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for fetch proxy DLP scan on response body; configurable response actions; SDK fetch_safe() method.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-369.c | APEP-369 | Implement core business logic: configurable response actions | 1 | Backend |
+
+#### Sub-Sprint 46.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 46 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-364.d | APEP-364 | Wire API endpoint and service layer for GET /v1/fetch?url=... fetch proxy | 1 | Backend |
+| APEP-369.d | APEP-369 | Wire API endpoint and service layer for configurable response actions | 1 | Backend |
+
+#### Sub-Sprint 46.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 46.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-365.d | APEP-365 | Implement security guards and crypto: 6-pass ResponseNormalizer | 1 | Security |
+| APEP-366.d | APEP-366 | Implement security guards and crypto: ResponseInjectionScanner | 1 | Security |
+| APEP-367.c | APEP-367 | Implement security guards and validation: auto-taint on injection detection | 1 | Security |
+| APEP-368.b | APEP-368 | Implement security logic: fetch proxy DLP scan on response body | 1 | Security |
+
+#### Sub-Sprint 46.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 46 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-365.e | APEP-365 | Integrate into enforcement pipeline: 6-pass ResponseNormalizer | 1 | Security |
+| APEP-366.e | APEP-366 | Integrate into enforcement pipeline: ResponseInjectionScanner | 1 | Security |
+| APEP-367.d | APEP-367 | Integrate into enforcement pipeline: auto-taint on injection detection | 1 | Security |
+
+#### Sub-Sprint 46.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 46 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-370.b | APEP-370 | Implement SDK/CLI: SDK fetch_safe() method | 1 | SDK |
+
+#### Sub-Sprint 46.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 46 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-364.e | APEP-364 | Write unit tests for GET /v1/fetch?url=... fetch proxy | 1 | Testing |
+| APEP-365.f | APEP-365 | Write unit tests for 6-pass ResponseNormalizer | 1 | Testing |
+| APEP-366.f | APEP-366 | Write unit tests for ResponseInjectionScanner | 1 | Testing |
+| APEP-367.e | APEP-367 | Write security validation tests for auto-taint on injection detection | 1 | Testing |
+| APEP-368.c | APEP-368 | Write security tests for fetch proxy DLP scan on response body | 1 | Testing |
+| APEP-369.e | APEP-369 | Write unit tests for configurable response actions | 1 | Testing |
+| APEP-370.c | APEP-370 | Write tests for SDK/CLI: SDK fetch_safe() method | 1 | Testing |
+| APEP-371.a | APEP-371 | Write unit and component tests: adversarial tests | 2 | Testing |
+
+#### Sub-Sprint 46.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 46.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-365.g | APEP-365 | Write adversarial tests for 6-pass ResponseNormalizer | 1 | Testing |
+| APEP-366.g | APEP-366 | Write adversarial tests for ResponseInjectionScanner | 1 | Testing |
+| APEP-371.b | APEP-371 | Write integration and adversarial tests: adversarial tests | 3 | Testing |
+
+#### Sub-Sprint 46.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 46 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S46.11 | — | Sprint 46 documentation and deliverable validation | 0 | Docs |
+
+---
 
 ### Sprint 47 — Forward Proxy (CONNECT Tunneling) & WebSocket Proxy
 
 **Goal:** Implement HTTPS_PROXY-compatible forward proxy using asyncio CONNECT tunneling; implement bidirectional WebSocket proxy with DLP and injection frame scanning.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-372 | Implement `asyncio` CONNECT tunnel handler: accept `CONNECT host:port HTTP/1.1`, resolve via `SSRFGuard`, open upstream TCP connection, bridge bidirectionally via `asyncio.StreamReader/StreamWriter` | 8 | Backend |
-| APEP-373 | Implement request body DLP scan in forward proxy: buffer POST bodies up to configurable limit; run `NetworkDLPScanner`; block or warn on hits before forwarding | 5 | Security |
-| APEP-374 | Implement hostname-level blocking in forward proxy: check hostname against blocklist before opening CONNECT tunnel; return `403 Forbidden` with reason code | 3 | Backend |
-| APEP-375 | Implement optional TLS interception (MITM): generate per-domain leaf certificates signed by AgentPEP CA (using `cryptography` library ECDSA P-256); decrypt CONNECT tunnel for full body/header DLP scan; re-encrypt to upstream | 8 | Security |
-| APEP-376 | Implement `ToolTrust tls init` equivalent: `POST /v1/network/tls/init` generates AgentPEP CA keypair; `GET /v1/network/tls/ca.crt` exports the CA certificate for client trust installation | 3 | Backend |
-| APEP-377 | Implement WebSocket proxy: `GET /v1/ws?url=ws://...`; use `websockets` library; proxy bidirectional frames; reassemble fragmented messages before scanning | 5 | Backend |
-| APEP-378 | Implement WebSocket frame DLP + injection scanning: run `NetworkDLPScanner` and `ResponseInjectionScanner` on text frames in both directions; binary frames pass through with size limit enforcement | 5 | Security |
-| APEP-379 | Write integration tests: CONNECT tunnel through forward proxy; DLP hit on POST body → block; WebSocket frame injection → quarantine; SSRF attempt → 403 | 5 | Testing |
+#### Sub-Sprint 47.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 47 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-372.a | APEP-372 | Design architecture and interfaces for asyncio CONNECT tunnel handler | 1 | Backend |
+| APEP-373.a | APEP-373 | Design security model and threat surface for request body DLP scan in forward proxy | 1 | Security |
+| APEP-374.a | APEP-374 | Design data model and interface for hostname-level blocking in forward proxy | 1 | Backend |
+| APEP-375.a | APEP-375 | Design security architecture and threat model for optional TLS interception (MITM) | 1 | Security |
+| APEP-376.a | APEP-376 | Design data model and interface for ToolTrust tls init equivalent | 1 | Backend |
+| APEP-377.a | APEP-377 | Design data model and interface for WebSocket proxy | 1 | Backend |
+| APEP-378.a | APEP-378 | Design security model and threat surface for WebSocket frame DLP + injection scanning | 1 | Security |
+
+#### Sub-Sprint 47.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 47 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-372.b | APEP-372 | Implement Pydantic model and MongoDB schema for asyncio CONNECT tunnel handler | 1 | Backend |
+| APEP-375.b | APEP-375 | Define data model and schema for optional TLS interception (MITM) | 1 | Backend |
+| APEP-377.b | APEP-377 | Implement Pydantic model and MongoDB schema for WebSocket proxy | 1 | Backend |
+
+#### Sub-Sprint 47.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for asyncio CONNECT tunnel handler; request body DLP scan in forward proxy; hostname-level blocking in forward proxy.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-372.c | APEP-372 | Implement core logic: asyncio CONNECT tunnel handler | 2 | Backend |
+| APEP-373.b | APEP-373 | Implement core security logic: request body DLP scan in forward proxy | 1 | Security |
+| APEP-374.b | APEP-374 | Implement core logic: hostname-level blocking in forward proxy | 1 | Backend |
+| APEP-375.c | APEP-375 | Implement core security logic: optional TLS interception (MITM) | 2 | Security |
+
+#### Sub-Sprint 47.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for ToolTrust tls init equivalent; WebSocket proxy; WebSocket frame DLP + injection scanning.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-376.b | APEP-376 | Implement core logic: ToolTrust tls init equivalent | 1 | Backend |
+| APEP-377.c | APEP-377 | Implement core business logic: WebSocket proxy | 1 | Backend |
+| APEP-378.b | APEP-378 | Implement core security logic: WebSocket frame DLP + injection scanning | 1 | Security |
+
+#### Sub-Sprint 47.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 47 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-372.d | APEP-372 | Wire API endpoint and service layer for asyncio CONNECT tunnel handler | 1 | Backend |
+| APEP-377.d | APEP-377 | Wire API endpoint and service layer for WebSocket proxy | 1 | Backend |
+
+#### Sub-Sprint 47.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 47.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-373.c | APEP-373 | Implement security guards and validation: request body DLP scan in forward proxy | 1 | Security |
+| APEP-375.d | APEP-375 | Implement security guards and crypto: optional TLS interception (MITM) | 1 | Security |
+| APEP-378.c | APEP-378 | Implement security guards and validation: WebSocket frame DLP + injection scanning | 1 | Security |
+
+#### Sub-Sprint 47.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 47 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-372.e | APEP-372 | Integrate into pipeline: asyncio CONNECT tunnel handler | 1 | Backend |
+| APEP-373.d | APEP-373 | Integrate into enforcement pipeline: request body DLP scan in forward proxy | 1 | Security |
+| APEP-375.e | APEP-375 | Integrate into enforcement pipeline: optional TLS interception (MITM) | 1 | Security |
+| APEP-378.d | APEP-378 | Integrate into enforcement pipeline: WebSocket frame DLP + injection scanning | 1 | Security |
+
+#### Sub-Sprint 47.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 47 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S47.8 | — | Update SDK documentation and CLI help text for Sprint 47 | 0 | SDK |
+
+#### Sub-Sprint 47.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 47 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-372.f | APEP-372 | Write unit tests for asyncio CONNECT tunnel handler | 1 | Testing |
+| APEP-373.e | APEP-373 | Write security validation tests for request body DLP scan in forward proxy | 1 | Testing |
+| APEP-374.c | APEP-374 | Write unit tests for hostname-level blocking in forward proxy | 1 | Testing |
+| APEP-375.f | APEP-375 | Write unit tests for optional TLS interception (MITM) | 1 | Testing |
+| APEP-376.c | APEP-376 | Write unit tests for ToolTrust tls init equivalent | 1 | Testing |
+| APEP-377.e | APEP-377 | Write unit tests for WebSocket proxy | 1 | Testing |
+| APEP-378.e | APEP-378 | Write security validation tests for WebSocket frame DLP + injection scanning | 1 | Testing |
+| APEP-379.a | APEP-379 | Write unit and component tests: integration tests | 2 | Testing |
+
+#### Sub-Sprint 47.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 47.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-372.g | APEP-372 | Write integration tests for asyncio CONNECT tunnel handler | 1 | Testing |
+| APEP-375.g | APEP-375 | Write adversarial tests for optional TLS interception (MITM) | 1 | Testing |
+| APEP-379.b | APEP-379 | Write integration and adversarial tests: integration tests | 3 | Testing |
+
+#### Sub-Sprint 47.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 47 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S47.11 | — | Sprint 47 documentation and deliverable validation | 0 | Docs |
+
+---
 
 ### Sprint 48 — MCP Proxy Enhancement: Bidirectional DLP & Tool Poisoning Detection
 
 **Goal:** Enhance existing `mcp_proxy.py` (Sprint 12) with bidirectional DLP scanning; add tool poisoning detection on `tools/list` responses; detect mid-session tool description rug-pulls.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-380 | Enhance `MCPProxy` outbound scan: run `NetworkDLPScanner` on `tool_args` before forwarding to upstream (in addition to existing AgentPEP RBAC check); DENY if CRITICAL DLP hit | 5 | Backend |
-| APEP-381 | Implement MCP response scan: run `ResponseInjectionScanner` on MCP tool call results before delivering to agent; auto-taint result content based on scan outcome | 5 | Security |
-| APEP-382 | Implement `tools/list` poisoning detection: scan each tool's `description` field against `injection_signatures.py` and DLP patterns; block tool registration if poisoned description detected | 5 | Security |
-| APEP-383 | Implement rug-pull detection: cache `tools/list` response hash per upstream server per session; if `tools/list` response changes mid-session, emit `TOOL_LIST_CHANGED` security alert and optionally escalate | 5 | Security |
-| APEP-384 | Implement MCP HTTP reverse proxy mode: `POST /v1/mcp/proxy` accepts Streamable HTTP MCP messages; scans bidirectionally; forwards to configured upstream; supports both stdio subprocess wrapping and HTTP upstream | 5 | Backend |
-| APEP-385 | Implement MCP session DLP budget: per-MCP-session data volume tracker; alert and optionally block when session exceeds configured data transfer budget | 3 | Backend |
-| APEP-386 | Write adversarial MCP tests: poisoned tool description blocked; rug-pull mid-session detected; credential in tool result → QUARANTINE taint; CRITICAL DLP in tool args → DENY | 5 | Testing |
-| APEP-387 | Update MCP proxy documentation and integration guides for LangGraph and OpenAI Agents SDK with bidirectional scanning | 3 | Docs |
+#### Sub-Sprint 48.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 48 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-380.a | APEP-380 | Design data model and interface for MCPProxy outbound scan | 1 | Backend |
+| APEP-381.a | APEP-381 | Design security model and threat surface for MCP response scan | 1 | Security |
+| APEP-382.a | APEP-382 | Design security model and threat surface for tools/list poisoning detection | 1 | Security |
+| APEP-383.a | APEP-383 | Design security model and threat surface for rug-pull detection | 1 | Security |
+| APEP-384.a | APEP-384 | Design data model and interface for MCP HTTP reverse proxy mode | 1 | Backend |
+| APEP-385.a | APEP-385 | Design data model and interface for MCP session DLP budget | 1 | Backend |
+| APEP-387.a | APEP-387 | Outline documentation structure for Update MCP proxy documentation and integration guides for La | 1 | Docs |
+
+#### Sub-Sprint 48.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 48 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-380.b | APEP-380 | Implement Pydantic model and MongoDB schema for MCPProxy outbound scan | 1 | Backend |
+| APEP-384.b | APEP-384 | Implement Pydantic model and MongoDB schema for MCP HTTP reverse proxy mode | 1 | Backend |
+
+#### Sub-Sprint 48.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for MCPProxy outbound scan; MCP response scan; tools/list poisoning detection.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-380.c | APEP-380 | Implement core business logic: MCPProxy outbound scan | 1 | Backend |
+| APEP-381.b | APEP-381 | Implement core security logic: MCP response scan | 1 | Security |
+| APEP-382.b | APEP-382 | Implement core security logic: tools/list poisoning detection | 1 | Security |
+| APEP-383.b | APEP-383 | Implement core security logic: rug-pull detection | 1 | Security |
+
+#### Sub-Sprint 48.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for MCP HTTP reverse proxy mode; MCP session DLP budget; adversarial MCP tests.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-384.c | APEP-384 | Implement core business logic: MCP HTTP reverse proxy mode | 1 | Backend |
+| APEP-385.b | APEP-385 | Implement core logic: MCP session DLP budget | 1 | Backend |
+
+#### Sub-Sprint 48.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 48 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-380.d | APEP-380 | Wire API endpoint and service layer for MCPProxy outbound scan | 1 | Backend |
+| APEP-384.d | APEP-384 | Wire API endpoint and service layer for MCP HTTP reverse proxy mode | 1 | Backend |
+
+#### Sub-Sprint 48.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 48.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-381.c | APEP-381 | Implement security guards and validation: MCP response scan | 1 | Security |
+| APEP-382.c | APEP-382 | Implement security guards and validation: tools/list poisoning detection | 1 | Security |
+| APEP-383.c | APEP-383 | Implement security guards and validation: rug-pull detection | 1 | Security |
+
+#### Sub-Sprint 48.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 48 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-381.d | APEP-381 | Integrate into enforcement pipeline: MCP response scan | 1 | Security |
+| APEP-382.d | APEP-382 | Integrate into enforcement pipeline: tools/list poisoning detection | 1 | Security |
+| APEP-383.d | APEP-383 | Integrate into enforcement pipeline: rug-pull detection | 1 | Security |
+
+#### Sub-Sprint 48.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 48 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S48.8 | — | Update SDK documentation and CLI help text for Sprint 48 | 0 | SDK |
+
+#### Sub-Sprint 48.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 48 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-380.e | APEP-380 | Write unit tests for MCPProxy outbound scan | 1 | Testing |
+| APEP-381.e | APEP-381 | Write security validation tests for MCP response scan | 1 | Testing |
+| APEP-382.e | APEP-382 | Write security validation tests for tools/list poisoning detection | 1 | Testing |
+| APEP-383.e | APEP-383 | Write security validation tests for rug-pull detection | 1 | Testing |
+| APEP-384.e | APEP-384 | Write unit tests for MCP HTTP reverse proxy mode | 1 | Testing |
+| APEP-385.c | APEP-385 | Write unit tests for MCP session DLP budget | 1 | Testing |
+| APEP-386.a | APEP-386 | Write unit and component tests: adversarial MCP tests | 2 | Testing |
+
+#### Sub-Sprint 48.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 48.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-386.b | APEP-386 | Write integration and adversarial tests: adversarial MCP tests | 3 | Testing |
+
+#### Sub-Sprint 48.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 48 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-387.b | APEP-387 | Write and publish documentation: Update MCP proxy documentation and integration guides for La | 2 | Docs |
+
+---
 
 ### Sprint 49 — Tool Call Chain Detection Engine
 
 **Goal:** Implement `ToolCallChainDetector` with configurable attack sequence patterns; integrate with session history from the taint graph and audit log; emit Kafka security alerts on chain detection.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-388 | Design `ToolCallChain` pattern model: sequence of tool name patterns (glob) with configurable gap tolerance (N innocent calls between steps); MITRE ATT&CK technique mapping per pattern | 5 | Backend |
-| APEP-389 | Implement subsequence matching engine: given session tool call history and a chain pattern, detect if pattern appears as a subsequence with gap ≤ `max_gap`; O(n) sliding window algorithm | 8 | Backend |
-| APEP-390 | Implement built-in chain pattern library (10 patterns): reconnaissance (list_files + read_env + get_credentials), credential theft (read_file matching `*secret*` + `*token*` + send_*), data staging (read_* → write_temp → compress → upload), persistence (create_cron + create_startup + write_config), exfiltration (read_sensitive + encode + http_post to external domain) | 8 | Security |
-| APEP-391 | Integrate chain detector into `PolicyEvaluator` post-decision stage: after ALLOW, append tool call to session chain history; check all patterns against updated history; emit `CHAIN_DETECTED` security alert if match | 5 | Backend |
-| APEP-392 | Implement chain detection escalation: configurable action per pattern — `alert` (Kafka event only), `escalate` (trigger human approval via Escalation Manager), `deny_next` (DENY the next tool call in session) | 5 | Backend |
-| APEP-393 | Expose chain pattern management API: `GET/POST/DELETE /v1/network/chains`; YAML import/export; pattern simulation against session replay | 3 | Backend |
-| APEP-394 | Add chain detection metrics: `chain_detection_total` by pattern_id; `chain_alert_latency` histogram | 2 | Observability |
-| APEP-395 | Write adversarial tests: recon chain detected with 2-hop gap tolerance; exfiltration chain triggers DENY_NEXT; benign sequence not flagged; chain simulation in dry-run mode | 5 | Testing |
+#### Sub-Sprint 49.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 49 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-388.a | APEP-388 | Design data model and interface for ToolCallChain pattern model | 1 | Backend |
+| APEP-389.a | APEP-389 | Design architecture and interfaces for subsequence matching engine | 1 | Backend |
+| APEP-390.a | APEP-390 | Design security architecture and threat model for built-in chain pattern library (10 patterns) | 1 | Security |
+| APEP-391.a | APEP-391 | Design data model and interface for chain detector into PolicyEvaluator post-decision stage | 1 | Backend |
+| APEP-392.a | APEP-392 | Design data model and interface for chain detection escalation | 1 | Backend |
+| APEP-393.a | APEP-393 | Design data model and interface for chain pattern management API | 1 | Backend |
+| APEP-394.a | APEP-394 | Design metrics schema and dashboard layout for chain detection metrics | 1 | Observability |
+
+#### Sub-Sprint 49.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 49 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-388.b | APEP-388 | Implement Pydantic model and MongoDB schema for ToolCallChain pattern model | 1 | Backend |
+| APEP-389.b | APEP-389 | Implement Pydantic model and MongoDB schema for subsequence matching engine | 1 | Backend |
+| APEP-390.b | APEP-390 | Define data model and schema for built-in chain pattern library (10 patterns) | 1 | Backend |
+| APEP-391.b | APEP-391 | Implement Pydantic model and MongoDB schema for chain detector into PolicyEvaluator post-decision stage | 1 | Backend |
+| APEP-392.b | APEP-392 | Implement Pydantic model and MongoDB schema for chain detection escalation | 1 | Backend |
+
+#### Sub-Sprint 49.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for ToolCallChain pattern model; subsequence matching engine; built-in chain pattern library (10 patterns).
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-388.c | APEP-388 | Implement core business logic: ToolCallChain pattern model | 1 | Backend |
+| APEP-389.c | APEP-389 | Implement core logic: subsequence matching engine | 2 | Backend |
+| APEP-390.c | APEP-390 | Implement core security logic: built-in chain pattern library (10 patterns) | 2 | Security |
+| APEP-391.c | APEP-391 | Implement core business logic: chain detector into PolicyEvaluator post-decision stage | 1 | Backend |
+
+#### Sub-Sprint 49.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for chain detection escalation; chain pattern management API; chain detection metrics.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-392.c | APEP-392 | Implement core business logic: chain detection escalation | 1 | Backend |
+| APEP-393.b | APEP-393 | Implement core logic: chain pattern management API | 1 | Backend |
+
+#### Sub-Sprint 49.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 49 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-388.d | APEP-388 | Wire API endpoint and service layer for ToolCallChain pattern model | 1 | Backend |
+| APEP-389.d | APEP-389 | Wire API endpoint and service layer for subsequence matching engine | 1 | Backend |
+| APEP-391.d | APEP-391 | Wire API endpoint and service layer for chain detector into PolicyEvaluator post-decision stage | 1 | Backend |
+| APEP-392.d | APEP-392 | Wire API endpoint and service layer for chain detection escalation | 1 | Backend |
+
+#### Sub-Sprint 49.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 49.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-390.d | APEP-390 | Implement security guards and crypto: built-in chain pattern library (10 patterns) | 1 | Security |
+
+#### Sub-Sprint 49.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 49 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-389.e | APEP-389 | Integrate into pipeline: subsequence matching engine | 1 | Backend |
+| APEP-390.e | APEP-390 | Integrate into enforcement pipeline: built-in chain pattern library (10 patterns) | 1 | Security |
+
+#### Sub-Sprint 49.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 49 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S49.8 | — | Update SDK documentation and CLI help text for Sprint 49 | 0 | SDK |
+
+#### Sub-Sprint 49.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 49 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-388.e | APEP-388 | Write unit tests for ToolCallChain pattern model | 1 | Testing |
+| APEP-389.f | APEP-389 | Write unit tests for subsequence matching engine | 1 | Testing |
+| APEP-390.f | APEP-390 | Write unit tests for built-in chain pattern library (10 patterns) | 1 | Testing |
+| APEP-391.e | APEP-391 | Write unit tests for chain detector into PolicyEvaluator post-decision stage | 1 | Testing |
+| APEP-392.e | APEP-392 | Write unit tests for chain detection escalation | 1 | Testing |
+| APEP-393.c | APEP-393 | Write unit tests for chain pattern management API | 1 | Testing |
+| APEP-395.a | APEP-395 | Write unit and component tests: adversarial tests | 2 | Testing |
+
+#### Sub-Sprint 49.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 49.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-389.g | APEP-389 | Write integration tests for subsequence matching engine | 1 | Testing |
+| APEP-390.g | APEP-390 | Write adversarial tests for built-in chain pattern library (10 patterns) | 1 | Testing |
+| APEP-395.b | APEP-395 | Write integration and adversarial tests: adversarial tests | 3 | Testing |
+
+#### Sub-Sprint 49.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 49 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-394.b | APEP-394 | Implement Prometheus metrics and Grafana dashboards: chain detection metrics | 1 | Observability |
+
+---
 
 ### Sprint 50 — Kill Switch, Filesystem Sentinel & Adaptive Threat Score
 
 **Goal:** Implement kill switch with 4 independent activation sources; filesystem sentinel for secret monitoring; adaptive per-session threat score integrating network events with authorization events.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-396 | Implement `KillSwitch` service: `activate()` and `deactivate()` methods; when active, all TFN proxy requests return 403 and AgentPEP intercept returns DENY (FAIL_CLOSED override) | 5 | Backend |
-| APEP-397 | Implement kill switch activation sources: (1) config flag `kill_switch.active: true`; (2) `SIGUSR1` signal handler via `signal.signal()`; (3) sentinel file watcher via `watchdog`; (4) `POST /v1/network/killswitch` API on isolated port | 5 | Security |
-| APEP-398 | Implement kill switch isolated API port: secondary uvicorn server on configurable port (default 9090); `Authorization: Bearer` token auth; agents cannot reach their own kill switch | 3 | Security |
-| APEP-399 | Implement `FilesystemSentinel` service: `watchdog` `Observer` monitoring configured directories; scan new/modified files against `NetworkDLPScanner`; emit `SENTINEL_HIT` Kafka event on credential detection | 8 | Security |
-| APEP-400 | Implement process lineage attribution on Linux: read `/proc/{pid}/status` for `PPid`; walk process tree from watchdog file event PID to find agent ancestor; include agent_id in SENTINEL_HIT event | 5 | Security |
-| APEP-401 | Implement `AdaptiveThreatScore`: per-session score aggregating AgentPEP risk decisions + TFN network events; domain burst detection (N requests to same domain in window); auto-escalation when score crosses configurable threshold | 5 | Backend |
-| APEP-402 | Implement de-escalation timer: adaptive threat score decays over time when no new signals arrive; configurable half-life; score resets on session end | 3 | Backend |
-| APEP-403 | Write integration tests: kill switch blocks all proxy requests; SIGUSR1 activates in-process; file with API key triggers SENTINEL_HIT; domain burst → adaptive escalation | 5 | Testing |
+#### Sub-Sprint 50.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 50 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-396.a | APEP-396 | Design data model and interface for KillSwitch service | 1 | Backend |
+| APEP-397.a | APEP-397 | Design security model and threat surface for kill switch activation sources | 1 | Security |
+| APEP-398.a | APEP-398 | Design security model for kill switch isolated API port | 1 | Security |
+| APEP-399.a | APEP-399 | Design security architecture and threat model for FilesystemSentinel service | 1 | Security |
+| APEP-400.a | APEP-400 | Design security model and threat surface for process lineage attribution on Linux | 1 | Security |
+| APEP-401.a | APEP-401 | Design data model and interface for AdaptiveThreatScore | 1 | Backend |
+| APEP-402.a | APEP-402 | Design data model and interface for de-escalation timer | 1 | Backend |
+
+#### Sub-Sprint 50.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 50 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-396.b | APEP-396 | Implement Pydantic model and MongoDB schema for KillSwitch service | 1 | Backend |
+| APEP-399.b | APEP-399 | Define data model and schema for FilesystemSentinel service | 1 | Backend |
+| APEP-401.b | APEP-401 | Implement Pydantic model and MongoDB schema for AdaptiveThreatScore | 1 | Backend |
+
+#### Sub-Sprint 50.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for KillSwitch service; kill switch activation sources; kill switch isolated API port.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-396.c | APEP-396 | Implement core business logic: KillSwitch service | 1 | Backend |
+| APEP-397.b | APEP-397 | Implement core security logic: kill switch activation sources | 1 | Security |
+| APEP-399.c | APEP-399 | Implement core security logic: FilesystemSentinel service | 2 | Security |
+
+#### Sub-Sprint 50.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for process lineage attribution on Linux; AdaptiveThreatScore; de-escalation timer.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-400.b | APEP-400 | Implement core security logic: process lineage attribution on Linux | 1 | Security |
+| APEP-401.c | APEP-401 | Implement core business logic: AdaptiveThreatScore | 1 | Backend |
+| APEP-402.b | APEP-402 | Implement core logic: de-escalation timer | 1 | Backend |
+
+#### Sub-Sprint 50.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 50 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-396.d | APEP-396 | Wire API endpoint and service layer for KillSwitch service | 1 | Backend |
+| APEP-401.d | APEP-401 | Wire API endpoint and service layer for AdaptiveThreatScore | 1 | Backend |
+
+#### Sub-Sprint 50.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 50.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-397.c | APEP-397 | Implement security guards and validation: kill switch activation sources | 1 | Security |
+| APEP-398.b | APEP-398 | Implement security logic: kill switch isolated API port | 1 | Security |
+| APEP-399.d | APEP-399 | Implement security guards and crypto: FilesystemSentinel service | 1 | Security |
+| APEP-400.c | APEP-400 | Implement security guards and validation: process lineage attribution on Linux | 1 | Security |
+
+#### Sub-Sprint 50.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 50 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-397.d | APEP-397 | Integrate into enforcement pipeline: kill switch activation sources | 1 | Security |
+| APEP-399.e | APEP-399 | Integrate into enforcement pipeline: FilesystemSentinel service | 1 | Security |
+| APEP-400.d | APEP-400 | Integrate into enforcement pipeline: process lineage attribution on Linux | 1 | Security |
+
+#### Sub-Sprint 50.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 50 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S50.8 | — | Update SDK documentation and CLI help text for Sprint 50 | 0 | SDK |
+
+#### Sub-Sprint 50.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 50 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-396.e | APEP-396 | Write unit tests for KillSwitch service | 1 | Testing |
+| APEP-397.e | APEP-397 | Write security validation tests for kill switch activation sources | 1 | Testing |
+| APEP-398.c | APEP-398 | Write security tests for kill switch isolated API port | 1 | Testing |
+| APEP-399.f | APEP-399 | Write unit tests for FilesystemSentinel service | 1 | Testing |
+| APEP-400.e | APEP-400 | Write security validation tests for process lineage attribution on Linux | 1 | Testing |
+| APEP-401.e | APEP-401 | Write unit tests for AdaptiveThreatScore | 1 | Testing |
+| APEP-402.c | APEP-402 | Write unit tests for de-escalation timer | 1 | Testing |
+| APEP-403.a | APEP-403 | Write unit and component tests: integration tests | 2 | Testing |
+
+#### Sub-Sprint 50.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 50.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-399.g | APEP-399 | Write adversarial tests for FilesystemSentinel service | 1 | Testing |
+| APEP-403.b | APEP-403 | Write integration and adversarial tests: integration tests | 3 | Testing |
+
+#### Sub-Sprint 50.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 50 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S50.11 | — | Sprint 50 documentation and deliverable validation | 0 | Docs |
+
+---
 
 ### Sprint 51 — Rule Bundles, Security Assessment & Network Audit Events
 
 **Goal:** Implement Ed25519-signed community rule bundles; build `ToolTrust assess`-equivalent security assessment; finalize MITRE ATT&CK event tagging; publish TFN documentation.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-404 | Implement rule bundle format: YAML bundle with `patterns`, `chains`, `blocklist_entries`, `version`, `publisher`; Ed25519 signature over canonical bundle content; reuse existing signing infrastructure (Phase 8, Sprint 32) | 5 | Backend |
-| APEP-405 | Implement rule bundle loader: `POST /v1/network/rules/install` accepts bundle YAML; verify Ed25519 signature against trusted keyring; merge patterns into `injection_signatures.py` at runtime | 5 | Backend |
-| APEP-406 | Implement security assessment engine: (1) attack simulation — 20 test scenarios against TFN scanner pipeline (DLP, injection, SSRF, tool poisoning, chain detection); (2) config audit — 12 security categories scored 0–100 with letter grade; (3) deployment verification — live probe of all TFN endpoints | 8 | Backend |
-| APEP-407 | Implement `GET /v1/network/assess` assessment endpoint: run all 3 assessment stages; return structured report with grade, section scores, top findings, and remediation suggestions | 5 | Backend |
-| APEP-408 | Implement MITRE ATT&CK technique mapping: maintain mapping from TFN finding types to ATT&CK technique IDs (T1048 exfiltration, T1059 injection, T1195.002 supply chain, T1071 application layer protocol, T1041 exfil over C2); include in all `NetworkEvent` Kafka messages | 3 | Backend |
-| APEP-409 | Add TFN events to Policy Console — Network Events tab: timeline of `NetworkEvent` records by session; filterable by event_type, severity, MITRE technique; correlated with AgentPEP intercept decisions by `decision_id` | 5 | Frontend |
-| APEP-410 | Add TFN Prometheus metrics: `tfn_url_scan_total` by result; `tfn_dlp_hits_total` by pattern; `tfn_injection_detections_total`; `tfn_chain_detections_total`; `tfn_kill_switch_activations_total`; Grafana dashboard additions | 3 | Observability |
-| APEP-411 | Publish TFN documentation: architecture guide, proxy mode comparison, integration guide for Claude Code / LangGraph / CrewAI, OWASP Agentic AI Top 10 coverage mapping, rule bundle authoring guide | 5 | Docs |
+#### Sub-Sprint 51.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 51 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-404.a | APEP-404 | Design data model and interface for rule bundle format | 1 | Backend |
+| APEP-405.a | APEP-405 | Design data model and interface for rule bundle loader | 1 | Backend |
+| APEP-406.a | APEP-406 | Design architecture and interfaces for security assessment engine | 1 | Backend |
+| APEP-407.a | APEP-407 | Design data model and interface for GET /v1/network/assess assessment endpoint | 1 | Backend |
+| APEP-408.a | APEP-408 | Design data model and interface for MITRE ATT&CK technique mapping | 1 | Backend |
+| APEP-409.a | APEP-409 | Design component wireframes and state model for TFN events to Policy Console — Network Events tab | 1 | Frontend |
+| APEP-410.a | APEP-410 | Design metrics schema and dashboard layout for TFN Prometheus metrics | 1 | Observability |
+| APEP-411.a | APEP-411 | Outline documentation structure for TFN documentation | 1 | Docs |
+
+#### Sub-Sprint 51.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 51 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-404.b | APEP-404 | Implement Pydantic model and MongoDB schema for rule bundle format | 1 | Backend |
+| APEP-405.b | APEP-405 | Implement Pydantic model and MongoDB schema for rule bundle loader | 1 | Backend |
+| APEP-406.b | APEP-406 | Implement Pydantic model and MongoDB schema for security assessment engine | 1 | Backend |
+| APEP-407.b | APEP-407 | Implement Pydantic model and MongoDB schema for GET /v1/network/assess assessment endpoint | 1 | Backend |
+
+#### Sub-Sprint 51.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for rule bundle format; rule bundle loader; security assessment engine.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-404.c | APEP-404 | Implement core business logic: rule bundle format | 1 | Backend |
+| APEP-405.c | APEP-405 | Implement core business logic: rule bundle loader | 1 | Backend |
+| APEP-406.c | APEP-406 | Implement core logic: security assessment engine | 2 | Backend |
+| APEP-407.c | APEP-407 | Implement core business logic: GET /v1/network/assess assessment endpoint | 1 | Backend |
+
+#### Sub-Sprint 51.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for MITRE ATT&CK technique mapping; TFN events to Policy Console — Network Events tab; TFN Prometheus metrics.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-408.b | APEP-408 | Implement core logic: MITRE ATT&CK technique mapping | 1 | Backend |
+
+#### Sub-Sprint 51.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 51 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-404.d | APEP-404 | Wire API endpoint and service layer for rule bundle format | 1 | Backend |
+| APEP-405.d | APEP-405 | Wire API endpoint and service layer for rule bundle loader | 1 | Backend |
+| APEP-406.d | APEP-406 | Wire API endpoint and service layer for security assessment engine | 1 | Backend |
+| APEP-407.d | APEP-407 | Wire API endpoint and service layer for GET /v1/network/assess assessment endpoint | 1 | Backend |
+
+#### Sub-Sprint 51.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 51.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S51.6 | — | Security review and input validation audit for Sprint 51 | 0 | Security |
+
+#### Sub-Sprint 51.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 51 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-406.e | APEP-406 | Integrate into pipeline: security assessment engine | 1 | Backend |
+
+#### Sub-Sprint 51.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 51 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-409.b | APEP-409 | Implement UI component: TFN events to Policy Console — Network Events tab | 2 | Frontend |
+
+#### Sub-Sprint 51.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 51 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-404.e | APEP-404 | Write unit tests for rule bundle format | 1 | Testing |
+| APEP-405.e | APEP-405 | Write unit tests for rule bundle loader | 1 | Testing |
+| APEP-406.f | APEP-406 | Write unit tests for security assessment engine | 1 | Testing |
+| APEP-407.e | APEP-407 | Write unit tests for GET /v1/network/assess assessment endpoint | 1 | Testing |
+| APEP-408.c | APEP-408 | Write unit tests for MITRE ATT&CK technique mapping | 1 | Testing |
+| APEP-409.c | APEP-409 | Write component tests for TFN events to Policy Console — Network Events tab | 1 | Testing |
+
+#### Sub-Sprint 51.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 51.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-406.g | APEP-406 | Write integration tests for security assessment engine | 1 | Testing |
+| APEP-409.d | APEP-409 | Write E2E tests for TFN events to Policy Console — Network Events tab | 1 | Testing |
+
+#### Sub-Sprint 51.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 51 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-410.b | APEP-410 | Implement Prometheus metrics and Grafana dashboards: TFN Prometheus metrics | 2 | Observability |
+| APEP-411.b | APEP-411 | Write and publish documentation: TFN documentation | 4 | Docs |
+
 
 ---
 
@@ -1914,14 +3565,14 @@ TFN mirrors ToolTrust's three security modes but integrates with AgentPEP's exis
 
 | Sprint | Name | Phase | Stories |
 |---|---|---|---|
-| 44 | Network DLP Engine & 11-Layer URL Scanner | Phase 10: TrustFabric Network | 8 |
-| 45 | DLP Pre-Scan Hook in Intercept Pipeline | Phase 10: TrustFabric Network | 8 |
-| 46 | Fetch Proxy & Multi-Pass Response Injection Scanner | Phase 10: TrustFabric Network | 8 |
-| 47 | Forward Proxy (CONNECT Tunneling) & WebSocket Proxy | Phase 10: TrustFabric Network | 8 |
-| 48 | MCP Proxy Enhancement: Bidirectional DLP & Tool Poisoning | Phase 10: TrustFabric Network | 8 |
-| 49 | Tool Call Chain Detection Engine | Phase 10: TrustFabric Network | 8 |
-| 50 | Kill Switch, Filesystem Sentinel & Adaptive Threat Score | Phase 10: TrustFabric Network | 8 |
-| 51 | Rule Bundles, Security Assessment & Network Audit Events | Phase 10: TrustFabric Network | 8 |
+| 44 | Network DLP Engine & 11-Layer URL Scanner | Phase 10: TrustFabric Network | 8 stories → 11 sub-sprints |
+| 45 | DLP Pre-Scan Hook in Intercept Pipeline | Phase 10: TrustFabric Network | 8 stories → 11 sub-sprints |
+| 46 | Fetch Proxy & Multi-Pass Response Injection Scanner | Phase 10: TrustFabric Network | 8 stories → 11 sub-sprints |
+| 47 | Forward Proxy (CONNECT Tunneling) & WebSocket Proxy | Phase 10: TrustFabric Network | 8 stories → 11 sub-sprints |
+| 48 | MCP Proxy Enhancement: Bidirectional DLP & Tool Poisoning | Phase 10: TrustFabric Network | 8 stories → 11 sub-sprints |
+| 49 | Tool Call Chain Detection Engine | Phase 10: TrustFabric Network | 8 stories → 11 sub-sprints |
+| 50 | Kill Switch, Filesystem Sentinel & Adaptive Threat Score | Phase 10: TrustFabric Network | 8 stories → 11 sub-sprints |
+| 51 | Rule Bundles, Security Assessment & Network Audit Events | Phase 10: TrustFabric Network | 8 stories → 11 sub-sprints |
 
 ---
 
@@ -1975,7 +3626,7 @@ TFN mirrors ToolTrust's three security modes but integrates with AgentPEP's exis
 | **Filesystem monitoring** | None | Filesystem sentinel: DLP scan on agent file writes |
 | **Adaptive enforcement** | Static risk thresholds | Session threat score integrating auth + network signals |
 | **OWASP Agentic Top 10** | Partial (ASI01, ASI03, ASI07 strong) | Strong coverage across all 10 vectors |
-| **Total stories** | ~347 (Sprints 1–43) | **~411** (+ 64 TrustFabric Network stories, Sprints 44–51) |
+| **Total stories** | ~347 (Sprints 1–43) | **~411** (+ 64 stories decomposed into sub-tasks across 88 sub-sprints, Sprints 44–51) |
 
 ---
 
@@ -2139,80 +3790,597 @@ External repo / PR / MCP response / tool output
 
 ## 15.6 Detailed Sprint Plans - Phase 11: ToolTrust-Inspired Roadmap v4
 
-### Sprint 52 - Extended Pattern Library & Scan Mode Router
+### Sprint 52 — Extended Pattern Library & Scan Mode Router
 
 **Goal:** Expand injection_signatures.py from ~30 to 204 patterns across 25 categories; implement ScanModeRouter with per-category mode restrictions; add content-hash trust cache and allowlist.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-412 | Expand injection_signatures.py with 204 patterns across all 25 ToolTrust categories: instruction override (IO), authority impersonation (AI), behavioral manipulation (BM), privilege escalation (PE), encoding obfuscation (EO), unicode anomalies (UA), exfiltration (EX), credential harvesting (CH), environment variable hijacking (EV), build script attacks (BS) | 8 | Security |
-| APEP-413 | Add remaining 15 pattern categories: CI/CD poisoning (CI), config file injection (CF), git hook exploitation (GH), MCP tool poisoning (MCP), reasoning hijack (RH), markdown/SVG injection (MS), terminal escape (TE), memory poisoning (MP), viral propagation (VP), dangerous agent flags (DF), symlink/path traversal (ST), process environment (PR), WSL cross-boundary (WSL), workspace config execution (WC), dedicated config file scanners (.claude/settings.json, .env, devcontainer.json) | 8 | Security |
-| APEP-414 | Implement ScanModeRouter: given file path and extension, determine STRICT/STANDARD/LENIENT mode; apply per-category mode restrictions (CI-001, CI-004, CI-006, SC-001, MCP-005 restricted to STRICT); expose mode override via CISScanRequest.scan_mode | 5 | Backend |
-| APEP-415 | Implement CISTrustCache: SHA-256 content hash cache stored in MongoDB collection cis_trust_cache outside agent-writable paths; TTL-indexed; keyed by {repo_root}:{relative_path}:{pattern_version}; skip rescan on cache hit | 5 | Backend |
-| APEP-416 | Implement CISAllowlist: content-hash-based false-positive allowlist; POST /v1/cis/allowlist requires authenticated console user (not agent API key); agent-initiated allowlist modification blocked at middleware level | 5 | Security |
-| APEP-417 | Implement YOLO mode detector: inspect AgentProfile.session_flags for dangerously_skip_permissions; when active, apply risk score multiplier (1.5x) in PolicyEvaluator and lower ESCALATE threshold by 0.15; CIS scanner automatically upgrades to STRICT mode | 5 | Security |
-| APEP-418 | Write pattern validation tests: all 204 patterns tested against known-malicious payloads from ToolTrust test suite; false-positive rate measured against benign corpus of 1,000 real repo files | 5 | Testing |
-| APEP-419 | Update injection_signatures.py hot-reload to support 204-pattern corpus without restart; version-stamp pattern set for trust cache invalidation | 3 | Backend |
+#### Sub-Sprint 52.1 — Architecture & Design
 
-### Sprint 53 - ONNX Semantic Injection Classifier (Tier 1)
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 52 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-412.a | APEP-412 | Design security architecture and threat model for Expand injection_signatures.py with 204 patterns across all 25 ToolTrust cate... | 1 | Security |
+| APEP-413.a | APEP-413 | Design security architecture and threat model for remaining 15 pattern categories | 1 | Security |
+| APEP-414.a | APEP-414 | Design data model and interface for ScanModeRouter | 1 | Backend |
+| APEP-415.a | APEP-415 | Design data model and interface for CISTrustCache | 1 | Backend |
+| APEP-416.a | APEP-416 | Design security model and threat surface for CISAllowlist | 1 | Security |
+| APEP-417.a | APEP-417 | Design security model and threat surface for YOLO mode detector | 1 | Security |
+| APEP-419.a | APEP-419 | Design data model and interface for Update injection_signatures.py hot-reload to support 204-pat | 1 | Backend |
+
+#### Sub-Sprint 52.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 52 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-412.b | APEP-412 | Define data model and schema for Expand injection_signatures.py with 204 patterns across all 25 ToolTrust cate... | 1 | Backend |
+| APEP-413.b | APEP-413 | Define data model and schema for remaining 15 pattern categories | 1 | Backend |
+| APEP-414.b | APEP-414 | Implement Pydantic model and MongoDB schema for ScanModeRouter | 1 | Backend |
+| APEP-415.b | APEP-415 | Implement Pydantic model and MongoDB schema for CISTrustCache | 1 | Backend |
+
+#### Sub-Sprint 52.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for Expand injection_signatures.py with 204 patterns across all 25 ToolTrust categories; remaining 15 pattern categories; ScanModeRouter.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-412.c | APEP-412 | Implement core security logic: Expand injection_signatures.py with 204 patterns across all 25 ToolTrust cate... | 2 | Security |
+| APEP-413.c | APEP-413 | Implement core security logic: remaining 15 pattern categories | 2 | Security |
+| APEP-414.c | APEP-414 | Implement core business logic: ScanModeRouter | 1 | Backend |
+| APEP-415.c | APEP-415 | Implement core business logic: CISTrustCache | 1 | Backend |
+
+#### Sub-Sprint 52.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for CISAllowlist; YOLO mode detector; pattern validation tests.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-416.b | APEP-416 | Implement core security logic: CISAllowlist | 1 | Security |
+| APEP-417.b | APEP-417 | Implement core security logic: YOLO mode detector | 1 | Security |
+| APEP-419.b | APEP-419 | Implement core logic: Update injection_signatures.py hot-reload to support 204-pat | 1 | Backend |
+
+#### Sub-Sprint 52.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 52 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-414.d | APEP-414 | Wire API endpoint and service layer for ScanModeRouter | 1 | Backend |
+| APEP-415.d | APEP-415 | Wire API endpoint and service layer for CISTrustCache | 1 | Backend |
+
+#### Sub-Sprint 52.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 52.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-412.d | APEP-412 | Implement security guards and crypto: Expand injection_signatures.py with 204 patterns across all 25 ToolTrust cate... | 1 | Security |
+| APEP-413.d | APEP-413 | Implement security guards and crypto: remaining 15 pattern categories | 1 | Security |
+| APEP-416.c | APEP-416 | Implement security guards and validation: CISAllowlist | 1 | Security |
+| APEP-417.c | APEP-417 | Implement security guards and validation: YOLO mode detector | 1 | Security |
+
+#### Sub-Sprint 52.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 52 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-412.e | APEP-412 | Integrate into enforcement pipeline: Expand injection_signatures.py with 204 patterns across all 25 ToolTrust cate... | 1 | Security |
+| APEP-413.e | APEP-413 | Integrate into enforcement pipeline: remaining 15 pattern categories | 1 | Security |
+| APEP-416.d | APEP-416 | Integrate into enforcement pipeline: CISAllowlist | 1 | Security |
+| APEP-417.d | APEP-417 | Integrate into enforcement pipeline: YOLO mode detector | 1 | Security |
+
+#### Sub-Sprint 52.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 52 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S52.8 | — | Update SDK documentation and CLI help text for Sprint 52 | 0 | SDK |
+
+#### Sub-Sprint 52.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 52 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-412.f | APEP-412 | Write unit tests for Expand injection_signatures.py with 204 patterns across all 25 ToolTrust cate... | 1 | Testing |
+| APEP-413.f | APEP-413 | Write unit tests for remaining 15 pattern categories | 1 | Testing |
+| APEP-414.e | APEP-414 | Write unit tests for ScanModeRouter | 1 | Testing |
+| APEP-415.e | APEP-415 | Write unit tests for CISTrustCache | 1 | Testing |
+| APEP-416.e | APEP-416 | Write security validation tests for CISAllowlist | 1 | Testing |
+| APEP-417.e | APEP-417 | Write security validation tests for YOLO mode detector | 1 | Testing |
+| APEP-418.a | APEP-418 | Write unit and component tests: pattern validation tests | 2 | Testing |
+| APEP-419.c | APEP-419 | Write unit tests for Update injection_signatures.py hot-reload to support 204-pat | 1 | Testing |
+
+#### Sub-Sprint 52.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 52.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-412.g | APEP-412 | Write adversarial tests for Expand injection_signatures.py with 204 patterns across all 25 ToolTrust cate... | 1 | Testing |
+| APEP-413.g | APEP-413 | Write adversarial tests for remaining 15 pattern categories | 1 | Testing |
+| APEP-418.b | APEP-418 | Write integration and adversarial tests: pattern validation tests | 3 | Testing |
+
+#### Sub-Sprint 52.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 52 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S52.11 | — | Sprint 52 documentation and deliverable validation | 0 | Docs |
+
+---
+
+### Sprint 53 — ONNX Semantic Injection Classifier (Tier 1)
 
 **Goal:** Integrate ONNX MiniLM-L6-v2 classifier as ONNXSemanticClassifier; wire as Tier 1 in CIS scanner pipeline; benchmark against ToolTrust published F1 metrics; implement graceful fallback.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-420 | Implement ONNXSemanticClassifier service: load fine-tuned MiniLM-L6-v2 ONNX model (onnxruntime dependency); tokenize with tokenizers library; run inference; return (suspicious_score, malicious_score) float pair | 8 | Backend |
-| APEP-421 | Implement model download and SHA-256 verification: POST /v1/cis/model/install downloads model from configurable registry URL; verifies SHA-256 before loading; air-gapped deployments can mount model at /opt/agentpep/models/ | 5 | Backend |
-| APEP-422 | Implement per-mode ONNX classification thresholds: STRICT (0.50/0.80), STANDARD (0.65/0.88), LENIENT (0.75/0.92); classify text chunk as CLEAN/SUSPICIOUS/MALICIOUS based on mode thresholds | 5 | Backend |
-| APEP-423 | Implement text chunking for long content: split content into overlapping 512-token windows (MiniLM context limit); aggregate scores via max-pool; handles large files without truncation | 5 | Backend |
-| APEP-424 | Implement model-absent graceful fallback: when ONNX model not installed, CIS pipeline runs Tier 0 only; log TIER1_UNAVAILABLE warning metric; never fail closed due to missing model | 3 | Backend |
-| APEP-425 | Implement async batch inference: queue text chunks for batched ONNX inference (batch size 16); asyncio task pool; avoid blocking intercept API path | 5 | Performance |
-| APEP-426 | Benchmark ONNX classifier against ToolTrust published metrics: reproduce 5-fold CV on prodnull/prompt-injection-repo-dataset; verify >=94% F1; document results in docs/cis-benchmark.md | 5 | Testing |
-| APEP-427 | Add ONNX inference Prometheus metrics: cis_tier1_latency_ms histogram; cis_tier1_malicious_total; cis_tier1_unavailable_total; model version in /metrics info gauge | 2 | Observability |
+#### Sub-Sprint 53.1 — Architecture & Design
 
-### Sprint 54 - Pre-Session Repository Scanner & Agent Instruction File Scanner
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 53 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-420.a | APEP-420 | Design architecture and interfaces for ONNXSemanticClassifier service | 1 | Backend |
+| APEP-421.a | APEP-421 | Design data model and interface for model download and SHA-256 verification | 1 | Backend |
+| APEP-422.a | APEP-422 | Design data model and interface for per-mode ONNX classification thresholds | 1 | Backend |
+| APEP-423.a | APEP-423 | Design data model and interface for text chunking for long content | 1 | Backend |
+| APEP-424.a | APEP-424 | Design data model and interface for model-absent graceful fallback | 1 | Backend |
+| APEP-425.a | APEP-425 | Design data model and interface for async batch inference | 1 | Backend |
+| APEP-426.a | APEP-426 | Design data model and interface for Benchmark ONNX classifier against ToolTrust published metrics | 1 | Backend |
+| APEP-427.a | APEP-427 | Design metrics schema and dashboard layout for ONNX inference Prometheus metrics | 1 | Observability |
+
+#### Sub-Sprint 53.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 53 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-420.b | APEP-420 | Implement Pydantic model and MongoDB schema for ONNXSemanticClassifier service | 1 | Backend |
+| APEP-421.b | APEP-421 | Implement Pydantic model and MongoDB schema for model download and SHA-256 verification | 1 | Backend |
+| APEP-422.b | APEP-422 | Implement Pydantic model and MongoDB schema for per-mode ONNX classification thresholds | 1 | Backend |
+| APEP-423.b | APEP-423 | Implement Pydantic model and MongoDB schema for text chunking for long content | 1 | Backend |
+| APEP-425.b | APEP-425 | Implement Pydantic model and MongoDB schema for async batch inference | 1 | Backend |
+| APEP-426.b | APEP-426 | Implement Pydantic model and MongoDB schema for Benchmark ONNX classifier against ToolTrust published metrics | 1 | Backend |
+
+#### Sub-Sprint 53.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for ONNXSemanticClassifier service; model download and SHA-256 verification; per-mode ONNX classification thresholds.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-420.c | APEP-420 | Implement core logic: ONNXSemanticClassifier service | 2 | Backend |
+| APEP-421.c | APEP-421 | Implement core business logic: model download and SHA-256 verification | 1 | Backend |
+| APEP-422.c | APEP-422 | Implement core business logic: per-mode ONNX classification thresholds | 1 | Backend |
+| APEP-423.c | APEP-423 | Implement core business logic: text chunking for long content | 1 | Backend |
+
+#### Sub-Sprint 53.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for model-absent graceful fallback; async batch inference; Benchmark ONNX classifier against ToolTrust published metrics.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-424.b | APEP-424 | Implement core logic: model-absent graceful fallback | 1 | Backend |
+| APEP-425.c | APEP-425 | Implement core business logic: async batch inference | 1 | Backend |
+| APEP-426.c | APEP-426 | Implement core business logic: Benchmark ONNX classifier against ToolTrust published metrics | 1 | Backend |
+
+#### Sub-Sprint 53.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 53 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-420.d | APEP-420 | Wire API endpoint and service layer for ONNXSemanticClassifier service | 1 | Backend |
+| APEP-421.d | APEP-421 | Wire API endpoint and service layer for model download and SHA-256 verification | 1 | Backend |
+| APEP-422.d | APEP-422 | Wire API endpoint and service layer for per-mode ONNX classification thresholds | 1 | Backend |
+| APEP-423.d | APEP-423 | Wire API endpoint and service layer for text chunking for long content | 1 | Backend |
+| APEP-425.d | APEP-425 | Wire API endpoint and service layer for async batch inference | 1 | Backend |
+| APEP-426.d | APEP-426 | Wire API endpoint and service layer for Benchmark ONNX classifier against ToolTrust published metrics | 1 | Backend |
+
+#### Sub-Sprint 53.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 53.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S53.6 | — | Security review and input validation audit for Sprint 53 | 0 | Security |
+
+#### Sub-Sprint 53.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 53 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-420.e | APEP-420 | Integrate into pipeline: ONNXSemanticClassifier service | 1 | Backend |
+
+#### Sub-Sprint 53.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 53 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S53.8 | — | Update SDK documentation and CLI help text for Sprint 53 | 0 | SDK |
+
+#### Sub-Sprint 53.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 53 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-420.f | APEP-420 | Write unit tests for ONNXSemanticClassifier service | 1 | Testing |
+| APEP-421.e | APEP-421 | Write unit tests for model download and SHA-256 verification | 1 | Testing |
+| APEP-422.e | APEP-422 | Write unit tests for per-mode ONNX classification thresholds | 1 | Testing |
+| APEP-423.e | APEP-423 | Write unit tests for text chunking for long content | 1 | Testing |
+| APEP-424.c | APEP-424 | Write unit tests for model-absent graceful fallback | 1 | Testing |
+| APEP-425.e | APEP-425 | Write unit tests for async batch inference | 1 | Testing |
+| APEP-426.e | APEP-426 | Write unit tests for Benchmark ONNX classifier against ToolTrust published metrics | 1 | Testing |
+
+#### Sub-Sprint 53.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 53.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-420.g | APEP-420 | Write integration tests for ONNXSemanticClassifier service | 1 | Testing |
+
+#### Sub-Sprint 53.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 53 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-427.b | APEP-427 | Implement Prometheus metrics and Grafana dashboards: ONNX inference Prometheus metrics | 1 | Observability |
+
+---
+
+### Sprint 54 — Pre-Session Repository Scanner & Agent Instruction File Scanner
 
 **Goal:** Build POST /v1/cis/scan-repo pre-session scanner; implement agent instruction file scanner with STRICT mode defaults; wire scan results to taint auto-labeling; build CIS findings screen in Policy Console.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-428 | Implement POST /v1/cis/scan-repo: accepts directory path or archive upload; walks all files; applies ScanModeRouter per file; runs Tier 0 + Tier 1 pipeline; returns aggregated CISScanResult with per-file findings; streams progress via WebSocket | 8 | Backend |
-| APEP-429 | Implement agent instruction file scanner: dedicated STRICT-mode scan for CLAUDE.md, .cursorrules, AGENTS.md, .junie/guidelines.md, .claude/settings.json, codex.json, .gemini/settings.json, devcontainer.json; run on InstructionsLoaded event equivalent | 5 | Security |
-| APEP-430 | Implement scan-on-session-start hook: when new AgentPEP session created, optionally trigger async CIS repo scan of configured working_directory; block session activation until scan completes if require_clean_repo: true in AgentProfile | 5 | Backend |
-| APEP-431 | Implement PostToolUse auto-scan: after any tool call returns ALLOW, extract tool result content from audit record; submit to CISScanRequest with scan_target=tool_output; if MALICIOUS finding -> auto-label QUARANTINE in session taint graph (no developer action required) | 8 | Security |
-| APEP-432 | Implement POST /v1/cis/scan-file and POST /v1/cis/scan-text: single-file and arbitrary-text variants; same pipeline; returns CISScanResult; used by SDK cis_scan() helper | 3 | Backend |
-| APEP-433 | Build CIS Findings screen in Policy Console: list of CIS scan results by session; per-file finding tree; severity heat-map; trust cache status; allowlist management UI (requires console admin role) | 8 | Frontend |
-| APEP-434 | Add SDK cis_scan(path_or_text) helper: wraps POST /v1/cis/scan-file and POST /v1/cis/scan-text; returns CISScanResult; auto-registers taint label on current session if session_id provided | 3 | SDK |
-| APEP-435 | Write adversarial tests: base64-encoded injection in repo file caught by Tier 0; synonym-substituted injection caught only by Tier 1; CLAUDE.md with privilege escalation blocked in STRICT mode; clean README passes LENIENT mode | 5 | Testing |
+#### Sub-Sprint 54.1 — Architecture & Design
 
-### Sprint 55 - CaMeL SEQ Rules, Layer 3 Bridge & Self-Protection
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 54 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-428.a | APEP-428 | Design architecture and interfaces for POST /v1/cis/scan-repo | 1 | Backend |
+| APEP-429.a | APEP-429 | Design security model and threat surface for agent instruction file scanner | 1 | Security |
+| APEP-430.a | APEP-430 | Design data model and interface for scan-on-session-start hook | 1 | Backend |
+| APEP-431.a | APEP-431 | Design security architecture and threat model for PostToolUse auto-scan | 1 | Security |
+| APEP-432.a | APEP-432 | Design data model and interface for POST /v1/cis/scan-file and POST /v1/cis/scan-text | 1 | Backend |
+| APEP-433.a | APEP-433 | Design component wireframes, state model, and data flow for CIS Findings screen in Policy Console | 1 | Frontend |
+| APEP-434.a | APEP-434 | Design SDK/CLI interface for SDK cis_scan(path_or_text) helper | 1 | SDK |
+
+#### Sub-Sprint 54.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 54 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-428.b | APEP-428 | Implement Pydantic model and MongoDB schema for POST /v1/cis/scan-repo | 1 | Backend |
+| APEP-430.b | APEP-430 | Implement Pydantic model and MongoDB schema for scan-on-session-start hook | 1 | Backend |
+| APEP-431.b | APEP-431 | Define data model and schema for PostToolUse auto-scan | 1 | Backend |
+
+#### Sub-Sprint 54.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for POST /v1/cis/scan-repo; agent instruction file scanner; scan-on-session-start hook.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-428.c | APEP-428 | Implement core logic: POST /v1/cis/scan-repo | 2 | Backend |
+| APEP-429.b | APEP-429 | Implement core security logic: agent instruction file scanner | 1 | Security |
+| APEP-430.c | APEP-430 | Implement core business logic: scan-on-session-start hook | 1 | Backend |
+| APEP-431.c | APEP-431 | Implement core security logic: PostToolUse auto-scan | 2 | Security |
+
+#### Sub-Sprint 54.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for POST /v1/cis/scan-file and POST /v1/cis/scan-text; CIS Findings screen in Policy Console; SDK cis_scan(path_or_text) helper.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-432.b | APEP-432 | Implement core logic: POST /v1/cis/scan-file and POST /v1/cis/scan-text | 1 | Backend |
+
+#### Sub-Sprint 54.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 54 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-428.d | APEP-428 | Wire API endpoint and service layer for POST /v1/cis/scan-repo | 1 | Backend |
+| APEP-430.d | APEP-430 | Wire API endpoint and service layer for scan-on-session-start hook | 1 | Backend |
+
+#### Sub-Sprint 54.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 54.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-429.c | APEP-429 | Implement security guards and validation: agent instruction file scanner | 1 | Security |
+| APEP-431.d | APEP-431 | Implement security guards and crypto: PostToolUse auto-scan | 1 | Security |
+
+#### Sub-Sprint 54.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 54 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-428.e | APEP-428 | Integrate into pipeline: POST /v1/cis/scan-repo | 1 | Backend |
+| APEP-429.d | APEP-429 | Integrate into enforcement pipeline: agent instruction file scanner | 1 | Security |
+| APEP-431.e | APEP-431 | Integrate into enforcement pipeline: PostToolUse auto-scan | 1 | Security |
+
+#### Sub-Sprint 54.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 54 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-433.b | APEP-433 | Implement component structure and state management: CIS Findings screen in Policy Console | 2 | Frontend |
+| APEP-433.c | APEP-433 | Implement component rendering and interaction: CIS Findings screen in Policy Console | 2 | Frontend |
+| APEP-433.d | APEP-433 | Polish and integrate UI component: CIS Findings screen in Policy Console | 1 | Frontend |
+| APEP-434.b | APEP-434 | Implement SDK/CLI: SDK cis_scan(path_or_text) helper | 1 | SDK |
+
+#### Sub-Sprint 54.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 54 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-428.f | APEP-428 | Write unit tests for POST /v1/cis/scan-repo | 1 | Testing |
+| APEP-429.e | APEP-429 | Write security validation tests for agent instruction file scanner | 1 | Testing |
+| APEP-430.e | APEP-430 | Write unit tests for scan-on-session-start hook | 1 | Testing |
+| APEP-431.f | APEP-431 | Write unit tests for PostToolUse auto-scan | 1 | Testing |
+| APEP-432.c | APEP-432 | Write unit tests for POST /v1/cis/scan-file and POST /v1/cis/scan-text | 1 | Testing |
+| APEP-433.e | APEP-433 | Write component tests for CIS Findings screen in Policy Console | 1 | Testing |
+| APEP-434.c | APEP-434 | Write tests for SDK/CLI: SDK cis_scan(path_or_text) helper | 1 | Testing |
+| APEP-435.a | APEP-435 | Write unit and component tests: adversarial tests | 2 | Testing |
+
+#### Sub-Sprint 54.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 54.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-428.g | APEP-428 | Write integration tests for POST /v1/cis/scan-repo | 1 | Testing |
+| APEP-431.g | APEP-431 | Write adversarial tests for PostToolUse auto-scan | 1 | Testing |
+| APEP-433.f | APEP-433 | Write E2E tests for CIS Findings screen in Policy Console | 1 | Testing |
+| APEP-435.b | APEP-435 | Write integration and adversarial tests: adversarial tests | 3 | Testing |
+
+#### Sub-Sprint 54.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 54 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S54.11 | — | Sprint 54 documentation and deliverable validation | 0 | Docs |
+
+---
+
+### Sprint 55 — CaMeL SEQ Rules, Layer 3 Bridge & Self-Protection
 
 **Goal:** Import ToolTrust CaMeL-lite SEQ rules into Phase 10 tool call chain detector; build ToolTrust Layer 3 to AgentPEP Intercept bridge; implement agent-initiated policy modification self-protection.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-436 | Import ToolTrust CaMeL-lite SEQ rules as named chain patterns in Phase 10 ToolCallChainDetector (APEP-388): SEQ-001 (read sensitive file -> WebFetch external), SEQ-002 (read sensitive file -> Bash curl/wget external), SEQ-005 (write agent/IDE config file) as enforcing; SEQ-003 (MCP frequency spike) and SEQ-004 (write build target -> build) as advisory | 5 | Security |
-| APEP-437 | Implement session-wide typed marker system for SEQ-001/002: marker set when any read_file tool operates on sensitive path patterns (.env, *secret*, *credential*, *.pem, .npmrc); marker persists across arbitrary intervening tool calls; gap-tolerant | 5 | Backend |
-| APEP-438 | Implement ToolTrust -> AgentPEP Intercept bridge: agentpep-sdk module ToolTrustBridge that ToolTrust Layer 3 hook calls instead of making its own block decision; bridge submits ToolCallRequest to AgentPEP Intercept API; passes ToolTrust CIS scan verdict as taint signal; returns exit code 0/2 based on AgentPEP decision | 8 | SDK |
-| APEP-439 | Implement CIS scan verdict as taint input: extend ToolCallRequest with optional cis_pre_scan_result: CISScanResult; PolicyEvaluator reads this field; if MALICIOUS finding present, auto-assign QUARANTINE to all tool args; if SUSPICIOUS, assign UNTRUSTED | 5 | Backend |
-| APEP-440 | Implement agent-initiated policy modification self-protection: add PolicyModificationGuard middleware; detect tool calls targeting AgentPEP API endpoints (/v1/policies, /v1/cis/allowlist, /v1/plans, /v1/network/killswitch); require console user JWT (not agent API key) for any modification; return DENY with SELF_MODIFICATION_BLOCKED | 5 | Security |
-| APEP-441 | Implement protected path patterns for PreToolUse: configure set of protected paths (~/.claude/settings.json, AgentPEP config files, CIS allowlist location); any tool call writing to protected paths -> DENY with PROTECTED_PATH_WRITE | 3 | Security |
-| APEP-442 | Write self-protection adversarial tests: agent attempts ToolTrust allow equivalent via Bash tool -> blocked; agent attempts to call AgentPEP policy modification API with agent key -> blocked; agent attempts to write to .claude/settings.json -> DENY | 5 | Testing |
-| APEP-443 | Write ToolTrust bridge integration test: simulate ToolTrust Layer 3 hook calling AgentPEP Intercept API; verify CIS scan verdict propagated as taint; verify exit code matches AgentPEP decision | 3 | Testing |
+#### Sub-Sprint 55.1 — Architecture & Design
 
-### Sprint 56 - YOLO Mode, Session Risk Multiplier & Developer Experience
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 55 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-436.a | APEP-436 | Design security model and threat surface for Import ToolTrust CaMeL-lite SEQ rules as named chain patterns in Phase 10 Too... | 1 | Security |
+| APEP-437.a | APEP-437 | Design data model and interface for session-wide typed marker system for SEQ-001/002 | 1 | Backend |
+| APEP-438.a | APEP-438 | Design SDK/CLI interface for ToolTrust -> AgentPEP Intercept bridge | 1 | SDK |
+| APEP-439.a | APEP-439 | Design data model and interface for CIS scan verdict as taint input | 1 | Backend |
+| APEP-440.a | APEP-440 | Design security model and threat surface for agent-initiated policy modification self-protection | 1 | Security |
+| APEP-441.a | APEP-441 | Design security model for protected path patterns for PreToolUse | 1 | Security |
+
+#### Sub-Sprint 55.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 55 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-437.b | APEP-437 | Implement Pydantic model and MongoDB schema for session-wide typed marker system for SEQ-001/002 | 1 | Backend |
+| APEP-439.b | APEP-439 | Implement Pydantic model and MongoDB schema for CIS scan verdict as taint input | 1 | Backend |
+
+#### Sub-Sprint 55.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for Import ToolTrust CaMeL-lite SEQ rules as named chain patterns in Phase 10 ToolCallChainDetector (APEP-388); session-wide typed marker system for SEQ-001/002; ToolTrust -> AgentPEP Intercept bridge.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-436.b | APEP-436 | Implement core security logic: Import ToolTrust CaMeL-lite SEQ rules as named chain patterns in Phase 10 Too... | 1 | Security |
+| APEP-437.c | APEP-437 | Implement core business logic: session-wide typed marker system for SEQ-001/002 | 1 | Backend |
+| APEP-438.b | APEP-438 | Implement core logic: ToolTrust -> AgentPEP Intercept bridge | 2 | Backend |
+| APEP-439.c | APEP-439 | Implement core business logic: CIS scan verdict as taint input | 1 | Backend |
+
+#### Sub-Sprint 55.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for agent-initiated policy modification self-protection; protected path patterns for PreToolUse; self-protection adversarial tests.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-440.b | APEP-440 | Implement core security logic: agent-initiated policy modification self-protection | 1 | Security |
+
+#### Sub-Sprint 55.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 55 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-437.d | APEP-437 | Wire API endpoint and service layer for session-wide typed marker system for SEQ-001/002 | 1 | Backend |
+| APEP-438.d | APEP-438 | Wire API endpoints for ToolTrust -> AgentPEP Intercept bridge | 1 | Backend |
+| APEP-439.d | APEP-439 | Wire API endpoint and service layer for CIS scan verdict as taint input | 1 | Backend |
+
+#### Sub-Sprint 55.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 55.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-436.c | APEP-436 | Implement security guards and validation: Import ToolTrust CaMeL-lite SEQ rules as named chain patterns in Phase 10 Too... | 1 | Security |
+| APEP-440.c | APEP-440 | Implement security guards and validation: agent-initiated policy modification self-protection | 1 | Security |
+| APEP-441.b | APEP-441 | Implement security logic: protected path patterns for PreToolUse | 1 | Security |
+
+#### Sub-Sprint 55.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 55 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-436.d | APEP-436 | Integrate into enforcement pipeline: Import ToolTrust CaMeL-lite SEQ rules as named chain patterns in Phase 10 Too... | 1 | Security |
+| APEP-440.d | APEP-440 | Integrate into enforcement pipeline: agent-initiated policy modification self-protection | 1 | Security |
+
+#### Sub-Sprint 55.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 55 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-438.c | APEP-438 | Implement SDK/CLI wrapper: ToolTrust -> AgentPEP Intercept bridge | 2 | SDK |
+
+#### Sub-Sprint 55.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 55 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-436.e | APEP-436 | Write security validation tests for Import ToolTrust CaMeL-lite SEQ rules as named chain patterns in Phase 10 Too... | 1 | Testing |
+| APEP-437.e | APEP-437 | Write unit tests for session-wide typed marker system for SEQ-001/002 | 1 | Testing |
+| APEP-438.e | APEP-438 | Write unit tests for ToolTrust -> AgentPEP Intercept bridge | 1 | Testing |
+| APEP-439.e | APEP-439 | Write unit tests for CIS scan verdict as taint input | 1 | Testing |
+| APEP-440.e | APEP-440 | Write security validation tests for agent-initiated policy modification self-protection | 1 | Testing |
+| APEP-441.c | APEP-441 | Write security tests for protected path patterns for PreToolUse | 1 | Testing |
+| APEP-442.a | APEP-442 | Write unit and component tests: self-protection adversarial tests | 2 | Testing |
+| APEP-443.a | APEP-443 | Write unit and component tests: ToolTrust bridge integration test | 2 | Testing |
+
+#### Sub-Sprint 55.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 55.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-438.f | APEP-438 | Write integration tests for ToolTrust -> AgentPEP Intercept bridge | 1 | Testing |
+| APEP-442.b | APEP-442 | Write integration and adversarial tests: self-protection adversarial tests | 3 | Testing |
+| APEP-443.b | APEP-443 | Write integration and adversarial tests: ToolTrust bridge integration test | 1 | Testing |
+
+#### Sub-Sprint 55.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 55 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S55.11 | — | Sprint 55 documentation and deliverable validation | 0 | Docs |
+
+---
+
+### Sprint 56 — YOLO Mode, Session Risk Multiplier & Developer Experience
 
 **Goal:** Finalise YOLO mode session risk escalation; build per-session scan mode configuration; publish CIS documentation and integration guides; add CIS metrics to Grafana dashboard.
 
-| Story ID | Description | Points | Area |
-|---|---|---|---|
-| APEP-444 | Implement per-session scan mode configuration: AgentProfile.default_scan_mode sets baseline; session-level override via POST /v1/sessions/{id}/scan-mode; scan mode inherited by all CIS scans in session | 3 | Backend |
-| APEP-445 | Implement YOLO mode session flag propagation: when SDK detects --dangerously-skip-permissions in agent launch args, set session.yolo_mode=true; PolicyEvaluator applies 1.5x risk multiplier and -0.15 ESCALATE threshold reduction; CIS scanner automatically upgrades to STRICT mode | 5 | Security |
-| APEP-446 | Implement YOLO mode detection via environment probe: SDK @enforce decorator checks os.environ for YOLO indicators at session init; also detectable by parsing AgentProfile.launch_args if provided | 3 | SDK |
-| APEP-447 | Build CIS Dashboard widget in Policy Console: repo scan history timeline; Tier 0/1/2 finding breakdown; trust cache hit rate; top attack categories detected; YOLO-mode sessions highlighted | 5 | Frontend |
-| APEP-448 | Add CIS scan results to compliance exports: DPDPA and CERT-In compliance reports include CIS scan history, QUARANTINE assignments from PostToolUse auto-scan, and pre-session scan results per agent session | 3 | Backend |
-| APEP-449 | Add CIS Prometheus metrics: cis_repo_scans_total; cis_files_scanned_total; cis_findings_total by tier/category/severity; cis_auto_quarantine_total; cis_trust_cache_hits_total; cis_yolo_sessions_total; extend Grafana dashboard | 3 | Observability |
-| APEP-450 | Publish CIS documentation: architecture guide, scan mode reference, ONNX model installation guide (online + air-gapped), ToolTrust bridge integration guide for Claude Code / Cursor / Gemini CLI, false-positive management guide | 3 | Docs |
-| APEP-451 | Write CIS end-to-end integration test: clone repo containing injected CLAUDE.md -> pre-session scan blocks session; clean repo -> session allowed; PostToolUse auto-QUARANTINE propagates to subsequent tool call DENY | 5 | Testing |
+#### Sub-Sprint 56.1 — Architecture & Design
+
+**Goal:** Design data models, interfaces, and API contracts for all Sprint 56 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-444.a | APEP-444 | Design data model and interface for per-session scan mode configuration | 1 | Backend |
+| APEP-445.a | APEP-445 | Design security model and threat surface for YOLO mode session flag propagation | 1 | Security |
+| APEP-446.a | APEP-446 | Design SDK/CLI interface for YOLO mode detection via environment probe | 1 | SDK |
+| APEP-447.a | APEP-447 | Design component wireframes and state model for CIS Dashboard widget in Policy Console | 1 | Frontend |
+| APEP-448.a | APEP-448 | Design data model and interface for CIS scan results to compliance exports | 1 | Backend |
+| APEP-449.a | APEP-449 | Design metrics schema and dashboard layout for CIS Prometheus metrics | 1 | Observability |
+
+#### Sub-Sprint 56.2 — Data Models & Schema
+
+**Goal:** Implement Pydantic models, MongoDB collections, indexes, and schema migrations for Sprint 56 data entities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-450.a | APEP-450 | Outline documentation structure for CIS documentation | 1 | Docs |
+
+#### Sub-Sprint 56.3 — Core Backend Logic (Part 1)
+
+**Goal:** Implement core business logic for per-session scan mode configuration; YOLO mode session flag propagation; YOLO mode detection via environment probe.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-444.b | APEP-444 | Implement core logic: per-session scan mode configuration | 1 | Backend |
+| APEP-445.b | APEP-445 | Implement core security logic: YOLO mode session flag propagation | 1 | Security |
+
+#### Sub-Sprint 56.4 — Core Backend Logic (Part 2)
+
+**Goal:** Implement core business logic for CIS scan results to compliance exports; CIS Prometheus metrics; CIS documentation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-448.b | APEP-448 | Implement core logic: CIS scan results to compliance exports | 1 | Backend |
+
+#### Sub-Sprint 56.5 — API Endpoints & Service Wiring
+
+**Goal:** Expose REST/gRPC endpoints and wire service layer for Sprint 56 capabilities.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-S56.5 | — | Review API contracts and OpenAPI spec for Sprint 56 endpoints | 0 | Backend |
+
+#### Sub-Sprint 56.6 — Security & Validation Logic
+
+**Goal:** Implement security-specific logic: validators, guards, cryptographic operations, and access control for Sprint 56.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-445.c | APEP-445 | Implement security guards and validation: YOLO mode session flag propagation | 1 | Security |
+
+#### Sub-Sprint 56.7 — Pipeline Integration & Event Wiring
+
+**Goal:** Integrate Sprint 56 components into the PolicyEvaluator pipeline, Kafka event streams, and taint propagation.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-445.d | APEP-445 | Integrate into enforcement pipeline: YOLO mode session flag propagation | 1 | Security |
+
+#### Sub-Sprint 56.8 — Frontend, SDK & CLI
+
+**Goal:** Build UI components, SDK helpers, and CLI commands for Sprint 56 features.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-446.b | APEP-446 | Implement SDK/CLI: YOLO mode detection via environment probe | 1 | SDK |
+| APEP-447.b | APEP-447 | Implement UI component: CIS Dashboard widget in Policy Console | 2 | Frontend |
+
+#### Sub-Sprint 56.9 — Unit & Component Testing
+
+**Goal:** Write unit tests and component tests for all Sprint 56 implementations.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-444.c | APEP-444 | Write unit tests for per-session scan mode configuration | 1 | Testing |
+| APEP-445.e | APEP-445 | Write security validation tests for YOLO mode session flag propagation | 1 | Testing |
+| APEP-446.c | APEP-446 | Write tests for SDK/CLI: YOLO mode detection via environment probe | 1 | Testing |
+| APEP-447.c | APEP-447 | Write component tests for CIS Dashboard widget in Policy Console | 1 | Testing |
+| APEP-448.c | APEP-448 | Write unit tests for CIS scan results to compliance exports | 1 | Testing |
+| APEP-451.a | APEP-451 | Write unit and component tests: CIS end-to-end integration test | 2 | Testing |
+
+#### Sub-Sprint 56.10 — Integration Testing & Performance
+
+**Goal:** Run integration tests, adversarial tests, and performance benchmarks for Sprint 56.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-447.d | APEP-447 | Write E2E tests for CIS Dashboard widget in Policy Console | 1 | Testing |
+| APEP-451.b | APEP-451 | Write integration and adversarial tests: CIS end-to-end integration test | 3 | Testing |
+
+#### Sub-Sprint 56.11 — Documentation, Metrics & Sprint Validation
+
+**Goal:** Write documentation, configure Prometheus metrics, and validate Sprint 56 deliverables.
+
+| Sub-Task ID | Parent Story | Description | Points | Area |
+|---|---|---|---|---|
+| APEP-449.b | APEP-449 | Implement Prometheus metrics and Grafana dashboards: CIS Prometheus metrics | 2 | Observability |
+| APEP-450.b | APEP-450 | Write and publish documentation: CIS documentation | 2 | Docs |
+
 
 ---
 
@@ -2220,11 +4388,11 @@ External repo / PR / MCP response / tool output
 
 | Sprint | Name | Phase | Stories |
 |---|---|---|---|
-| 52 | Extended Pattern Library & Scan Mode Router | Phase 11: ToolTrust-Inspired v4 | 8 |
-| 53 | ONNX Semantic Injection Classifier (Tier 1) | Phase 11: ToolTrust-Inspired v4 | 8 |
-| 54 | Pre-Session Repository Scanner & Instruction File Scanner | Phase 11: ToolTrust-Inspired v4 | 8 |
-| 55 | CaMeL SEQ Rules, Layer 3 Bridge & Self-Protection | Phase 11: ToolTrust-Inspired v4 | 8 |
-| 56 | YOLO Mode, Session Risk Multiplier & Developer Experience | Phase 11: ToolTrust-Inspired v4 | 8 |
+| 52 | Extended Pattern Library & Scan Mode Router | Phase 11: ToolTrust-Inspired v4 | 8 stories → 11 sub-sprints |
+| 53 | ONNX Semantic Injection Classifier (Tier 1) | Phase 11: ToolTrust-Inspired v4 | 8 stories → 11 sub-sprints |
+| 54 | Pre-Session Repository Scanner & Instruction File Scanner | Phase 11: ToolTrust-Inspired v4 | 8 stories → 11 sub-sprints |
+| 55 | CaMeL SEQ Rules, Layer 3 Bridge & Self-Protection | Phase 11: ToolTrust-Inspired v4 | 8 stories → 11 sub-sprints |
+| 56 | YOLO Mode, Session Risk Multiplier & Developer Experience | Phase 11: ToolTrust-Inspired v4 | 8 stories → 11 sub-sprints |
 
 ---
 
