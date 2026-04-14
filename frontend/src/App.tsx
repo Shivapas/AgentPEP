@@ -27,6 +27,7 @@ import { PlanManagementList } from "./components/plans/PlanManagementList";
 import { PlanIssuanceForm } from "./components/plans/PlanIssuanceForm";
 import { PlanDetailPage } from "./components/plans/PlanDetailPage";
 import { PlanExplorer } from "./components/plans/PlanExplorer";
+import { NetworkEventsTab } from "./components/NetworkEventsTab";
 
 export function App() {
   return (
@@ -65,6 +66,7 @@ export function App() {
                 <Route path="/plans/new" element={<PlanIssuanceForm />} />
                 <Route path="/plans/:planId" element={<PlanDetailPage />} />
                 <Route path="/plans/:planId/explorer" element={<PlanExplorer />} />
+                <Route path="/network-events" element={<NetworkEventsTab />} />
                 <Route path="/risk" element={<RiskDashboard />} />
                 <Route path="/ux-survey" element={<UXSurvey />} />
               </Route>

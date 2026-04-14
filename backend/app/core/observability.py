@@ -283,6 +283,91 @@ CHAIN_PATTERNS_ACTIVE = Gauge(
 )
 
 
+# --- Sprint 51 (APEP-410): TFN Prometheus Metrics ---
+
+TFN_NETWORK_EVENTS_TOTAL = Counter(
+    "agentpep_tfn_network_events_total",
+    "Total TFN network events by event type and severity",
+    ["event_type", "severity"],
+)
+
+TFN_BUNDLE_LOADS_TOTAL = Counter(
+    "agentpep_tfn_bundle_loads_total",
+    "Total rule bundle load operations by status",
+    ["status"],  # success, failed, invalid_signature
+)
+
+TFN_BUNDLE_RULES_ACTIVE = Gauge(
+    "agentpep_tfn_bundle_rules_active",
+    "Number of active rules from loaded bundles",
+)
+
+TFN_BUNDLES_ACTIVE = Gauge(
+    "agentpep_tfn_bundles_active",
+    "Number of active rule bundles",
+)
+
+TFN_ASSESSMENT_TOTAL = Counter(
+    "agentpep_tfn_assessment_total",
+    "Total security assessment runs",
+    ["grade"],
+)
+
+TFN_ASSESSMENT_SCORE = Histogram(
+    "agentpep_tfn_assessment_score",
+    "Security assessment overall score distribution",
+    buckets=[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+)
+
+TFN_ASSESSMENT_LATENCY = Histogram(
+    "agentpep_tfn_assessment_latency_seconds",
+    "Security assessment execution latency",
+    buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0],
+)
+
+TFN_ASSESSMENT_FINDINGS = Counter(
+    "agentpep_tfn_assessment_findings_total",
+    "Total security assessment findings by category and severity",
+    ["category", "severity"],
+)
+
+TFN_MITRE_TAGS_TOTAL = Counter(
+    "agentpep_tfn_mitre_tags_total",
+    "Total MITRE ATT&CK technique tags applied to events",
+    ["technique_id"],
+)
+
+TFN_KILL_SWITCH_ACTIVATIONS = Counter(
+    "agentpep_tfn_kill_switch_activations_total",
+    "Total kill switch activations by source",
+    ["source"],
+)
+
+TFN_SENTINEL_FINDINGS_TOTAL = Counter(
+    "agentpep_tfn_sentinel_findings_total",
+    "Total filesystem sentinel findings by event type and severity",
+    ["event_type", "severity"],
+)
+
+TFN_THREAT_SCORE_HISTOGRAM = Histogram(
+    "agentpep_tfn_threat_score",
+    "Adaptive threat score distribution across sessions",
+    buckets=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+)
+
+TFN_URL_SCAN_TOTAL = Counter(
+    "agentpep_tfn_url_scan_total",
+    "Total URL scans by result",
+    ["result"],  # allowed, blocked
+)
+
+TFN_URL_SCAN_LATENCY = Histogram(
+    "agentpep_tfn_url_scan_latency_seconds",
+    "URL scan latency (11-layer pipeline)",
+    buckets=[0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5],
+)
+
+
 def get_metrics_app():  # type: ignore[no-untyped-def]
     """Return a Prometheus ASGI app to mount at /metrics."""
     return make_asgi_app()

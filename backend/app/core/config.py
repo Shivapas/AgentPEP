@@ -265,6 +265,13 @@ class Settings(BaseSettings):
     adaptive_threat_score_escalation_threshold: float = 0.7
     adaptive_threat_score_deescalation_threshold: float = 0.3
 
+    # Sprint 51 — APEP-404..411: Rule Bundles, Security Assessment & Network Audit Events
+    rule_bundle_enabled: bool = True
+    rule_bundle_auto_load_paths: list[str] = []
+    rule_bundle_verify_signatures: bool = True
+    security_assessment_enabled: bool = True
+    mitre_attack_mapping_enabled: bool = True
+
     model_config = {"env_prefix": "AGENTPEP_"}
 
 
