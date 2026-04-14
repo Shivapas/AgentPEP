@@ -241,6 +241,12 @@ class Settings(BaseSettings):
     dlp_taint_assignment_enabled: bool = True
     dlp_pattern_reload_interval_s: float = 600.0
 
+    # Sprint 49 — APEP-388..395: Tool Call Chain Detection Engine
+    chain_detection_enabled: bool = True
+    chain_detection_history_limit: int = 100
+    chain_detection_default_window_s: int = 600
+    kafka_chain_detection_topic: str = "agentpep.chain_detection"
+
     model_config = {"env_prefix": "AGENTPEP_"}
 
 

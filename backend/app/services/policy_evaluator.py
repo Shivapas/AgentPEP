@@ -850,6 +850,115 @@ class PolicyEvaluator:
         if dlp_risk_elevation > 0.0:
             risk_score = min(risk_score + dlp_risk_elevation, 1.0)
 
+        # --- Sprint 49 (APEP-391): Tool Call Chain Detection post-decision ---
+        chain_detection_detail: str | None = None
+        if settings.chain_detection_enabled:
+            try:
+                from app.services.tool_call_chain_detector import (
+                    tool_call_chain_detector,
+                )
+                from app.models.tool_call_chain import (
+                    ChainDetectionAction,
+                    ChainSeverity,
+                )
+                from app.core.observability import (
+                    CHAIN_DETECTION_TOTAL,
+                    CHAIN_DETECTION_LATENCY,
+                    CHAIN_MATCHES_TOTAL,
+                    CHAIN_ACTIONS_TOTAL,
+                )
+
+                import time as _chain_time
+                chain_start = _chain_time.monotonic()
+
+                chain_result = await tool_call_chain_detector.check_session(
+                    session_id=request.session_id,
+                    current_tool=request.tool_name,
+                    agent_id=request.agent_id,
+                )
+
+                chain_elapsed = _chain_time.monotonic() - chain_start
+                CHAIN_DETECTION_LATENCY.observe(chain_elapsed)
+
+                if chain_result.total_matches > 0:
+                    CHAIN_DETECTION_TOTAL.labels(result="detected").inc()
+                    chain_detection_detail = chain_result.detail
+
+                    for match in chain_result.matches:
+                        CHAIN_MATCHES_TOTAL.labels(
+                            category=match.category.value,
+                            severity=match.severity.value,
+                        ).inc()
+                        CHAIN_ACTIONS_TOTAL.labels(
+                            action=match.action.value,
+                        ).inc()
+
+                    # Apply risk boost
+                    risk_score = min(
+                        risk_score + chain_result.max_risk_boost, 1.0
+                    )
+
+                    # Determine action based on chain detection
+                    if (
+                        chain_result.recommended_action == ChainDetectionAction.DENY
+                        and decision == Decision.ALLOW
+                    ):
+                        decision = Decision.DENY
+                        reason += f" | Chain detection: {chain_result.detail}"
+                    elif (
+                        chain_result.recommended_action == ChainDetectionAction.ESCALATE
+                        and decision == Decision.ALLOW
+                    ):
+                        decision = Decision.ESCALATE
+                        reason += f" | Chain detection: {chain_result.detail}"
+
+                    # Create escalations and publish Kafka events
+                    try:
+                        from app.services.chain_escalation import (
+                            chain_escalation_manager,
+                        )
+                        from app.core.observability import CHAIN_ESCALATIONS_TOTAL
+
+                        escalations = (
+                            chain_escalation_manager.create_escalations_from_result(
+                                chain_result
+                            )
+                        )
+                        for esc in escalations:
+                            CHAIN_ESCALATIONS_TOTAL.labels(
+                                priority=esc.priority.value,
+                            ).inc()
+
+                        # Publish Kafka event
+                        try:
+                            await kafka_producer.publish_chain_detection(
+                                {
+                                    "event_type": "CHAIN_DETECTED",
+                                    "session_id": request.session_id,
+                                    "agent_id": request.agent_id,
+                                    "total_matches": chain_result.total_matches,
+                                    "highest_severity": chain_result.highest_severity.value,
+                                    "recommended_action": chain_result.recommended_action.value,
+                                    "max_risk_boost": chain_result.max_risk_boost,
+                                    "detail": chain_result.detail,
+                                }
+                            )
+                        except Exception:
+                            pass
+
+                    except Exception:
+                        logger.warning(
+                            "Chain escalation creation failed; proceeding",
+                            exc_info=True,
+                        )
+                else:
+                    CHAIN_DETECTION_TOTAL.labels(result="clean").inc()
+            except Exception:
+                logger.warning(
+                    "Chain detection failed; proceeding without",
+                    exc_info=True,
+                )
+
         # --- Adaptive hardening (Sprint 35 — APEP-280) ---
         hardening_texts: list[str] | None = None
         if settings.adaptive_hardening_enabled:

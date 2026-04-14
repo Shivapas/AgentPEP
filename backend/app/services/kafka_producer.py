@@ -254,6 +254,85 @@ class KafkaDecisionProducer:
             logger.exception("Failed to publish fetch proxy event")
             return False
 
+    # ------------------------------------------------------------------
+    # Sprint 49 — APEP-394: Chain detection events
+    # ------------------------------------------------------------------
+
+    async def publish_chain_detection(self, event: dict) -> bool:
+        """Publish a chain detection event to the agentpep.chain_detection topic.
+
+        Used by ToolCallChainDetector to emit CHAIN_DETECTED and
+        CHAIN_ESCALATED events for real-time alerting and dashboards.
+        """
+        if not self._started or self._producer is None:
+            return False
+
+        topic = getattr(
+            settings,
+            "kafka_chain_detection_topic",
+            "agentpep.chain_detection",
+        )
+
+        try:
+            key = event.get("session_id", event.get("event_id", ""))
+            await self._producer.send_and_wait(
+                topic=topic,
+                key=str(key),
+                value=event,
+            )
+            return True
+        except Exception:
+            logger.exception("Failed to publish chain detection event")
+            return False
+
+    async def publish_chain_event(
+        self,
+        *,
+        event_type: str,
+        pattern_id: str = "",
+        pattern_name: str = "",
+        session_id: str = "",
+        agent_id: str = "",
+        severity: str = "",
+        category: str = "",
+        risk_boost: float = 0.0,
+        matched_tools: list[str] | None = None,
+        escalation_id: str = "",
+    ) -> bool:
+        """Publish a chain management event (create/update/delete pattern)."""
+        if not self._started or self._producer is None:
+            return False
+
+        topic = getattr(
+            settings,
+            "kafka_chain_detection_topic",
+            "agentpep.chain_detection",
+        )
+
+        event = {
+            "event_type": event_type,
+            "pattern_id": pattern_id,
+            "pattern_name": pattern_name,
+            "session_id": session_id,
+            "agent_id": agent_id,
+            "severity": severity,
+            "category": category,
+            "risk_boost": risk_boost,
+            "matched_tools": matched_tools or [],
+            "escalation_id": escalation_id,
+        }
+
+        try:
+            await self._producer.send_and_wait(
+                topic=topic,
+                key=pattern_id or session_id or "",
+                value=event,
+            )
+            return True
+        except Exception:
+            logger.exception("Failed to publish chain event")
+            return False
+
     @property
     def is_running(self) -> bool:
         return self._started
