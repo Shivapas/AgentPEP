@@ -443,6 +443,10 @@ class RiskWeightConfig(BaseModel):
     delegation_depth: float = Field(default=0.20, ge=0.0)
     # Sprint 33 — APEP-265: Context authority weight
     context_authority: float = Field(default=0.10, ge=0.0)
+    # Sprint 35 — APEP-277/278/279: New detection weights
+    tool_combination: float = Field(default=0.15, ge=0.0)
+    velocity_anomaly: float = Field(default=0.10, ge=0.0)
+    echo_detection: float = Field(default=0.10, ge=0.0)
 
 
 class RiskModelConfig(BaseModel):
@@ -672,6 +676,11 @@ class PolicyDecisionResponse(BaseModel):
     defer_timeout_s: int = Field(
         default=60,
         description="Seconds before auto-deny for DEFER decisions",
+    )
+    # Sprint 35 — APEP-280: Adaptive hardening instructions
+    hardening_instructions: list[str] | None = Field(
+        default=None,
+        description="Defensive instructions for agent system prompts when risk is elevated",
     )
 
 

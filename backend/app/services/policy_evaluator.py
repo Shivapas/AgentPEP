@@ -510,6 +510,7 @@ class PolicyEvaluator:
 
         # --- Risk scoring (APEP-070) ---
         risk_score = 0.0
+        risk_factors: list = []
         try:
             risk_score, risk_factors = await risk_engine.compute(
                 tool_name=request.tool_name,
@@ -518,6 +519,7 @@ class PolicyEvaluator:
                 taint_node_ids=request.taint_node_ids or None,
                 delegation_hops=request.delegation_hops or None,
                 agent_roles=agent_roles or None,
+                agent_id=request.agent_id,
             )
 
             config = risk_engine.aggregator.get_config()
@@ -560,6 +562,39 @@ class PolicyEvaluator:
                     exc_info=True,
                 )
 
+        # --- PII Redaction with MODIFY decision (Sprint 35 — APEP-282) ---
+        modified_args: dict | None = None
+        if settings.pii_redaction_enabled and decision == Decision.ALLOW:
+            try:
+                from app.models.data_classification import classification_gte
+                from app.services.data_classification import data_classification_engine
+                from app.services.pii_redaction import pii_redaction_engine
+
+                redacted_args, pii_matches = pii_redaction_engine.redact_dict(
+                    request.tool_args or {}
+                )
+                if pii_matches:
+                    agent_clearance = await data_classification_engine.get_agent_clearance(
+                        agent_roles
+                    )
+                    if not classification_gte(agent_clearance, "PII"):
+                        decision = Decision.MODIFY
+                        modified_args = redacted_args
+                        pii_count = len(pii_matches)
+                        categories = {m.category for m in pii_matches}
+                        logger.info(
+                            "pii_redaction_applied",
+                            session_id=request.session_id,
+                            agent_id=request.agent_id,
+                            pii_count=pii_count,
+                            categories=str(categories),
+                        )
+            except Exception:
+                logger.warning(
+                    "PII redaction check failed; proceeding without",
+                    exc_info=True,
+                )
+
         # DRY_RUN mode: evaluate fully but never enforce
         if request.dry_run:
             decision = Decision.DRY_RUN
@@ -584,6 +619,25 @@ class PolicyEvaluator:
             )
             risk_score = max(risk_score, computed_risk)
 
+        # --- Adaptive hardening (Sprint 35 — APEP-280) ---
+        hardening_texts: list[str] | None = None
+        if settings.adaptive_hardening_enabled:
+            try:
+                from app.services.adaptive_hardening import adaptive_hardening_engine
+
+                instructions = adaptive_hardening_engine.record_and_generate(
+                    session_id=request.session_id,
+                    risk_factors=risk_factors,
+                    risk_score=risk_score,
+                )
+                if instructions:
+                    hardening_texts = [inst.text for inst in instructions]
+            except Exception:
+                logger.warning(
+                    "Adaptive hardening failed; proceeding without",
+                    exc_info=True,
+                )
+
         return PolicyDecisionResponse(
             request_id=request.request_id,
             decision=decision,
@@ -592,6 +646,8 @@ class PolicyEvaluator:
             taint_flags=taint_flags,
             risk_score=risk_score,
             latency_ms=elapsed_ms,
+            hardening_instructions=hardening_texts,
+            modified_args=modified_args,
         )
 
     @staticmethod

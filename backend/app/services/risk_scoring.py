@@ -359,6 +359,69 @@ class ContextAuthorityScorer:
 
 
 # ---------------------------------------------------------------------------
+# Sprint 35 — APEP-277: ToolCombinationScorer
+# ---------------------------------------------------------------------------
+
+
+class ToolCombinationScorer:
+    """Risk scorer that detects suspicious tool combinations in session history.
+
+    Wraps the ToolCombinationDetector to produce a RiskFactor for the
+    risk aggregation pipeline.
+    """
+
+    async def score(self, session_id: str, tool_name: str) -> RiskFactor:
+        from app.services.tool_combination_detector import tool_combination_detector
+
+        result = await tool_combination_detector.check_session(session_id, tool_name)
+        return RiskFactor(
+            factor_name="tool_combination",
+            score=result.max_risk_boost,
+            detail=result.detail,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Sprint 35 — APEP-278: VelocityAnomalyScorer
+# ---------------------------------------------------------------------------
+
+
+class VelocityAnomalyScorer:
+    """Risk scorer wrapping the VelocityAnomalyDetector (APEP-278)."""
+
+    async def score(self, agent_id: str, session_id: str) -> RiskFactor:
+        from app.services.velocity_anomaly_detector import velocity_anomaly_detector
+
+        result = await velocity_anomaly_detector.check(agent_id, session_id)
+        return RiskFactor(
+            factor_name="velocity_anomaly",
+            score=result.risk_score,
+            detail=result.detail,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Sprint 35 — APEP-279: EchoScorer
+# ---------------------------------------------------------------------------
+
+
+class EchoScorer:
+    """Risk scorer wrapping the EchoDetector (APEP-279)."""
+
+    async def score(
+        self, session_id: str, tool_name: str, tool_args: dict
+    ) -> RiskFactor:
+        from app.services.echo_detector import echo_detector
+
+        result = await echo_detector.check(session_id, tool_name, tool_args)
+        return RiskFactor(
+            factor_name="echo_detection",
+            score=result.risk_score,
+            detail=result.detail,
+        )
+
+
+# ---------------------------------------------------------------------------
 # APEP-069: RiskAggregator
 # ---------------------------------------------------------------------------
 
@@ -421,9 +484,15 @@ class RiskAggregator:
             "session_accumulated": weights.session_accumulated,
             "delegation_depth": weights.delegation_depth,
             "context_authority": weights.context_authority,
+            "tool_combination": weights.tool_combination,
+            "velocity_anomaly": weights.velocity_anomaly,
+            "echo_detection": weights.echo_detection,
         }
 
-        total_weight = sum(weight_map.values())
+        # Only normalise by weights of factors actually provided so that
+        # absent scorers don't dilute the score.
+        present_names = {f.factor_name for f in factors}
+        total_weight = sum(w for name, w in weight_map.items() if name in present_names)
         if total_weight == 0:
             return 0.0
 
@@ -432,7 +501,6 @@ class RiskAggregator:
             w = weight_map.get(factor.factor_name, 0.0)
             weighted_sum += factor.score * w
 
-        # Normalise by total weight so weights don't need to sum to 1
         score = weighted_sum / total_weight
         return round(min(max(score, 0.0), 1.0), 4)
 
@@ -456,6 +524,9 @@ class RiskScoringEngine:
         self.session_accumulated_scorer = SessionAccumulatedRiskScorer()
         self.delegation_depth_scorer = DelegationDepthScorer()
         self.context_authority_scorer = ContextAuthorityScorer()
+        self.tool_combination_scorer = ToolCombinationScorer()
+        self.velocity_anomaly_scorer = VelocityAnomalyScorer()
+        self.echo_scorer = EchoScorer()
         self.aggregator = RiskAggregator()
 
     async def compute(
@@ -466,11 +537,14 @@ class RiskScoringEngine:
         taint_node_ids: list[UUID] | None = None,
         delegation_hops: list[Any] | None = None,
         agent_roles: list[str] | None = None,
+        agent_id: str | None = None,
     ) -> tuple[float, list[RiskFactor]]:
         """Compute composite risk score.
 
         Returns (score, list_of_factors).
         """
+        request_agent_id = agent_id or "unknown"
+
         # Load config from DB (cached after first call)
         await self.aggregator.load_config()
 
@@ -485,6 +559,21 @@ class RiskScoringEngine:
         # Async scorers
         factors.append(await self.session_accumulated_scorer.score(session_id))
         factors.append(await self.context_authority_scorer.score(session_id))
+        # New Sprint 35 scorers: only include when they contribute a non-zero
+        # signal so that absent data doesn't dilute the existing score.
+        combo_factor = await self.tool_combination_scorer.score(session_id, tool_name)
+        if combo_factor.score > 0:
+            factors.append(combo_factor)
+
+        velocity_factor = await self.velocity_anomaly_scorer.score(
+            request_agent_id if request_agent_id else "unknown", session_id
+        )
+        if velocity_factor.score > 0:
+            factors.append(velocity_factor)
+
+        echo_factor = await self.echo_scorer.score(session_id, tool_name, tool_args)
+        if echo_factor.score > 0:
+            factors.append(echo_factor)
 
         score = self.aggregator.aggregate(factors, agent_roles)
         return score, factors
