@@ -28,6 +28,7 @@ from app.api.v1.taint import router as taint_router
 from app.api.v1.memory import router as memory_router
 from app.api.v1.plans import router as plans_router
 from app.api.v1.scope import router as scope_router
+from app.api.v1.scan import router as scan_router
 from app.api.v1.scope_simulator import router as scope_simulator_router
 from app.api.v1.sprint36 import router as sprint36_router
 from app.api.v1.dlp import router as dlp_router
@@ -388,6 +389,7 @@ app.include_router(simulate_router)
 app.include_router(taint_router)
 app.include_router(memory_router)
 app.include_router(plans_router)
+app.include_router(scan_router)
 app.include_router(scope_router)
 app.include_router(scope_simulator_router)
 app.include_router(sprint36_router)
