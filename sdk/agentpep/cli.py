@@ -774,6 +774,156 @@ def cmd_scope_validate(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
+# scope simulate (Sprint 43 — APEP-341)
+# ---------------------------------------------------------------------------
+
+
+def cmd_scope_simulate(args: argparse.Namespace) -> int:
+    """Simulate tool calls against plan scope patterns offline."""
+    import re
+
+    import yaml
+
+    VALID_VERBS = {"read", "write", "delete", "execute", "send", "*"}
+    VALID_NAMESPACES = {"public", "secret", "internal", "external", "*"}
+    RESOURCE_RE = re.compile(r"^[\w\*\?\.\-/]+$")
+
+    scope_patterns: list[str] = list(args.scope) if args.scope else []
+    checkpoint_patterns: list[str] = list(args.checkpoint) if args.checkpoint else []
+
+    # Load patterns from plan YAML if provided
+    if args.plan_file:
+        path = Path(args.plan_file)
+        if not path.is_file():
+            print(f"ERROR: Plan file not found: {args.plan_file}", file=sys.stderr)
+            return 1
+        try:
+            data = yaml.safe_load(path.read_text())
+        except Exception as exc:
+            print(f"ERROR: Failed to parse YAML: {exc}", file=sys.stderr)
+            return 1
+
+        if isinstance(data, dict):
+            scope_patterns.extend(data.get("scope", []))
+            checkpoint_patterns.extend(data.get("requires_checkpoint", []))
+
+    if not scope_patterns:
+        print("ERROR: No scope patterns provided. Use --scope or --plan.", file=sys.stderr)
+        return 1
+
+    # Validate scope patterns
+    errors: list[str] = []
+    for pattern in scope_patterns + checkpoint_patterns:
+        parts = pattern.split(":")
+        if len(parts) != 3:
+            errors.append(f"'{pattern}': expected verb:namespace:resource")
+            continue
+        verb, namespace, resource = parts
+        if verb.lower() not in VALID_VERBS:
+            errors.append(f"'{pattern}': invalid verb '{verb}'")
+        if namespace.lower() not in VALID_NAMESPACES:
+            errors.append(f"'{pattern}': invalid namespace '{namespace}'")
+        if not resource or not RESOURCE_RE.match(resource):
+            errors.append(f"'{pattern}': invalid resource '{resource}'")
+
+    if errors:
+        for e in errors:
+            print(f"ERROR: {e}", file=sys.stderr)
+        return 1
+
+    # Build RBAC mappings inline (reuse same logic as cmd_scope_compile)
+    VERB_PREFIXES = {
+        "read": ["file.read", "db.read", "api.get", "read"],
+        "write": ["file.write", "db.write", "api.post", "api.put", "write"],
+        "delete": ["file.delete", "db.drop", "db.delete", "api.delete", "delete"],
+        "execute": ["exec", "shell", "deploy", "execute"],
+        "send": ["email.send", "slack.send", "notify", "send"],
+        "*": ["*"],
+    }
+    NAMESPACE_SEGMENTS = {
+        "public": ["public"],
+        "secret": ["secret", "credential"],
+        "internal": ["internal", "admin"],
+        "external": ["external", "api"],
+        "*": ["*"],
+    }
+
+    import fnmatch as _fnmatch
+
+    def compile_pattern(pattern: str) -> list[str]:
+        parts = pattern.split(":")
+        if len(parts) != 3:
+            return []
+        verb, namespace, resource = parts
+        verb = verb.lower()
+        namespace = namespace.lower()
+        if verb == "*" and namespace == "*" and resource == "*":
+            return ["*"]
+        rbac: list[str] = []
+        for prefix in VERB_PREFIXES.get(verb, [verb]):
+            for segment in NAMESPACE_SEGMENTS.get(namespace, [namespace]):
+                if prefix == "*":
+                    rbac.append(f"*.{segment}.{resource}" if segment != "*" else f"*.{resource}")
+                elif segment == "*":
+                    rbac.append(f"{prefix}.*.{resource}")
+                else:
+                    rbac.append(f"{prefix}.{segment}.{resource}")
+        return list(dict.fromkeys(rbac))
+
+    def check_match(patterns: list[str], tool_name: str) -> str | None:
+        for pattern in patterns:
+            for rbac_glob in compile_pattern(pattern):
+                if _fnmatch.fnmatch(tool_name, rbac_glob):
+                    return pattern
+        return None
+
+    results: list[dict[str, object]] = []
+    for tool_name in args.tool_names:
+        scope_match = check_match(scope_patterns, tool_name)
+        scope_allowed = scope_match is not None if scope_patterns else True
+        checkpoint_match = check_match(checkpoint_patterns, tool_name)
+        checkpoint_triggered = checkpoint_match is not None
+
+        if not scope_allowed:
+            effective = "DENY"
+        elif checkpoint_triggered:
+            effective = "ESCALATE"
+        else:
+            effective = "ALLOW"
+
+        results.append({
+            "tool_name": tool_name,
+            "action": args.action,
+            "scope_allowed": scope_allowed,
+            "scope_matched_pattern": scope_match,
+            "checkpoint_triggered": checkpoint_triggered,
+            "checkpoint_matched_pattern": checkpoint_match,
+            "effective_decision": effective,
+        })
+
+    if args.json:
+        output = results if len(results) > 1 else results[0]
+        print(json.dumps(output, indent=2, default=str))
+    else:
+        for r in results:
+            icon = {"ALLOW": "ALLOW", "DENY": "DENY", "ESCALATE": "ESCALATE"}[
+                str(r["effective_decision"])
+            ]
+            print(f"Tool: {r['tool_name']}")
+            print(f"  Decision: {icon}")
+            print(f"  Scope allowed: {r['scope_allowed']}")
+            if r["scope_matched_pattern"]:
+                print(f"  Scope match: {r['scope_matched_pattern']}")
+            print(f"  Checkpoint: {r['checkpoint_triggered']}")
+            if r["checkpoint_matched_pattern"]:
+                print(f"  Checkpoint match: {r['checkpoint_matched_pattern']}")
+            print()
+
+    has_failure = any(r["effective_decision"] != "ALLOW" for r in results)
+    return 1 if has_failure else 0
+
+
+# ---------------------------------------------------------------------------
 # Main parser
 # ---------------------------------------------------------------------------
 
@@ -905,6 +1055,33 @@ def build_parser() -> argparse.ArgumentParser:
     validate_scope_p.add_argument("file", help="Path to plan YAML file")
     validate_scope_p.add_argument("--json", action="store_true", help="Output as JSON")
 
+    # scope simulate (Sprint 43 — APEP-341)
+    simulate_scope_p = scope_sub.add_parser(
+        "simulate",
+        help="Simulate a tool call against plan scope patterns",
+    )
+    simulate_scope_p.add_argument(
+        "--plan", dest="plan_file",
+        help="Path to plan YAML file containing scope and requires_checkpoint",
+    )
+    simulate_scope_p.add_argument(
+        "--scope", nargs="*", default=[],
+        help="Inline scope patterns (verb:namespace:resource)",
+    )
+    simulate_scope_p.add_argument(
+        "--checkpoint", nargs="*", default=[],
+        help="Inline requires_checkpoint patterns",
+    )
+    simulate_scope_p.add_argument(
+        "--action", default="",
+        help="Human-readable action description for the simulation",
+    )
+    simulate_scope_p.add_argument(
+        "--tool-name", dest="tool_names", nargs="+", required=True,
+        help="One or more tool names to simulate",
+    )
+    simulate_scope_p.add_argument("--json", action="store_true", help="Output as JSON")
+
     # --- health ---
     health_p = subparsers.add_parser("health", help="Check server health")
     health_p.add_argument(
@@ -967,6 +1144,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_scope_compile(args)
         elif args.scope_command == "validate":
             return cmd_scope_validate(args)
+        elif args.scope_command == "simulate":
+            return cmd_scope_simulate(args)
 
     elif args.command == "health":
         return cmd_health(args)
