@@ -203,3 +203,28 @@ def mock_mongodb(monkeypatch):
         _al._receipt_key = None
     except ImportError:
         pass
+
+    # Clear Sprint 51 rule bundle loader state
+    try:
+        from app.services.rule_bundle_loader import rule_bundle_loader
+
+        rule_bundle_loader._bundles.clear()
+        rule_bundle_loader._trusted_keys.clear()
+    except ImportError:
+        pass
+
+    # Clear Sprint 51 security assessment engine state
+    try:
+        from app.services.security_assessment import security_assessment_engine
+
+        security_assessment_engine._last_result = None
+    except ImportError:
+        pass
+
+    # Clear Sprint 51 MITRE mapper custom mappings
+    try:
+        from app.services.mitre_attack_mapper import mitre_attack_mapper
+
+        mitre_attack_mapper._rule_id_mappings.clear()
+    except ImportError:
+        pass

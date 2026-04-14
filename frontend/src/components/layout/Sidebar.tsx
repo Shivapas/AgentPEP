@@ -10,6 +10,7 @@ const navItems = [
   { to: "/plans", label: "Plans", icon: "plan" },
   { to: "/audit", label: "Audit Log", icon: "scroll" },
   { to: "/escalations", label: "Escalations", icon: "alert" },
+  { to: "/network-events", label: "Network Events", icon: "network" },
   { to: "/risk", label: "Risk Map", icon: "chart" },
 ];
 
@@ -20,6 +21,7 @@ const iconMap: Record<string, string> = {
   plan: "☑",
   scroll: "☰",
   alert: "▲",
+  network: "⬡",
   chart: "◔",
 };
 
