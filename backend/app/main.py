@@ -27,6 +27,7 @@ from app.api.v1.simulate import router as simulate_router
 from app.api.v1.taint import router as taint_router
 from app.api.v1.memory import router as memory_router
 from app.api.v1.plans import router as plans_router
+from app.api.v1.scope import router as scope_router
 from app.api.v1.sprint36 import router as sprint36_router
 from app.core.config import settings
 from app.core.observability import get_metrics_app, setup_tracing
@@ -373,6 +374,7 @@ app.include_router(simulate_router)
 app.include_router(taint_router)
 app.include_router(memory_router)
 app.include_router(plans_router)
+app.include_router(scope_router)
 app.include_router(sprint36_router)
 
 # Observability
