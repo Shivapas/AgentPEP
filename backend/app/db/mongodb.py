@@ -95,6 +95,11 @@ CHECKPOINT_ESCALATION_HISTORY = "checkpoint_escalation_history"
 # Sprint 45 — APEP-356..363: DLP Pre-Scan Hook
 DLP_PATTERNS = "dlp_patterns"
 DLP_SCAN_RESULTS = "dlp_scan_results"
+# Sprint 50 — APEP-396..403: Kill Switch, Filesystem Sentinel & Adaptive Threat Score
+KILL_SWITCH_ACTIVATIONS = "kill_switch_activations"
+SENTINEL_FINDINGS = "sentinel_findings"
+ADAPTIVE_THREAT_SCORES = "adaptive_threat_scores"
+DEESCALATION_TIMERS = "deescalation_timers"
 
 
 async def init_collections() -> None:
@@ -541,5 +546,63 @@ async def init_collections() -> None:
             IndexModel([("session_id", ASCENDING)]),
             IndexModel([("agent_id", ASCENDING)]),
             IndexModel([("created_at", ASCENDING)], expireAfterSeconds=86400 * 7),
+        ]
+    )
+
+    # Sprint 50 — APEP-396: Kill switch activations
+    kill_switch_activations = db[KILL_SWITCH_ACTIVATIONS]
+    await kill_switch_activations.create_indexes(
+        [
+            IndexModel([("activation_id", ASCENDING)], unique=True),
+            IndexModel([("source", ASCENDING)]),
+            IndexModel([("activated_at", DESCENDING)]),
+            IndexModel(
+                [("activated_at", ASCENDING)],
+                expireAfterSeconds=86400 * 90,  # 90-day TTL
+            ),
+        ]
+    )
+
+    # Sprint 50 — APEP-399: Sentinel findings
+    sentinel_findings = db[SENTINEL_FINDINGS]
+    await sentinel_findings.create_indexes(
+        [
+            IndexModel([("finding_id", ASCENDING)], unique=True),
+            IndexModel([("event_type", ASCENDING)]),
+            IndexModel([("severity", ASCENDING)]),
+            IndexModel([("file_path", ASCENDING)]),
+            IndexModel([("timestamp", DESCENDING)]),
+            IndexModel(
+                [("timestamp", ASCENDING)],
+                expireAfterSeconds=86400 * 30,  # 30-day TTL
+            ),
+        ]
+    )
+
+    # Sprint 50 — APEP-401: Adaptive threat scores
+    adaptive_threat_scores = db[ADAPTIVE_THREAT_SCORES]
+    await adaptive_threat_scores.create_indexes(
+        [
+            IndexModel([("session_id", ASCENDING)], unique=True),
+            IndexModel([("score", ASCENDING)]),
+            IndexModel([("computed_at", DESCENDING)]),
+            IndexModel(
+                [("computed_at", ASCENDING)],
+                expireAfterSeconds=86400 * 7,  # 7-day TTL
+            ),
+        ]
+    )
+
+    # Sprint 50 — APEP-402: De-escalation timers
+    deescalation_timers = db[DEESCALATION_TIMERS]
+    await deescalation_timers.create_indexes(
+        [
+            IndexModel([("timer_id", ASCENDING)], unique=True),
+            IndexModel([("session_id", ASCENDING)]),
+            IndexModel([("state", ASCENDING)]),
+            IndexModel(
+                [("created_at", ASCENDING)],
+                expireAfterSeconds=86400 * 7,  # 7-day TTL
+            ),
         ]
     )
