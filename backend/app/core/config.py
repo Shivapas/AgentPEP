@@ -222,6 +222,16 @@ class Settings(BaseSettings):
     domain_data_budget_bytes: int = 10_485_760  # 10 MB
     kafka_network_topic: str = "agentpep.network"
 
+    # Sprint 45 — APEP-356..363: DLP Pre-Scan Hook
+    dlp_pre_scan_enabled: bool = False
+    dlp_cache_enabled: bool = True
+    dlp_cache_max_size: int = 10_000
+    dlp_cache_ttl_s: float = 300.0
+    dlp_scan_timeout_s: float = 5.0
+    dlp_risk_elevation_enabled: bool = True
+    dlp_taint_assignment_enabled: bool = True
+    dlp_pattern_reload_interval_s: float = 600.0
+
     model_config = {"env_prefix": "AGENTPEP_"}
 
 

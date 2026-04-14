@@ -422,6 +422,53 @@ class EchoScorer:
 
 
 # ---------------------------------------------------------------------------
+# Sprint 45 — APEP-357: DLPSensitivityScorer
+# ---------------------------------------------------------------------------
+
+
+class DLPSensitivityScorer:
+    """Risk scorer that detects sensitive data in tool args via DLP patterns.
+
+    Wraps the NetworkDLPScanner to produce a RiskFactor for the risk
+    aggregation pipeline.  Only contributes a non-zero score when the
+    DLP pre-scan feature is enabled and findings are present.
+    """
+
+    def score(self, tool_args: dict[str, Any] | None = None) -> RiskFactor:
+        from app.core.config import settings
+
+        if not settings.dlp_pre_scan_enabled or not tool_args:
+            return RiskFactor(
+                factor_name="dlp_sensitivity",
+                score=0.0,
+                detail="DLP pre-scan disabled or no arguments",
+            )
+
+        try:
+            from app.services.network_dlp import network_dlp_scanner
+
+            result = network_dlp_scanner.scan_tool_args(tool_args)
+            if result.has_findings:
+                return RiskFactor(
+                    factor_name="dlp_sensitivity",
+                    score=result.risk_elevation,
+                    detail=f"DLP: {len(result.findings)} findings, "
+                    f"max_severity={result.max_severity}",
+                )
+            return RiskFactor(
+                factor_name="dlp_sensitivity",
+                score=0.0,
+                detail="No DLP findings",
+            )
+        except Exception:
+            return RiskFactor(
+                factor_name="dlp_sensitivity",
+                score=0.0,
+                detail="DLP scan error",
+            )
+
+
+# ---------------------------------------------------------------------------
 # APEP-069: RiskAggregator
 # ---------------------------------------------------------------------------
 
@@ -487,6 +534,7 @@ class RiskAggregator:
             "tool_combination": weights.tool_combination,
             "velocity_anomaly": weights.velocity_anomaly,
             "echo_detection": weights.echo_detection,
+            "dlp_sensitivity": weights.dlp_sensitivity,
         }
 
         # Only normalise by weights of factors actually provided so that
@@ -527,6 +575,7 @@ class RiskScoringEngine:
         self.tool_combination_scorer = ToolCombinationScorer()
         self.velocity_anomaly_scorer = VelocityAnomalyScorer()
         self.echo_scorer = EchoScorer()
+        self.dlp_sensitivity_scorer = DLPSensitivityScorer()
         self.aggregator = RiskAggregator()
 
     async def compute(
@@ -574,6 +623,11 @@ class RiskScoringEngine:
         echo_factor = await self.echo_scorer.score(session_id, tool_name, tool_args)
         if echo_factor.score > 0:
             factors.append(echo_factor)
+
+        # Sprint 45 — APEP-357: DLP sensitivity scorer
+        dlp_factor = self.dlp_sensitivity_scorer.score(tool_args)
+        if dlp_factor.score > 0:
+            factors.append(dlp_factor)
 
         score = self.aggregator.aggregate(factors, agent_roles)
         return score, factors

@@ -92,6 +92,9 @@ PLAN_BUDGET_ALERTS = "plan_budget_alerts"
 PLAN_CHECKPOINT_APPROVALS = "plan_checkpoint_approvals"
 # Sprint 41 — APEP-324/325: Checkpoint escalation history
 CHECKPOINT_ESCALATION_HISTORY = "checkpoint_escalation_history"
+# Sprint 45 — APEP-356..363: DLP Pre-Scan Hook
+DLP_PATTERNS = "dlp_patterns"
+DLP_SCAN_RESULTS = "dlp_scan_results"
 
 
 async def init_collections() -> None:
@@ -519,5 +522,24 @@ async def init_collections() -> None:
         [
             IndexModel([("plan_id", ASCENDING)]),
             IndexModel([("parent_receipt_id", ASCENDING)]),
+        ]
+    )
+
+    # Sprint 45 — APEP-356..363: DLP Pre-Scan Hook
+    dlp_patterns = db[DLP_PATTERNS]
+    await dlp_patterns.create_indexes(
+        [
+            IndexModel([("pattern_id", ASCENDING)], unique=True),
+            IndexModel([("enabled", ASCENDING)]),
+            IndexModel([("pattern_type", ASCENDING)]),
+        ]
+    )
+
+    dlp_scan_results = db[DLP_SCAN_RESULTS]
+    await dlp_scan_results.create_indexes(
+        [
+            IndexModel([("session_id", ASCENDING)]),
+            IndexModel([("agent_id", ASCENDING)]),
+            IndexModel([("created_at", ASCENDING)], expireAfterSeconds=86400 * 7),
         ]
     )

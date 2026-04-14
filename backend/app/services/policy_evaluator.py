@@ -8,6 +8,10 @@ Sprint 7: integrates confused-deputy detector (APEP-060) — validates delegatio
 chains, enforces depth limits, and detects implicit delegation.
 Sprint 8: integrates risk scoring engine (APEP-070) — computes [0–1] risk score
 per tool call and ESCALATES when score exceeds the configured threshold.
+Sprint 45: integrates DLPPreScanStage (APEP-356) — scans tool arguments for
+sensitive data (API keys, tokens, credentials) before policy evaluation;
+auto-elevates risk score (APEP-357); auto-taints on credential detection (APEP-358);
+attaches DLP findings to response (APEP-359).
 Sprint 11: integrates rate limiter (APEP-090/091/092) and validator pipeline
 (APEP-093/094/095/096) — rate limits per-role per-tool with sliding/fixed window;
 global per-tenant ceiling; sequential validator pipeline where any failure → DENY.
@@ -588,6 +592,39 @@ class PolicyEvaluator:
                 if taint_decision is not None:
                     decision = taint_decision
 
+        # --- Sprint 45 (APEP-356): DLP Pre-Scan Stage ---
+        dlp_findings = None
+        dlp_risk_elevation = 0.0
+        if settings.dlp_pre_scan_enabled:
+            try:
+                dlp_scan_result = self._run_dlp_pre_scan(request, taint_flags)
+                if dlp_scan_result is not None and dlp_scan_result.has_findings:
+                    dlp_findings = dlp_scan_result.findings
+                    # APEP-357: Risk elevation from DLP findings
+                    if settings.dlp_risk_elevation_enabled:
+                        dlp_risk_elevation = dlp_scan_result.risk_elevation
+                    # APEP-358: Taint assignment from DLP findings
+                    if settings.dlp_taint_assignment_enabled and dlp_scan_result.taint_action:
+                        from app.services.network_dlp import apply_dlp_taint
+                        dlp_taint_flags = apply_dlp_taint(
+                            session_id=request.session_id,
+                            agent_id=request.agent_id,
+                            scan_result=dlp_scan_result,
+                        )
+                        taint_flags.extend(dlp_taint_flags)
+                        # QUARANTINE taint from DLP → DENY
+                        if dlp_scan_result.taint_action.value == "QUARANTINE":
+                            if decision == Decision.ALLOW:
+                                decision = Decision.DENY
+                        elif dlp_scan_result.taint_action.value == "UNTRUSTED":
+                            if decision == Decision.ALLOW:
+                                decision = Decision.ESCALATE
+            except Exception:
+                logger.warning(
+                    "DLP pre-scan failed; proceeding without",
+                    exc_info=True,
+                )
+
         # --- Risk scoring (APEP-070) ---
         risk_score = 0.0
         risk_factors: list = []
@@ -767,6 +804,10 @@ class PolicyEvaluator:
             )
             risk_score = max(risk_score, computed_risk)
 
+        # Sprint 45 (APEP-357): Apply DLP risk elevation
+        if dlp_risk_elevation > 0.0:
+            risk_score = min(risk_score + dlp_risk_elevation, 1.0)
+
         # --- Adaptive hardening (Sprint 35 — APEP-280) ---
         hardening_texts: list[str] | None = None
         if settings.adaptive_hardening_enabled:
@@ -800,6 +841,8 @@ class PolicyEvaluator:
             step_up_requirements=step_up_requirements,
             step_up_challenge_id=step_up_challenge_id,
             defer_reason=defer_reason,
+            # Sprint 45 — APEP-359: DLP findings
+            dlp_findings=dlp_findings,
         )
 
     @staticmethod
@@ -831,6 +874,79 @@ class PolicyEvaluator:
             return Decision.ESCALATE, taint_flags
 
         return None, taint_flags
+
+    @staticmethod
+    def _run_dlp_pre_scan(
+        request: ToolCallRequest,
+        taint_flags: list[str],
+    ) -> "DLPScanResult | None":
+        """Sprint 45 (APEP-356): Run DLP pre-scan on tool arguments.
+
+        Scans tool_args for sensitive data (API keys, tokens, credentials,
+        PII, financial data) and returns a DLPScanResult.  Records
+        Prometheus metrics for scan operations.
+
+        Returns None if the scan produces no actionable findings.
+        """
+        from app.core.observability import (
+            DLP_CACHE_HITS,
+            DLP_FINDINGS_TOTAL,
+            DLP_RISK_ELEVATIONS,
+            DLP_SCAN_LATENCY,
+            DLP_SCAN_TOTAL,
+            DLP_TAINT_ASSIGNMENTS,
+        )
+        from app.models.policy import DLPScanResult
+        from app.services.network_dlp import network_dlp_scanner
+
+        import time as _time
+
+        start = _time.monotonic()
+        scan_result = network_dlp_scanner.scan_tool_args(request.tool_args)
+        elapsed = _time.monotonic() - start
+
+        # Record metrics (APEP-360)
+        DLP_SCAN_LATENCY.observe(elapsed)
+
+        if scan_result.cache_hit:
+            DLP_CACHE_HITS.labels(result="hit").inc()
+        else:
+            DLP_CACHE_HITS.labels(result="miss").inc()
+
+        if scan_result.has_findings:
+            for finding in scan_result.findings:
+                DLP_SCAN_TOTAL.labels(
+                    result="hit",
+                    pattern_type=finding.pattern_type.value,
+                ).inc()
+                DLP_FINDINGS_TOTAL.labels(
+                    severity=finding.severity.value,
+                    pattern_type=finding.pattern_type.value,
+                ).inc()
+
+            if scan_result.risk_elevation > 0:
+                DLP_RISK_ELEVATIONS.inc()
+
+            if scan_result.taint_action is not None:
+                DLP_TAINT_ASSIGNMENTS.labels(
+                    taint_level=scan_result.taint_action.value,
+                ).inc()
+
+            logger.info(
+                "dlp_pre_scan_hit",
+                session_id=request.session_id,
+                agent_id=request.agent_id,
+                tool_name=request.tool_name,
+                finding_count=len(scan_result.findings),
+                risk_elevation=scan_result.risk_elevation,
+                taint_action=str(scan_result.taint_action),
+                cache_hit=scan_result.cache_hit,
+                scan_duration_ms=round(elapsed * 1000, 3),
+            )
+        else:
+            DLP_SCAN_TOTAL.labels(result="miss", pattern_type="none").inc()
+
+        return scan_result
 
     @staticmethod
     def _enqueue_audit(
