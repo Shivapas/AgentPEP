@@ -147,6 +147,7 @@ export interface DecisionFilters {
   risk_max?: string;
   start_time?: string;
   end_time?: string;
+  plan_id?: string;
 }
 
 export interface PaginatedResponse {

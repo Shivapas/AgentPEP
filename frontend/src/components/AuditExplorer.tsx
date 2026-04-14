@@ -115,6 +115,12 @@ export function AuditExplorer() {
           onChange={(e) => updateFilter("tool_name", e.target.value)}
           className="rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground"
         />
+        <input
+          type="text"
+          placeholder="Plan ID"
+          onChange={(e) => updateFilter("plan_id", e.target.value)}
+          className="rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground"
+        />
         <select
           onChange={(e) => updateFilter("decision", e.target.value)}
           className="rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground"

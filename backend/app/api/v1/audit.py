@@ -41,9 +41,12 @@ def _build_filter(
     start_time: datetime | None,
     end_time: datetime | None,
     search: str | None,
+    plan_id: str | None = None,
 ) -> dict[str, Any]:
     """Construct a MongoDB filter from query parameters."""
     f: dict[str, Any] = {}
+    if plan_id:
+        f["plan_id"] = plan_id
     if session_id:
         f["session_id"] = session_id
     if agent_id:
@@ -107,6 +110,7 @@ async def list_decisions(
     start_time: datetime | None = Query(default=None),
     end_time: datetime | None = Query(default=None),
     search: str | None = Query(default=None, description="Full-text search across fields"),
+    plan_id: str | None = Query(default=None, description="Filter by plan ID"),
 ) -> dict[str, Any]:
     """Return a paginated, filterable list of audit decisions."""
     db = db_module.get_database()
@@ -115,6 +119,7 @@ async def list_decisions(
     query_filter = _build_filter(
         session_id, agent_id, tool_name, decision,
         risk_min, risk_max, start_time, end_time, search,
+        plan_id=plan_id,
     )
 
     total = await col.count_documents(query_filter)
