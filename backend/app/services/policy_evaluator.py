@@ -562,6 +562,74 @@ class PolicyEvaluator:
                     exc_info=True,
                 )
 
+        # --- Sprint 36 (APEP-286): Trust degradation engine check ---
+        if settings.trust_degradation_engine_enabled and decision == Decision.ALLOW:
+            try:
+                from app.services.trust_degradation_engine import trust_degradation_engine
+
+                trust_record = await trust_degradation_engine.get_or_create_record(
+                    request.session_id, request.tenant_id
+                )
+                if trust_record.locked:
+                    decision = Decision.DENY
+                    reason = (
+                        result.reason
+                        + " | Trust degradation: session locked (ceiling below threshold)"
+                    )
+                elif trust_record.current_ceiling < 0.5 and matched_rule.taint_check:
+                    decision = Decision.DEFER
+            except Exception:
+                logger.warning(
+                    "Trust degradation engine check failed; proceeding without",
+                    exc_info=True,
+                )
+
+        # --- Sprint 36 (APEP-288): STEP_UP decision for rules requiring auth factors ---
+        step_up_requirements: list[str] | None = None
+        step_up_challenge_id: str | None = None
+        if matched_rule.step_up_auth and decision == Decision.ALLOW:
+            decision = Decision.STEP_UP
+            step_up_requirements = matched_rule.step_up_auth
+            try:
+                from app.services.step_up_handler import step_up_handler
+
+                challenge = await step_up_handler.create_challenge(
+                    request_id=request.request_id,
+                    session_id=request.session_id,
+                    agent_id=request.agent_id,
+                    required_factors=matched_rule.step_up_auth,
+                    tenant_id=request.tenant_id,
+                )
+                step_up_challenge_id = str(challenge.challenge_id)
+            except Exception:
+                logger.warning(
+                    "STEP_UP challenge creation failed; falling back to ESCALATE",
+                    exc_info=True,
+                )
+                decision = Decision.ESCALATE
+
+        # --- Sprint 36 (APEP-287): DEFER decision support ---
+        defer_reason: str | None = None
+        if decision == Decision.DEFER:
+            defer_reason = "Trust degradation or policy ambiguity requires deferred evaluation"
+            try:
+                from app.services.defer_handler import defer_handler
+
+                await defer_handler.create_deferral(
+                    request_id=request.request_id,
+                    session_id=request.session_id,
+                    agent_id=request.agent_id,
+                    tool_name=request.tool_name,
+                    reason=defer_reason,
+                    timeout_s=settings.defer_default_timeout_s,
+                    tenant_id=request.tenant_id,
+                )
+            except Exception:
+                logger.warning(
+                    "DEFER record creation failed; proceeding",
+                    exc_info=True,
+                )
+
         # --- PII Redaction with MODIFY decision (Sprint 35 — APEP-282) ---
         modified_args: dict | None = None
         if settings.pii_redaction_enabled and decision == Decision.ALLOW:
@@ -648,6 +716,10 @@ class PolicyEvaluator:
             latency_ms=elapsed_ms,
             hardening_instructions=hardening_texts,
             modified_args=modified_args,
+            # Sprint 36 — APEP-287/288
+            step_up_requirements=step_up_requirements,
+            step_up_challenge_id=step_up_challenge_id,
+            defer_reason=defer_reason,
         )
 
     @staticmethod
@@ -698,6 +770,7 @@ class PolicyEvaluator:
             session_id=request.session_id,
             agent_id=request.agent_id,
             agent_role="unknown",
+            tenant_id=request.tenant_id,
             tool_name=request.tool_name,
             tool_args_hash=args_hash,
             delegation_chain=request.delegation_chain,
@@ -736,6 +809,7 @@ class PolicyEvaluator:
                 session_id=request.session_id,
                 agent_id=request.agent_id,
                 agent_role="unknown",
+                tenant_id=request.tenant_id,
                 tool_name=request.tool_name,
                 tool_args_hash=args_hash,
                 delegation_chain=request.delegation_chain,

@@ -102,6 +102,50 @@ async def intercept(request: ToolCallRequest) -> PolicyDecisionResponse:
                 }
                 response.receipt = receipt_signer.sign(receipt_record)
 
+        # Sprint 36 (APEP-285): Append to hash-chained context
+        if settings.hash_chained_context_enabled:
+            try:
+                from app.services.hash_chained_context import hash_chained_context
+
+                import json
+                content = json.dumps({
+                    "request_id": str(request.request_id),
+                    "tool_name": request.tool_name,
+                    "decision": response.decision.value,
+                    "risk_score": response.risk_score,
+                }, sort_keys=True)
+                await hash_chained_context.append(
+                    session_id=request.session_id,
+                    content=content,
+                    source="intercept",
+                    agent_id=request.agent_id,
+                    tenant_id=request.tenant_id,
+                )
+            except Exception:
+                pass  # Non-blocking — don't fail the intercept
+
+        # Sprint 36 (APEP-286): Record trust degradation event
+        if settings.trust_degradation_engine_enabled and response.decision != Decision.ALLOW:
+            try:
+                from app.services.trust_degradation_engine import trust_degradation_engine
+
+                taint = "TRUSTED"
+                if response.taint_flags:
+                    if "QUARANTINE" in response.taint_flags:
+                        taint = "QUARANTINE"
+                    elif "UNTRUSTED" in response.taint_flags:
+                        taint = "UNTRUSTED"
+                await trust_degradation_engine.record_event(
+                    session_id=request.session_id,
+                    interaction_type="TOOL_CALL",
+                    taint_level=taint,
+                    agent_id=request.agent_id,
+                    tool_name=request.tool_name,
+                    tenant_id=request.tenant_id,
+                )
+            except Exception:
+                pass  # Non-blocking
+
         # Enrich span with decision outcome
         span.set_attribute("agentpep.decision", response.decision.value)
         span.set_attribute("agentpep.latency_ms", response.latency_ms)

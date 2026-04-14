@@ -1,0 +1,139 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "Trust Degradation Events",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(agentpep_trust_degradation_events_total[5m])",
+          "legendFormat": "{{reason}} (locked={{locked}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Trust Ceiling Distribution",
+      "type": "histogram",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "agentpep_trust_ceiling_bucket",
+          "legendFormat": "{{le}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Hash Chain Verifications",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "agentpep_hash_chain_verifications_total",
+          "legendFormat": "{{result}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Hash Chain Entries Appended",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 8 },
+      "targets": [
+        {
+          "expr": "agentpep_hash_chain_entries_total",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "DEFER Decisions",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "rate(agentpep_defer_decisions_total[5m])",
+          "legendFormat": "{{condition}} -> {{resolution}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "STEP_UP Challenges",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "rate(agentpep_step_up_challenges_total[5m])",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Policy Conflicts Detected",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "targets": [
+        {
+          "expr": "agentpep_policy_conflicts_detected_total",
+          "legendFormat": "{{severity}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Tenant Isolation Violations",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "targets": [
+        {
+          "expr": "rate(agentpep_tenant_isolation_violations_total[5m])",
+          "legendFormat": "{{source_tenant}} ({{resource_type}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Conflict Scan Duration",
+      "type": "histogram",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "targets": [
+        {
+          "expr": "agentpep_conflict_scan_duration_seconds_bucket",
+          "legendFormat": "{{le}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Tamper Detection Rate",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 28 },
+      "targets": [
+        {
+          "expr": "agentpep_hash_chain_verifications_total{result='tampered'} / (agentpep_hash_chain_verifications_total{result='valid'} + agentpep_hash_chain_verifications_total{result='tampered'})",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["agentpep", "sprint36", "tooltrust"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "AgentPEP Sprint 36 — ToolTrust Enhancements",
+  "uid": "agentpep-sprint36-tooltrust",
+  "version": 1
+}

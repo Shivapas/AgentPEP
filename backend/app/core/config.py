@@ -176,6 +176,11 @@ class Settings(BaseSettings):
     context_authority_enabled: bool = False
     defer_default_timeout_s: int = 60
 
+    # Sprint 36 — APEP-285/286/288/290: Feature flags
+    hash_chained_context_enabled: bool = False
+    trust_degradation_engine_enabled: bool = False
+    tenant_isolation_enabled: bool = False
+
     # Sprint 35 — APEP-276/278/279: Detection feature flags
     tool_combination_detection_enabled: bool = True
     velocity_window_seconds: int = 300

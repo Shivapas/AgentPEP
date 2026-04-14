@@ -71,6 +71,14 @@ MEMORY_ACCESS_POLICIES = "memory_access_policies"
 MEMORY_ENTRIES = "memory_entries"
 # Sprint 33 — APEP-264: Context authority tracking
 CONTEXT_ENTRIES = "context_entries"
+# Sprint 36 — APEP-285..APEP-291
+HASH_CHAINED_CONTEXT = "hash_chained_context"
+TRUST_DEGRADATION_RECORDS = "trust_degradation_records"
+DEFER_DECISIONS = "defer_decisions"
+STEP_UP_CHALLENGES = "step_up_challenges"
+POLICY_CONFLICTS = "policy_conflicts"
+TENANT_ISOLATION_CONFIGS = "tenant_isolation_configs"
+TENANT_ISOLATION_VIOLATIONS = "tenant_isolation_violations"
 
 
 async def init_collections() -> None:
@@ -338,5 +346,96 @@ async def init_collections() -> None:
             IndexModel([("tool_pattern", ASCENDING)]),
             IndexModel([("classification", ASCENDING)]),
             IndexModel([("enabled", ASCENDING)]),
+        ]
+    )
+
+    # Sprint 36 — APEP-285: Hash-chained context
+    hash_chained_context = db[HASH_CHAINED_CONTEXT]
+    await hash_chained_context.create_indexes(
+        [
+            IndexModel([("entry_id", ASCENDING)], unique=True),
+            IndexModel(
+                [("session_id", ASCENDING), ("sequence_number", ASCENDING)],
+                unique=True,
+            ),
+            IndexModel([("tenant_id", ASCENDING)]),
+            IndexModel(
+                [("created_at", ASCENDING)],
+                expireAfterSeconds=86400 * 30,
+            ),
+        ]
+    )
+
+    # Sprint 36 — APEP-286: Trust degradation records
+    trust_degradation_records = db[TRUST_DEGRADATION_RECORDS]
+    await trust_degradation_records.create_indexes(
+        [
+            IndexModel([("session_id", ASCENDING)], unique=True),
+            IndexModel([("tenant_id", ASCENDING)]),
+            IndexModel([("current_ceiling", ASCENDING)]),
+        ]
+    )
+
+    # Sprint 36 — APEP-287: Defer decisions
+    defer_decisions = db[DEFER_DECISIONS]
+    await defer_decisions.create_indexes(
+        [
+            IndexModel([("defer_id", ASCENDING)], unique=True),
+            IndexModel([("session_id", ASCENDING)]),
+            IndexModel([("resolved", ASCENDING)]),
+            IndexModel([("tenant_id", ASCENDING)]),
+            IndexModel(
+                [("created_at", ASCENDING)],
+                expireAfterSeconds=86400 * 7,
+            ),
+        ]
+    )
+
+    # Sprint 36 — APEP-288: Step-up challenges
+    step_up_challenges = db[STEP_UP_CHALLENGES]
+    await step_up_challenges.create_indexes(
+        [
+            IndexModel([("challenge_id", ASCENDING)], unique=True),
+            IndexModel([("session_id", ASCENDING)]),
+            IndexModel([("status", ASCENDING)]),
+            IndexModel([("tenant_id", ASCENDING)]),
+            IndexModel(
+                [("created_at", ASCENDING)],
+                expireAfterSeconds=86400,
+            ),
+        ]
+    )
+
+    # Sprint 36 — APEP-289: Policy conflicts
+    policy_conflicts = db[POLICY_CONFLICTS]
+    await policy_conflicts.create_indexes(
+        [
+            IndexModel([("conflict_id", ASCENDING)], unique=True),
+            IndexModel([("tenant_id", ASCENDING)]),
+            IndexModel([("resolved", ASCENDING)]),
+            IndexModel([("severity", ASCENDING)]),
+        ]
+    )
+
+    # Sprint 36 — APEP-290: Tenant isolation configs
+    tenant_isolation_configs = db[TENANT_ISOLATION_CONFIGS]
+    await tenant_isolation_configs.create_indexes(
+        [
+            IndexModel([("tenant_id", ASCENDING)], unique=True),
+            IndexModel([("enabled", ASCENDING)]),
+        ]
+    )
+
+    # Sprint 36 — APEP-290: Tenant isolation violations
+    tenant_isolation_violations = db[TENANT_ISOLATION_VIOLATIONS]
+    await tenant_isolation_violations.create_indexes(
+        [
+            IndexModel([("violation_id", ASCENDING)], unique=True),
+            IndexModel([("source_tenant_id", ASCENDING)]),
+            IndexModel([("target_tenant_id", ASCENDING)]),
+            IndexModel(
+                [("detected_at", ASCENDING)],
+                expireAfterSeconds=86400 * 90,
+            ),
         ]
     )

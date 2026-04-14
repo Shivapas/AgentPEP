@@ -23,7 +23,7 @@ class TestDecisionEnum:
         assert Decision.MODIFY.value == "MODIFY"
 
     def test_all_decisions_present(self) -> None:
-        expected = {"ALLOW", "DENY", "ESCALATE", "DRY_RUN", "TIMEOUT", "DEFER", "MODIFY"}
+        expected = {"ALLOW", "DENY", "ESCALATE", "DRY_RUN", "TIMEOUT", "DEFER", "MODIFY", "STEP_UP"}
         actual = {d.value for d in Decision}
         assert actual == expected
 
