@@ -88,6 +88,10 @@ SCOPE_PATTERNS = "scope_patterns"
 RECEIPT_CHAINS = "receipt_chains"
 # Sprint 40 — APEP-321: Budget alert events
 PLAN_BUDGET_ALERTS = "plan_budget_alerts"
+# Sprint 41 — APEP-326: Plan-scoped checkpoint approval memory
+PLAN_CHECKPOINT_APPROVALS = "plan_checkpoint_approvals"
+# Sprint 41 — APEP-324/325: Checkpoint escalation history
+CHECKPOINT_ESCALATION_HISTORY = "checkpoint_escalation_history"
 
 
 async def init_collections() -> None:

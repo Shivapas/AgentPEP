@@ -87,6 +87,61 @@ class KafkaDecisionProducer:
                 self._started = False
                 self._producer = None
 
+    # ------------------------------------------------------------------
+    # Sprint 41 — APEP-S41.7: Checkpoint escalation events
+    # ------------------------------------------------------------------
+
+    async def publish_checkpoint_escalation(
+        self,
+        *,
+        plan_id: str,
+        session_id: str,
+        agent_id: str,
+        tool_name: str,
+        matched_pattern: str,
+        match_reason: str,
+        human_intent: str = "",
+    ) -> bool:
+        """Publish a checkpoint escalation event to the checkpoint topic.
+
+        Emitted whenever a requires_checkpoint pattern triggers ESCALATE.
+        Consumers can use this for real-time alerting, dashboards, or
+        compliance logging.
+        """
+        if not self._started or self._producer is None:
+            return False
+
+        topic = getattr(
+            settings,
+            "kafka_checkpoint_topic",
+            "agentpep.checkpoint_escalations",
+        )
+
+        event = {
+            "event_type": "CHECKPOINT_ESCALATION",
+            "plan_id": plan_id,
+            "session_id": session_id,
+            "agent_id": agent_id,
+            "tool_name": tool_name,
+            "matched_pattern": matched_pattern,
+            "match_reason": match_reason,
+            "human_intent": human_intent,
+        }
+
+        try:
+            await self._producer.send_and_wait(
+                topic=topic,
+                key=plan_id,
+                value=event,
+            )
+            return True
+        except Exception:
+            logger.exception(
+                "Failed to publish checkpoint escalation for plan %s",
+                plan_id,
+            )
+            return False
+
     @property
     def is_running(self) -> bool:
         return self._started

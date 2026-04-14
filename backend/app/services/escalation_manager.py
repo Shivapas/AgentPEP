@@ -124,6 +124,10 @@ class EscalationManager:
         timeout_seconds: int = 300,
         timeout_action: EscalationState = EscalationState.DENIED,
         approver_group_id: str | None = None,
+        # Sprint 41 — APEP-325/326/327
+        checkpoint_match_reason: str | None = None,
+        human_intent: str = "",
+        plan_id: UUID | None = None,
     ) -> EscalationTicketV1:
         """Create a Sprint-9 escalation ticket, persist to MongoDB, and broadcast."""
         from app.db import mongodb as db_module
@@ -155,12 +159,40 @@ class EscalationManager:
             timeout_seconds=timeout_seconds,
             timeout_action=timeout_action,
             assigned_to=assigned_to,
+            # Sprint 41 — APEP-325/326/327
+            checkpoint_match_reason=checkpoint_match_reason,
+            human_intent=human_intent,
+            plan_id=plan_id,
         )
 
         if has_memory:
             ticket.state = EscalationState.APPROVED
             ticket.decided_by = "approval_memory"
             ticket.resolved_at = datetime.now(UTC)
+
+        # Sprint 41 — APEP-325: Persist checkpoint escalation history
+        if checkpoint_match_reason:
+            try:
+                from app.db.mongodb import CHECKPOINT_ESCALATION_HISTORY
+                from app.models.scope_pattern import CheckpointEscalationRecord
+
+                record = CheckpointEscalationRecord(
+                    plan_id=plan_id or UUID(int=0),
+                    session_id=session_id,
+                    agent_id=agent_id,
+                    tool_name=tool_name,
+                    matched_pattern=checkpoint_match_reason,
+                    match_reason=reason,
+                    human_intent=human_intent,
+                )
+                await db[CHECKPOINT_ESCALATION_HISTORY].insert_one(
+                    record.model_dump(mode="json")
+                )
+            except Exception:
+                logger.warning(
+                    "Checkpoint escalation history write failed",
+                    exc_info=True,
+                )
 
         # Persist to MongoDB
         db = db_module.get_database()
@@ -234,6 +266,30 @@ class EscalationManager:
                 original_ticket_id=ticket.ticket_id,
             )
             await db[APPROVAL_MEMORY].insert_one(entry.model_dump(mode="json"))
+
+            # Sprint 41 — APEP-326: Store plan-scoped checkpoint approval
+            if ticket.plan_id and ticket.checkpoint_match_reason:
+                try:
+                    from app.models.scope_pattern import PlanCheckpointApproval
+                    from app.services.checkpoint_approval_memory import (
+                        checkpoint_approval_memory,
+                    )
+
+                    plan_approval = PlanCheckpointApproval(
+                        plan_id=ticket.plan_id,
+                        agent_id=ticket.agent_id,
+                        tool_name=ticket.tool_name,
+                        matched_pattern=ticket.checkpoint_match_reason,
+                        tool_args_hash=ticket.tool_args_hash,
+                        approved_by=resolve_req.decided_by,
+                        original_ticket_id=ticket.ticket_id,
+                    )
+                    await checkpoint_approval_memory.store(plan_approval)
+                except Exception:
+                    logger.warning(
+                        "Plan-scoped checkpoint approval storage failed",
+                        exc_info=True,
+                    )
 
         # Signal any waiters
         evt = self._resolution_events.pop(ticket.ticket_id, None)

@@ -331,6 +331,21 @@ class EscalationTicketV1(BaseModel):
     )
     taint_flags: list[str] = Field(default_factory=list)
     delegation_chain: list[str] = Field(default_factory=list)
+    # Sprint 41 — APEP-325: Checkpoint match reason propagation
+    checkpoint_match_reason: str | None = Field(
+        default=None,
+        description="Structured reason when escalation was triggered by a checkpoint",
+    )
+    # Sprint 41 — APEP-327: Human intent propagation
+    human_intent: str = Field(
+        default="",
+        description="Human intent label from the originating request or MissionPlan",
+    )
+    # Sprint 41 — APEP-326: Plan ID for plan-scoped approval memory
+    plan_id: UUID | None = Field(
+        default=None,
+        description="MissionPlan ID if this escalation was triggered by a plan checkpoint",
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     resolved_at: datetime | None = None
 
@@ -540,6 +555,16 @@ class AuditDecision(BaseModel):
     previous_hash: str = Field(default="", description="SHA-256 hash of the previous audit record")
     record_hash: str = Field(default="", description="SHA-256 hash of this record (chained)")
     sequence_number: int = Field(default=0, description="Monotonic sequence number for ordering")
+    # Sprint 41 — APEP-327: Human intent propagation
+    human_intent: str = Field(
+        default="",
+        description="Human intent label from request or MissionPlan",
+    )
+    # Sprint 41 — APEP-325: Checkpoint escalation reason
+    checkpoint_match_reason: str | None = Field(
+        default=None,
+        description="Structured reason when escalation was triggered by a checkpoint pattern",
+    )
     # Sprint 39 — APEP-308: Receipt chaining with plan root
     plan_id: UUID | None = Field(
         default=None,
@@ -669,6 +694,11 @@ class ToolCallRequest(BaseModel):
         default_factory=list,
         description="IDs of taint nodes associated with tool arguments",
     )
+    # Sprint 41 — APEP-327: Human intent propagation
+    human_intent: str = Field(
+        default="",
+        description="Human-readable intent label propagated from the MissionPlan or caller",
+    )
     dry_run: bool = False
 
 
@@ -720,6 +750,16 @@ class PolicyDecisionResponse(BaseModel):
         default=None,
         description="Defensive instructions for agent system prompts when risk is elevated",
     )
+    # Sprint 41 — APEP-327: Human intent propagation
+    human_intent: str = Field(
+        default="",
+        description="Human intent label echoed from the request or resolved from the MissionPlan",
+    )
+    # Sprint 41 — APEP-325: Checkpoint match reason
+    checkpoint_match_reason: str | None = Field(
+        default=None,
+        description="Structured reason when escalation was triggered by a checkpoint pattern",
+    )
 
 
 # --- Escalation Ticket (Sprint 18 — APEP-143..APEP-147) ---
@@ -758,6 +798,19 @@ class EscalationTicket(BaseModel):
         description="Deadline before auto-decision applies",
     )
     sla_seconds: int = Field(default=300, description="SLA window in seconds")
+    # Sprint 41 — APEP-325/326/327: Checkpoint context
+    checkpoint_match_reason: str | None = Field(
+        default=None,
+        description="Structured reason when triggered by a checkpoint pattern",
+    )
+    human_intent: str = Field(
+        default="",
+        description="Human intent from request or MissionPlan",
+    )
+    plan_id: UUID | None = Field(
+        default=None,
+        description="MissionPlan ID if triggered by plan checkpoint",
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     resolved_at: datetime | None = None
 

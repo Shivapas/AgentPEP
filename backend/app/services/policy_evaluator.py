@@ -825,14 +825,14 @@ class PolicyEvaluator:
         Returns a PolicyDecisionResponse if the plan blocks the request,
         or None if the request should proceed to normal RBAC evaluation.
 
-        Filters (in order):
-          1. PlanBudgetGate -- deny if plan expired or budget exhausted
+        Filters (in order — Sprint 41 reorder: APEP-324):
+          1. PlanCheckpointFilter -- escalate FIRST if action matches
+             requires_checkpoint (unconditional, before any other check).
+          2. PlanBudgetGate -- deny if plan expired or budget exhausted
              (Sprint 40 — APEP-318/319: Redis-backed budget state).
-          2. PlanDelegatesToFilter -- deny if agent not in delegates_to
+          3. PlanDelegatesToFilter -- deny if agent not in delegates_to
              (Sprint 40 — APEP-316/317: glob-aware delegation whitelist).
-          3. PlanScopeFilter -- deny if tool not within plan scope (Sprint 38).
-          4. PlanCheckpointFilter -- escalate if action matches requires_checkpoint
-             (enhanced with scope pattern matching in Sprint 38).
+          4. PlanScopeFilter -- deny if tool not within plan scope (Sprint 38).
         """
         try:
             from app.services.mission_plan_service import mission_plan_service
@@ -846,6 +846,70 @@ class PolicyEvaluator:
 
             elapsed_ms = int((time.monotonic() - start) * 1000)
 
+            # --- Sprint 41 (APEP-324): Resolve human_intent from plan ---
+            human_intent = request.human_intent
+            if not human_intent and plan.human_intent:
+                human_intent = plan.human_intent
+            elif not human_intent and plan.action:
+                human_intent = plan.action
+
+            # --- Sprint 41 (APEP-324): PlanCheckpointFilter FIRST ---
+            # Unconditionally triggers ESCALATE for matched actions,
+            # before budget, delegation, or scope checks.
+            from app.services.scope_filter import plan_checkpoint_filter
+
+            checkpoint_result = plan_checkpoint_filter.check(
+                plan, request.tool_name
+            )
+            if checkpoint_result.matches:
+                # Sprint 41 (APEP-326): Check plan-scoped approval memory
+                from app.services.checkpoint_approval_memory import (
+                    checkpoint_approval_memory,
+                )
+
+                has_approval = await checkpoint_approval_memory.check(
+                    plan_id=plan.plan_id,
+                    agent_id=request.agent_id,
+                    tool_name=request.tool_name,
+                    matched_pattern=checkpoint_result.matched_pattern or "",
+                )
+                if not has_approval:
+                    decision = (
+                        Decision.DRY_RUN if request.dry_run else Decision.ESCALATE
+                    )
+                    checkpoint_reason = (
+                        f"Plan requires checkpoint approval: "
+                        f"{checkpoint_result.reason}"
+                    )
+
+                    # Sprint 41 — APEP-S41.7: Emit Kafka event
+                    try:
+                        await kafka_producer.publish_checkpoint_escalation(
+                            plan_id=str(plan.plan_id),
+                            session_id=request.session_id,
+                            agent_id=request.agent_id,
+                            tool_name=request.tool_name,
+                            matched_pattern=(
+                                checkpoint_result.matched_pattern or ""
+                            ),
+                            match_reason=checkpoint_result.reason,
+                            human_intent=human_intent,
+                        )
+                    except Exception:
+                        logger.warning(
+                            "Kafka checkpoint event failed; proceeding",
+                            exc_info=True,
+                        )
+
+                    return PolicyDecisionResponse(
+                        request_id=request.request_id,
+                        decision=decision,
+                        reason=checkpoint_reason,
+                        latency_ms=elapsed_ms,
+                        human_intent=human_intent,
+                        checkpoint_match_reason=checkpoint_result.reason,
+                    )
+
             # --- Sprint 40 (APEP-318/319): PlanBudgetGate (pre-evaluation) ---
             from app.services.plan_budget_gate import plan_budget_gate
 
@@ -857,6 +921,7 @@ class PolicyEvaluator:
                     decision=decision,
                     reason=f"Plan denied: {budget_result.reason}",
                     latency_ms=elapsed_ms,
+                    human_intent=human_intent,
                 )
 
             # --- Sprint 40 (APEP-316/317): PlanDelegatesToFilter ---
@@ -872,6 +937,7 @@ class PolicyEvaluator:
                     decision=decision,
                     reason=f"Plan denied: {delegation_result.reason}",
                     latency_ms=elapsed_ms,
+                    human_intent=human_intent,
                 )
 
             # --- Sprint 38 (APEP-304): PlanScopeFilter (pre-RBAC stage) ---
@@ -885,25 +951,7 @@ class PolicyEvaluator:
                     decision=decision,
                     reason=f"Plan scope denied: {scope_result.reason}",
                     latency_ms=elapsed_ms,
-                )
-
-            # --- Sprint 38 (APEP-303): PlanCheckpointFilter (pre-RBAC stage)
-            #     Enhanced with scope pattern matching ---
-            from app.services.scope_filter import plan_checkpoint_filter
-
-            checkpoint_result = plan_checkpoint_filter.check(
-                plan, request.tool_name
-            )
-            if checkpoint_result.matches:
-                decision = Decision.DRY_RUN if request.dry_run else Decision.ESCALATE
-                return PolicyDecisionResponse(
-                    request_id=request.request_id,
-                    decision=decision,
-                    reason=(
-                        f"Plan requires checkpoint approval: "
-                        f"{checkpoint_result.reason}"
-                    ),
-                    latency_ms=elapsed_ms,
+                    human_intent=human_intent,
                 )
 
         except Exception:

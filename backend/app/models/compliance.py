@@ -61,6 +61,32 @@ class DPDPADenyLog(BaseModel):
     reason: str = ""
 
 
+# --- Sprint 41 — APEP-330: Checkpoint Summary for DPDPA ---
+
+
+class DPDPACheckpointSummary(BaseModel):
+    """Summary of checkpoint escalations for DPDPA compliance."""
+
+    total_checkpoint_escalations: int = 0
+    approved_checkpoints: int = 0
+    denied_checkpoints: int = 0
+    pending_checkpoints: int = 0
+    unique_patterns: int = 0
+    unique_agents: int = 0
+
+
+# --- Sprint 41 — APEP-330: Checkpoint Summary for CERT-In ---
+
+
+class CERTInCheckpointSummary(BaseModel):
+    """Summary of checkpoint escalations for CERT-In compliance."""
+
+    total_checkpoint_escalations: int = 0
+    checkpoint_patterns: list[str] = Field(default_factory=list)
+    agents_with_checkpoints: list[str] = Field(default_factory=list)
+    human_intents: list[str] = Field(default_factory=list)
+
+
 # --- GDPR Art. 25 Report Sections (APEP-173) ---
 
 

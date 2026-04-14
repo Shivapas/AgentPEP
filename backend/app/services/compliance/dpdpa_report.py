@@ -10,11 +10,13 @@ from datetime import UTC, datetime
 
 from app.db.mongodb import (
     AUDIT_DECISIONS,
+    CHECKPOINT_ESCALATION_HISTORY,
     TAINT_AUDIT_EVENTS,
     get_database,
 )
 from app.models.compliance import (
     ComplianceReport,
+    DPDPACheckpointSummary,
     DPDPADataProcessingSummary,
     DPDPADenyLog,
     DPDPATaintSummary,
@@ -137,10 +139,64 @@ async def generate_dpdpa_report(
             )
             deny_log.append(entry.model_dump(mode="json"))
 
+        # --- Section 4 (Sprint 41 — APEP-330): Checkpoint Escalation Summary ---
+        checkpoint_coll = db[CHECKPOINT_ESCALATION_HISTORY]
+        checkpoint_pipeline = [
+            {"$match": {"created_at": {"$gte": period_start, "$lte": period_end}}},
+            {
+                "$group": {
+                    "_id": None,
+                    "total": {"$sum": 1},
+                    "patterns": {"$addToSet": "$matched_pattern"},
+                    "agents": {"$addToSet": "$agent_id"},
+                }
+            },
+        ]
+
+        checkpoint_summary = DPDPACheckpointSummary()
+        async for doc in checkpoint_coll.aggregate(checkpoint_pipeline):
+            checkpoint_summary.total_checkpoint_escalations = doc.get("total", 0)
+            checkpoint_summary.unique_patterns = len(doc.get("patterns", []))
+            checkpoint_summary.unique_agents = len(doc.get("agents", []))
+
+        # Count approved/denied/pending from escalation tickets with checkpoint_match_reason
+        from app.db.mongodb import ESCALATION_TICKETS
+
+        esc_coll = db[ESCALATION_TICKETS]
+        esc_checkpoint_pipeline = [
+            {
+                "$match": {
+                    "created_at": {"$gte": period_start, "$lte": period_end},
+                    "checkpoint_match_reason": {"$ne": None},
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "approved": {
+                        "$sum": {"$cond": [{"$eq": ["$state", "APPROVED"]}, 1, 0]}
+                    },
+                    "denied": {
+                        "$sum": {"$cond": [{"$eq": ["$state", "DENIED"]}, 1, 0]}
+                    },
+                    "pending": {
+                        "$sum": {"$cond": [{"$eq": ["$state", "PENDING"]}, 1, 0]}
+                    },
+                }
+            },
+        ]
+        async for doc in esc_coll.aggregate(esc_checkpoint_pipeline):
+            checkpoint_summary.approved_checkpoints = doc.get("approved", 0)
+            checkpoint_summary.denied_checkpoints = doc.get("denied", 0)
+            checkpoint_summary.pending_checkpoints = doc.get("pending", 0)
+
         report.content = {
             "data_processing_summary": summary_data.model_dump(mode="json"),
             "taint_event_summary": taint_summary.model_dump(mode="json"),
             "deny_log": deny_log,
+            "checkpoint_escalation_summary": checkpoint_summary.model_dump(
+                mode="json"
+            ),
         }
         report.status = ReportStatus.COMPLETED
         report.generated_at = datetime.now(UTC)
