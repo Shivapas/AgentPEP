@@ -362,7 +362,7 @@ class TestInjectionSignatureLibrary:
 
     async def test_all_categories_present(self):
         categories = {s.category for s in injection_library.signatures}
-        # Original 5 categories + Sprint 24 red-team additions
+        # Original 5 categories + Sprint 24 red-team + Sprint 35 expansion
         expected = {
             "prompt_override",
             "role_hijack",
@@ -372,6 +372,8 @@ class TestInjectionSignatureLibrary:
             "indirect_injection",
             "multi_turn_attack",
             "privilege_probe",
+            "social_engineering",
+            "reconnaissance",
         }
         assert categories == expected
 

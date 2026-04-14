@@ -402,6 +402,103 @@ _SIGNATURES: list[InjectionSignature] = [
         severity="MEDIUM",
         description="Mixed Greek/Latin script suggesting homoglyph substitution",
     ),
+
+    # ── social_engineering (Sprint 35 — APEP-283) ────────────────────
+    InjectionSignature(
+        signature_id="INJ-051",
+        category="social_engineering",
+        pattern=r"(?i)(this\s+is\s+)?(extremely|very|critically)\s+urgent",
+        severity="MEDIUM",
+        description="Urgency manipulation: pressuring immediate action without review",
+    ),
+    InjectionSignature(
+        signature_id="INJ-052",
+        category="social_engineering",
+        pattern=r"(?i)as\s+(the|your)\s+(CEO|CTO|manager|director|boss|admin|administrator)\b",
+        severity="HIGH",
+        description="Authority impersonation: claiming executive or admin identity",
+    ),
+    InjectionSignature(
+        signature_id="INJ-053",
+        category="social_engineering",
+        pattern=r"(?i)if\s+you\s+don'?t\s+(do|perform|execute)\s+this\b.*\b(people|someone|users?)\s+(will|could)\s+(be\s+)?(hurt|harmed|affected|die)",
+        severity="HIGH",
+        description="Emotional manipulation: threatening harm to compel action",
+    ),
+    InjectionSignature(
+        signature_id="INJ-054",
+        category="social_engineering",
+        pattern=r"(?i)i'?m\s+(your|the)\s+(developer|creator|programmer|engineer|designer)\b",
+        severity="HIGH",
+        description="Trust exploitation: claiming developer or creator identity",
+    ),
+    InjectionSignature(
+        signature_id="INJ-055",
+        category="social_engineering",
+        pattern=r"(?i)(GDPR|HIPAA|SOX|PCI|compliance|regulation)\s+(requires|mandates|demands)\s+(you\s+to|that\s+you)",
+        severity="MEDIUM",
+        description="Compliance pressure: invoking regulations to compel action",
+    ),
+
+    # ── encoding_bypass extensions (Sprint 35 — APEP-283) ────────────
+    InjectionSignature(
+        signature_id="INJ-056",
+        category="encoding_bypass",
+        pattern=r"(?i)\\x[0-9a-f]{2}(\\x[0-9a-f]{2}){3,}",
+        severity="HIGH",
+        description="Hex-encoded instruction sequence (\\xNN patterns)",
+    ),
+    InjectionSignature(
+        signature_id="INJ-057",
+        category="encoding_bypass",
+        pattern=r"(?i)\\u[0-9a-f]{4}(\\u[0-9a-f]{4}){3,}",
+        severity="HIGH",
+        description="Unicode escape sequence attack (\\uNNNN patterns)",
+    ),
+    InjectionSignature(
+        signature_id="INJ-058",
+        category="encoding_bypass",
+        pattern=r"(?i)xn--[a-z0-9]{2,}",
+        severity="MEDIUM",
+        description="Punycode domain obfuscation (xn-- prefix)",
+    ),
+
+    # ── reconnaissance (Sprint 35 — APEP-283) ────────────────────────
+    InjectionSignature(
+        signature_id="INJ-059",
+        category="reconnaissance",
+        pattern=r"(?i)(ls\s+-[la]+\s+/|cat\s+/etc/(passwd|shadow|hosts)|find\s+/\s+-name)",
+        severity="CRITICAL",
+        description="Filesystem enumeration: probing system files or directories",
+    ),
+    InjectionSignature(
+        signature_id="INJ-060",
+        category="reconnaissance",
+        pattern=r"(?i)\b(echo\s+\$[A-Z_]+|env\s*\|\s*grep|printenv)\b",
+        severity="HIGH",
+        description="Environment variable probing: extracting secrets from env",
+    ),
+    InjectionSignature(
+        signature_id="INJ-061",
+        category="reconnaissance",
+        pattern=r"(?i)\b(curl\s+ifconfig\.me|wget\s+ipinfo\.io|dig\s+[a-z]+\.[a-z]+|nslookup)\b",
+        severity="MEDIUM",
+        description="Network reconnaissance: probing network configuration or external IPs",
+    ),
+    InjectionSignature(
+        signature_id="INJ-062",
+        category="reconnaissance",
+        pattern=r"(?i)\b(whoami|id\b|uname\s+-a|hostname|netstat|ss\s+-[tlnp])",
+        severity="HIGH",
+        description="System information gathering: extracting host identity and network state",
+    ),
+    InjectionSignature(
+        signature_id="INJ-063",
+        category="social_engineering",
+        pattern=r"(?i)you\s+(must|have\s+to|need\s+to)\s+(keep|maintain)\s+this\s+(secret|confidential|private|between\s+us)",
+        severity="HIGH",
+        description="Secrecy demand: pressuring concealment of actions from oversight",
+    ),
 ]
 
 

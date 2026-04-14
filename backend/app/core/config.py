@@ -176,6 +176,18 @@ class Settings(BaseSettings):
     context_authority_enabled: bool = False
     defer_default_timeout_s: int = 60
 
+    # Sprint 35 — APEP-276/278/279: Detection feature flags
+    tool_combination_detection_enabled: bool = True
+    velocity_window_seconds: int = 300
+    velocity_z_score_threshold: float = 2.5
+    velocity_min_sample_size: int = 10
+    echo_detection_enabled: bool = True
+    echo_similarity_threshold: float = 0.85
+    echo_window_size: int = 20
+    adaptive_hardening_enabled: bool = True
+    pii_redaction_enabled: bool = True
+    pii_redaction_placeholder: str = "[REDACTED]"
+
     # Receipt Signing (Sprint 32 — APEP-256)
     receipt_signing_enabled: bool = False
     receipt_signing_method: str = "hmac-sha256"  # "ed25519" or "hmac-sha256"
