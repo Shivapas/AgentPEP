@@ -164,6 +164,50 @@ CONFLICT_SCAN_DURATION = Histogram(
 )
 
 
+# --- Sprint 45 (APEP-360): DLP Pre-Scan Metrics ---
+
+DLP_SCAN_TOTAL = Counter(
+    "agentpep_dlp_scan_total",
+    "Total DLP pre-scan operations by result and pattern type",
+    ["result", "pattern_type"],  # result: hit, miss, error; pattern_type: API_KEY, TOKEN, etc.
+)
+
+DLP_SCAN_LATENCY = Histogram(
+    "agentpep_dlp_scan_latency_seconds",
+    "DLP pre-scan latency in seconds",
+    buckets=[0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5],
+)
+
+DLP_FINDINGS_TOTAL = Counter(
+    "agentpep_dlp_findings_total",
+    "Total DLP findings by severity and pattern type",
+    ["severity", "pattern_type"],
+)
+
+DLP_CACHE_HITS = Counter(
+    "agentpep_dlp_cache_hits_total",
+    "DLP pre-scan cache hit/miss count",
+    ["result"],  # hit, miss
+)
+
+DLP_RISK_ELEVATIONS = Counter(
+    "agentpep_dlp_risk_elevations_total",
+    "Total risk score elevations triggered by DLP findings",
+)
+
+DLP_TAINT_ASSIGNMENTS = Counter(
+    "agentpep_dlp_taint_assignments_total",
+    "Total taint assignments triggered by DLP findings",
+    ["taint_level"],  # QUARANTINE, UNTRUSTED
+)
+
+DLP_PATTERN_RELOADS = Counter(
+    "agentpep_dlp_pattern_reloads_total",
+    "Total DLP pattern hot-reload operations",
+    ["status"],  # success, error
+)
+
+
 def get_metrics_app():  # type: ignore[no-untyped-def]
     """Return a Prometheus ASGI app to mount at /metrics."""
     return make_asgi_app()
