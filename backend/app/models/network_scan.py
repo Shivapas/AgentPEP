@@ -93,6 +93,17 @@ class NetworkScanRequest(BaseModel):
         default=None, description="Associate scan with session for taint propagation"
     )
     agent_id: str | None = Field(default=None, description="Agent context for per-agent filtering")
+    # Sprint 52 — APEP-414/415/416
+    scan_mode: str | None = Field(
+        default=None,
+        description="CIS scan mode: STRICT, STANDARD, LENIENT (default STRICT)",
+    )
+    tenant_id: str | None = Field(
+        default=None, description="Tenant ID for per-tenant allowlist lookups",
+    )
+    metadata: dict[str, Any] | None = Field(
+        default=None, description="Session metadata for YOLO-mode detection",
+    )
 
 
 class NetworkScanResult(BaseModel):
@@ -107,6 +118,15 @@ class NetworkScanResult(BaseModel):
     )
     mitre_technique_ids: list[str] = Field(default_factory=list)
     latency_ms: int = Field(default=0, description="Total scan latency in milliseconds")
+    # Sprint 52 — APEP-414/415/416/417
+    scan_mode_used: str | None = Field(
+        default=None, description="CIS scan mode that was applied",
+    )
+    cache_hit: bool = Field(default=False, description="True if content was served from CISTrustCache")
+    allowlisted: bool = Field(default=False, description="True if content was on CISAllowlist")
+    yolo_detected: bool = Field(
+        default=False, description="True if YOLO mode was detected (auto-escalated to STRICT)",
+    )
 
 
 # ---------------------------------------------------------------------------
