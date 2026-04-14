@@ -16,6 +16,7 @@ from agentpep.models import (
 from agentpep.offline import OfflineEvaluator, OfflineRule
 from agentpep.policy_bundle import PolicyBundle
 from agentpep.tamper_detection import TamperDetector, tamper_detector
+from agentpep.tool_trust_session import ToolTrustSession
 
 __all__ = [
     "AgentPEPClient",
@@ -31,6 +32,7 @@ __all__ = [
     "TaintNodeResponse",
     "TaintSource",
     "ToolCallRequest",
+    "ToolTrustSession",
     "TamperDetector",
     "tamper_detector",
 ]

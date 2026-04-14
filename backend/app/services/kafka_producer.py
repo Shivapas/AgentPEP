@@ -142,6 +142,56 @@ class KafkaDecisionProducer:
             )
             return False
 
+    # ------------------------------------------------------------------
+    # Sprint 43 — APEP-342.e: Pattern library events
+    # ------------------------------------------------------------------
+
+    async def publish_scope_simulation(
+        self,
+        *,
+        tool_name: str,
+        effective_decision: str,
+        scope_patterns: list[str],
+        checkpoint_patterns: list[str],
+        plan_id: str = "",
+    ) -> bool:
+        """Publish a scope simulation event for pipeline observability.
+
+        Emitted by the scope simulator API endpoint so that downstream
+        consumers can track scope evaluation patterns and build analytics.
+        """
+        if not self._started or self._producer is None:
+            return False
+
+        topic = getattr(
+            settings,
+            "kafka_scope_topic",
+            "agentpep.scope_simulations",
+        )
+
+        event = {
+            "event_type": "SCOPE_SIMULATION",
+            "tool_name": tool_name,
+            "effective_decision": effective_decision,
+            "scope_patterns": scope_patterns,
+            "checkpoint_patterns": checkpoint_patterns,
+            "plan_id": plan_id,
+        }
+
+        try:
+            await self._producer.send_and_wait(
+                topic=topic,
+                key=plan_id or tool_name,
+                value=event,
+            )
+            return True
+        except Exception:
+            logger.exception(
+                "Failed to publish scope simulation event for tool %s",
+                tool_name,
+            )
+            return False
+
     @property
     def is_running(self) -> bool:
         return self._started
