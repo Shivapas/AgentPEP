@@ -199,6 +199,10 @@ class Settings(BaseSettings):
     receipt_signing_key: str = ""  # Base64-encoded private/secret key
     receipt_key_id: str = "default"
 
+    # Sprint 39 — APEP-309: Per-receipt Ed25519 signing
+    per_receipt_signing_enabled: bool = False
+    per_receipt_signing_key: str = ""  # Base64-encoded Ed25519 private key
+
     # Sprint 37 — APEP-292..298: MissionPlan
     mission_plan_enabled: bool = False
     mission_plan_signing_method: str = "ed25519"  # "ed25519" or "hmac-sha256"

@@ -195,3 +195,11 @@ def mock_mongodb(monkeypatch):
         plan_expiry_job.stop()
     except ImportError:
         pass
+
+    # Clear Sprint 39 per-receipt signing state
+    try:
+        from app.services.audit_logger import audit_logger as _al
+
+        _al._receipt_key = None
+    except ImportError:
+        pass

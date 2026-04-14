@@ -543,6 +543,20 @@ def cmd_receipt_verify(args: argparse.Namespace) -> int:
     )
 
 
+def cmd_receipt_verify_chain(args: argparse.Namespace) -> int:
+    """Verify per-receipt Ed25519 signatures and receipt chain integrity."""
+    from agentpep.receipt_verify import verify_chain_cli
+
+    return verify_chain_cli(
+        plan_id=args.plan,
+        receipts_file=getattr(args, "receipts_file", None),
+        key_file=getattr(args, "key_file", None),
+        export_path=getattr(args, "export", None),
+        base_url=args.base_url,
+        verbose=args.verbose,
+    )
+
+
 # ---------------------------------------------------------------------------
 # health
 # ---------------------------------------------------------------------------
@@ -844,6 +858,33 @@ def build_parser() -> argparse.ArgumentParser:
     verify_p.add_argument("--key-id", default="default", help="Key ID")
     verify_p.add_argument("--verbose", action="store_true")
 
+    # Sprint 39 — APEP-314: receipt verify-chain
+    verify_chain_p = receipt_sub.add_parser(
+        "verify-chain",
+        help="Verify per-receipt Ed25519 signatures and chain integrity",
+    )
+    verify_chain_p.add_argument(
+        "--plan", required=True,
+        help="MissionPlan UUID to verify",
+    )
+    verify_chain_p.add_argument(
+        "--receipts-file",
+        help="Path to exported receipt chain JSON (skip server fetch)",
+    )
+    verify_chain_p.add_argument(
+        "--key-file",
+        help="Path to Ed25519 verify key file (ed25519:base64_key)",
+    )
+    verify_chain_p.add_argument(
+        "--export",
+        help="Export fetched receipt chain to this JSON file",
+    )
+    verify_chain_p.add_argument(
+        "--base-url", default="http://localhost:8000",
+        help="AgentPEP server URL (default: http://localhost:8000)",
+    )
+    verify_chain_p.add_argument("--verbose", action="store_true")
+
     # --- scope (Sprint 38 — APEP-305/306) ---
     scope_parser = subparsers.add_parser("scope", help="Scope pattern commands")
     scope_sub = scope_parser.add_subparsers(dest="scope_command")
@@ -915,6 +956,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.receipt_command == "verify":
             return cmd_receipt_verify(args)
+        elif args.receipt_command == "verify-chain":
+            return cmd_receipt_verify_chain(args)
 
     elif args.command == "scope":
         if not hasattr(args, "scope_command") or args.scope_command is None:

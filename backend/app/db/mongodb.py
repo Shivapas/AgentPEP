@@ -84,6 +84,8 @@ MISSION_PLANS = "mission_plans"
 PLAN_SESSION_BINDINGS = "plan_session_bindings"
 # Sprint 38 — APEP-300..307: Scope Pattern Language
 SCOPE_PATTERNS = "scope_patterns"
+# Sprint 39 — APEP-310: Receipt chain tracking
+RECEIPT_CHAINS = "receipt_chains"
 
 
 async def init_collections() -> None:
@@ -487,5 +489,14 @@ async def init_collections() -> None:
                 [("created_at", ASCENDING)],
                 expireAfterSeconds=86400 * 90,  # 90-day TTL
             ),
+        ]
+    )
+
+    # Sprint 39 — APEP-308/310: Receipt chain indexes on audit_decisions
+    # plan_id index for plan-scoped receipt retrieval
+    await audit_decisions.create_indexes(
+        [
+            IndexModel([("plan_id", ASCENDING)]),
+            IndexModel([("parent_receipt_id", ASCENDING)]),
         ]
     )
