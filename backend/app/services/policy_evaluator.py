@@ -19,6 +19,8 @@ Sprint 23:
   APEP-186: Adaptive timeouts — uses shorter timeout when rules are cached.
   APEP-187: Optimised risk scorer — inline risk calculation on hot path.
 Sprint 26: adds OpenTelemetry spans (APEP-207) and audit write metrics (APEP-204).
+Sprint 44: integrates NetworkDLPScanner (APEP-348) as a pre-evaluation stage —
+  scans tool arguments for secrets/credentials and auto-escalates on DLP hits.
 """
 
 import asyncio
@@ -364,6 +366,55 @@ class PolicyEvaluator:
                 reason=global_rl.reason,
                 latency_ms=elapsed_ms,
             )
+
+        # --- Sprint 44 (APEP-348): TFN DLP Pre-Scan hook ---
+        # Scan tool arguments for data leakage before policy evaluation.
+        if settings.network_dlp_enabled and settings.network_dlp_scan_tool_args:
+            with tracer.start_as_current_span(
+                "network_dlp_prescan",
+                attributes={"agentpep.tool_name": request.tool_name},
+            ):
+                try:
+                    from app.services.network_dlp_scanner import network_dlp_scanner
+                    from app.models.network_scan import ScanSeverity
+
+                    dlp_findings = network_dlp_scanner.scan_tool_args(
+                        request.tool_args,
+                        tool_name=request.tool_name,
+                    )
+                    if dlp_findings:
+                        max_sev = network_dlp_scanner.max_severity(dlp_findings)
+                        if max_sev in (ScanSeverity.CRITICAL, ScanSeverity.HIGH):
+                            # Auto-taint tool arg values containing credentials
+                            try:
+                                graph = session_graph_manager.get_or_create(
+                                    request.session_id
+                                )
+                                from app.models.policy import TaintLevel
+
+                                graph.add_node(
+                                    value=f"dlp_hit:{dlp_findings[0].rule_id}",
+                                    taint_level=TaintLevel.QUARANTINE,
+                                    source="TOOL_OUTPUT",
+                                )
+                            except Exception:
+                                pass
+                            # Auto-elevate: ESCALATE on critical DLP hits
+                            elapsed_ms = int((time.monotonic() - start) * 1000)
+                            decision = Decision.DRY_RUN if request.dry_run else Decision.ESCALATE
+                            finding_ids = [f.rule_id for f in dlp_findings[:5]]
+                            return PolicyDecisionResponse(
+                                request_id=request.request_id,
+                                decision=decision,
+                                reason=f"DLP pre-scan: sensitive data detected in tool args ({', '.join(finding_ids)})",
+                                risk_score=0.95,
+                                latency_ms=elapsed_ms,
+                            )
+                except Exception:
+                    logger.warning(
+                        "DLP pre-scan failed; proceeding without",
+                        exc_info=True,
+                    )
 
         # --- Confused-deputy check (APEP-060) ---
         with tracer.start_as_current_span(

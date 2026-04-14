@@ -192,6 +192,37 @@ class KafkaDecisionProducer:
             )
             return False
 
+    # ------------------------------------------------------------------
+    # Sprint 44 — APEP-348: Network DLP events
+    # ------------------------------------------------------------------
+
+    async def publish_network_event(self, event: dict) -> bool:
+        """Publish a network scan event to the agentpep.network topic.
+
+        Used by NetworkDLPScanner, URLScanner, and SSRFGuard to emit
+        DLP_HIT, SSRF_BLOCKED, and other network security events.
+        """
+        if not self._started or self._producer is None:
+            return False
+
+        topic = getattr(
+            settings,
+            "kafka_network_topic",
+            "agentpep.network",
+        )
+
+        try:
+            key = event.get("session_id", event.get("event_id", ""))
+            await self._producer.send_and_wait(
+                topic=topic,
+                key=str(key),
+                value=event,
+            )
+            return True
+        except Exception:
+            logger.exception("Failed to publish network event")
+            return False
+
     @property
     def is_running(self) -> bool:
         return self._started

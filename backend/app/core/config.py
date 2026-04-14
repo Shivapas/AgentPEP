@@ -211,6 +211,17 @@ class Settings(BaseSettings):
     mission_plan_expiry_job_enabled: bool = False
     mission_plan_expiry_interval_s: float = 60.0
 
+    # Sprint 44 — APEP-348..355: TFN Network DLP & URL Scanner
+    network_dlp_enabled: bool = True
+    network_dlp_scan_tool_args: bool = True
+    url_scanner_enabled: bool = True
+    ssrf_guard_allow_private: bool = False
+    ssrf_guard_allow_loopback: bool = False
+    domain_rate_limit_default_rps: int = 100
+    domain_rate_limit_window_s: int = 60
+    domain_data_budget_bytes: int = 10_485_760  # 10 MB
+    kafka_network_topic: str = "agentpep.network"
+
     model_config = {"env_prefix": "AGENTPEP_"}
 
 
