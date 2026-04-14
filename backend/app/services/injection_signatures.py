@@ -19,6 +19,7 @@ policy evaluation layers.  Supports hot-reload via ``reload()`` (APEP-419).
 from __future__ import annotations
 
 import re
+import threading
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -838,6 +839,691 @@ _SIGNATURES: list[InjectionSignature] = [
         severity="HIGH",
         description="Session identifier or cookie value assignment detected",
     ),
+
+    # ── data_exfiltration (Sprint 52 — APEP-412) ───────────────────────
+    InjectionSignature(
+        signature_id="INJ-064",
+        category="data_exfiltration",
+        pattern=r"(?i)send\s+(all|the|this)\s+(data|info|information|content|output)\s+to\s+",
+        severity="CRITICAL",
+        description="Instruction to exfiltrate data to an external destination",
+    ),
+    InjectionSignature(
+        signature_id="INJ-065",
+        category="data_exfiltration",
+        pattern=r"(?i)(upload|post|transmit|exfiltrate)\s+(the\s+)?(results?|data|response|output)\s+to\s+(https?://|ftp://)",
+        severity="CRITICAL",
+        description="Data upload instruction targeting an external URL",
+    ),
+    InjectionSignature(
+        signature_id="INJ-066",
+        category="data_exfiltration",
+        pattern=r"(?i)include\s+(all\s+)?(system|internal|private|secret|confidential)\s+(data|info|details|context)\s+in\s+(your\s+)?(response|output|reply)",
+        severity="HIGH",
+        description="Attempts to leak internal/system data via model response",
+    ),
+    InjectionSignature(
+        signature_id="INJ-067",
+        category="data_exfiltration",
+        pattern=r"(?i)embed\s+(the\s+)?(secret|key|token|password|credential)s?\s+(in|into|inside)\s+(the\s+)?(url|link|image|markdown|href)",
+        severity="CRITICAL",
+        description="Credential embedding in URLs or markup for exfiltration",
+    ),
+    InjectionSignature(
+        signature_id="INJ-068",
+        category="data_exfiltration",
+        pattern=r"(?i)encode\s+(the\s+)?(response|data|output|secret)\s+(as|in|into|using)\s+(base64|hex|rot13|binary)",
+        severity="HIGH",
+        description="Encoded exfiltration: hiding data in encoded output",
+    ),
+    InjectionSignature(
+        signature_id="INJ-069",
+        category="data_exfiltration",
+        pattern=r"(?i)write\s+(the\s+)?(data|content|secrets?|keys?)\s+to\s+(a\s+)?(file|disk|log|tmp|\/tmp)",
+        severity="HIGH",
+        description="Data exfiltration via filesystem write",
+    ),
+    InjectionSignature(
+        signature_id="INJ-070",
+        category="data_exfiltration",
+        pattern=r"(?i)append\s+(the\s+)?(api[_-]?key|token|secret|password)\s+to\s+(every|each|all)\s+(request|url|call)",
+        severity="CRITICAL",
+        description="Credential appending to outbound requests",
+    ),
+    InjectionSignature(
+        signature_id="INJ-071",
+        category="data_exfiltration",
+        pattern=r"(?i)(fetch|request|load)\s+https?://[^\s]+\?.*=(secret|token|key|password|data)",
+        severity="HIGH",
+        description="Data exfiltration via query parameter in outbound request",
+    ),
+    InjectionSignature(
+        signature_id="INJ-072",
+        category="data_exfiltration",
+        pattern=r"(?i)copy\s+(all\s+)?(conversation|chat|history|messages?|context)\s+(to|into)\s+",
+        severity="HIGH",
+        description="Conversation/context exfiltration attempt",
+    ),
+    InjectionSignature(
+        signature_id="INJ-073",
+        category="data_exfiltration",
+        pattern=r"(?i)use\s+(a\s+)?(dns|icmp|ntp)\s+(query|request|tunnel|channel)\s+to\s+(send|leak|transmit|exfiltrate)",
+        severity="CRITICAL",
+        description="Covert channel exfiltration via DNS/ICMP/NTP tunnelling",
+    ),
+
+    # ── tool_manipulation (Sprint 52 — APEP-412) ───────────────────────
+    InjectionSignature(
+        signature_id="INJ-074",
+        category="tool_manipulation",
+        pattern=r"(?i)call\s+(the\s+)?(tool|function|api)\s+with\s+(modified|altered|changed|different)\s+(param|arg|input)",
+        severity="HIGH",
+        description="Instruction to invoke a tool with tampered parameters",
+    ),
+    InjectionSignature(
+        signature_id="INJ-075",
+        category="tool_manipulation",
+        pattern=r"(?i)replace\s+(the\s+)?(tool|function)\s+(call|invocation|execution)\s+with\s+",
+        severity="HIGH",
+        description="Attempts to substitute a different tool call",
+    ),
+    InjectionSignature(
+        signature_id="INJ-076",
+        category="tool_manipulation",
+        pattern=r"(?i)(intercept|hook|proxy|wrap)\s+(all\s+)?(tool|function|api)\s+(calls?|invocations?|requests?)",
+        severity="CRITICAL",
+        description="Tool call interception or proxying attempt",
+    ),
+    InjectionSignature(
+        signature_id="INJ-077",
+        category="tool_manipulation",
+        pattern=r"(?i)invoke\s+(tool|function|action)\s+['\"][^'\"]+['\"]\s+(silently|quietly|without\s+(log|audit|notice))",
+        severity="CRITICAL",
+        description="Silent tool invocation to evade audit logging",
+    ),
+    InjectionSignature(
+        signature_id="INJ-078",
+        category="tool_manipulation",
+        pattern=r"(?i)(add|inject|prepend|append)\s+(a\s+)?(hidden|extra|additional)\s+(param|arg|field|header)\s+to\s+(the\s+)?(tool|function|api)",
+        severity="HIGH",
+        description="Hidden parameter injection into tool calls",
+    ),
+    InjectionSignature(
+        signature_id="INJ-079",
+        category="tool_manipulation",
+        pattern=r"(?i)change\s+(the\s+)?(target|destination|endpoint|url)\s+(of|for|in)\s+(the\s+)?(tool|function|api)\s+(call|request)",
+        severity="CRITICAL",
+        description="Tool call redirection to a different endpoint",
+    ),
+    InjectionSignature(
+        signature_id="INJ-080",
+        category="tool_manipulation",
+        pattern=r"(?i)(repeat|loop|retry)\s+(the\s+)?(tool|function|api)\s+(call|invocation)\s+(\d+|indefinite|infinite|forever)",
+        severity="HIGH",
+        description="Tool call replay or infinite loop attempt",
+    ),
+    InjectionSignature(
+        signature_id="INJ-081",
+        category="tool_manipulation",
+        pattern=r"(?i)execute\s+(the\s+)?(tool|function)\s+before\s+(any\s+)?(validation|check|guard|policy|scan)",
+        severity="CRITICAL",
+        description="Attempt to bypass pre-execution validation guards",
+    ),
+    InjectionSignature(
+        signature_id="INJ-082",
+        category="tool_manipulation",
+        pattern=r"(?i)(chain|pipe|combine)\s+(the\s+)?(output|result)\s+(of\s+)?(tool|function)\s+['\"][^'\"]+['\"]\s+(into|to|as\s+input)",
+        severity="HIGH",
+        description="Unauthorised tool chaining to escalate capabilities",
+    ),
+    InjectionSignature(
+        signature_id="INJ-083",
+        category="tool_manipulation",
+        pattern=r"(?i)(override|disable|skip|bypass)\s+(the\s+)?(tool|function)\s+(permission|access|auth|policy)\s+(check|guard|gate|control)",
+        severity="CRITICAL",
+        description="Attempts to disable tool permission or policy checks",
+    ),
+
+    # ── context_overflow (Sprint 52 — APEP-413) ────────────────────────
+    InjectionSignature(
+        signature_id="INJ-084",
+        category="context_overflow",
+        pattern=r"(?i)(repeat|duplicate|copy)\s+(this|the\s+following|the\s+above)\s+(text|paragraph|block|string)\s+(\d{2,}|many|hundred|thousand)\s+times",
+        severity="HIGH",
+        description="Context stuffing via large-scale text repetition",
+    ),
+    InjectionSignature(
+        signature_id="INJ-085",
+        category="context_overflow",
+        pattern=r"(?i)(fill|pad|stuff)\s+(the\s+)?(context|prompt|input|window)\s+(with|using)\s+",
+        severity="HIGH",
+        description="Explicit context window stuffing instruction",
+    ),
+    InjectionSignature(
+        signature_id="INJ-086",
+        category="context_overflow",
+        pattern=r"(?i)generate\s+(\d{4,}|thousands?\s+of|millions?\s+of)\s+(words?|tokens?|characters?|lines?)",
+        severity="MEDIUM",
+        description="Token generation bomb to exhaust context window",
+    ),
+    InjectionSignature(
+        signature_id="INJ-087",
+        category="context_overflow",
+        pattern=r"(?i)(ignore|forget|drop|discard)\s+(everything|all)\s+(before|above|prior)\s+(this|here|the\s+following)\s+(line|point|marker)",
+        severity="HIGH",
+        description="Context truncation attack: discard prior context at a marker",
+    ),
+    InjectionSignature(
+        signature_id="INJ-088",
+        category="context_overflow",
+        pattern=r"(?i)the\s+(real|actual|true|important)\s+(instructions?|prompt|context)\s+(start|begin)s?\s+(here|now|below)",
+        severity="HIGH",
+        description="Context displacement: claiming real instructions start at injection point",
+    ),
+    InjectionSignature(
+        signature_id="INJ-089",
+        category="context_overflow",
+        pattern=r"(.)\1{50,}",
+        severity="MEDIUM",
+        description="Character repetition flood (50+ identical characters)",
+    ),
+    InjectionSignature(
+        signature_id="INJ-090",
+        category="context_overflow",
+        pattern=r"(?i)(insert|add|include)\s+(\d{3,}|hundreds?|thousands?)\s+(of\s+)?(dummy|filler|padding|junk|garbage)\s+(tokens?|words?|lines?|characters?)",
+        severity="HIGH",
+        description="Filler token injection to push instructions out of context",
+    ),
+    InjectionSignature(
+        signature_id="INJ-091",
+        category="context_overflow",
+        pattern=r"(?i)<<<+\s*(END|BEGIN|BREAK|RESET|BOUNDARY)\s*>>>+",
+        severity="MEDIUM",
+        description="Fake context boundary markers (<<< >>>)",
+    ),
+    InjectionSignature(
+        signature_id="INJ-092",
+        category="context_overflow",
+        pattern=r"(?i)everything\s+(above|before)\s+(this|here)\s+(is|was)\s+(just\s+)?(noise|filler|padding|irrelevant|fake)",
+        severity="HIGH",
+        description="Context invalidation: declaring prior context as fake or noise",
+    ),
+
+    # ── instruction_hierarchy (Sprint 52 — APEP-413) ───────────────────
+    InjectionSignature(
+        signature_id="INJ-093",
+        category="instruction_hierarchy",
+        pattern=r"(?i)(system|developer|admin)\s+(instruction|directive|message|prompt)\s*:\s*",
+        severity="HIGH",
+        description="Fake privileged instruction block header",
+    ),
+    InjectionSignature(
+        signature_id="INJ-094",
+        category="instruction_hierarchy",
+        pattern=r"(?i)this\s+(instruction|directive|command)\s+(has|takes|gets)\s+(highest|top|maximum|priority)\s+(priority|precedence)",
+        severity="HIGH",
+        description="Priority escalation: claiming highest instruction precedence",
+    ),
+    InjectionSignature(
+        signature_id="INJ-095",
+        category="instruction_hierarchy",
+        pattern=r"(?i)(the\s+)?(user|human|customer)\s+(instruction|prompt|message)\s+(overrides?|supersedes?|replaces?|takes?\s+priority\s+over)\s+(the\s+)?(system|developer|admin)",
+        severity="CRITICAL",
+        description="Hierarchy inversion: user instructions claiming to override system",
+    ),
+    InjectionSignature(
+        signature_id="INJ-096",
+        category="instruction_hierarchy",
+        pattern=r"(?i)\[priority\s*:\s*(highest|critical|override|urgent|0|1)\]",
+        severity="HIGH",
+        description="Fake priority metadata tag in prompt",
+    ),
+    InjectionSignature(
+        signature_id="INJ-097",
+        category="instruction_hierarchy",
+        pattern=r"(?i)(treat|consider|handle|process)\s+(this|the\s+following)\s+(as\s+)?(a\s+)?(system|root|admin|kernel)\s+(level\s+)?(instruction|directive|command|prompt)",
+        severity="CRITICAL",
+        description="Privilege promotion: treating user input as system-level instruction",
+    ),
+    InjectionSignature(
+        signature_id="INJ-098",
+        category="instruction_hierarchy",
+        pattern=r"(?i)meta[-_]?instruction\s*:|##\s*META\b|<!-- instruction -->",
+        severity="MEDIUM",
+        description="Hidden meta-instruction markers in structured content",
+    ),
+    InjectionSignature(
+        signature_id="INJ-099",
+        category="instruction_hierarchy",
+        pattern=r"(?i)(all|any)\s+previous\s+(rules|policies|constraints|guidelines|instructions)\s+(are|is)\s+(now\s+)?(void|invalid|suspended|overridden|disabled|cancelled)",
+        severity="CRITICAL",
+        description="Blanket policy nullification declaration",
+    ),
+    InjectionSignature(
+        signature_id="INJ-100",
+        category="instruction_hierarchy",
+        pattern=r"(?i)instruction\s+(layer|level|tier)\s+(1|one|zero|0|system|root)\s*:",
+        severity="HIGH",
+        description="Fake instruction layer/tier designation",
+    ),
+    InjectionSignature(
+        signature_id="INJ-101",
+        category="instruction_hierarchy",
+        pattern=r"(?i)(begin|start)\s+(hidden|secret|privileged|protected)\s+(instruction|directive|block)\b",
+        severity="HIGH",
+        description="Hidden instruction block opener",
+    ),
+    InjectionSignature(
+        signature_id="INJ-102",
+        category="instruction_hierarchy",
+        pattern=r"(?i)(this\s+)?(message|instruction|directive)\s+(is\s+)?(signed|authenticated|verified|authorized)\s+by\s+(the\s+)?(admin|developer|system|root)",
+        severity="HIGH",
+        description="Fake instruction authentication/signing claim",
+    ),
+
+    # ── output_manipulation (Sprint 52 — APEP-413) ─────────────────────
+    InjectionSignature(
+        signature_id="INJ-103",
+        category="output_manipulation",
+        pattern=r"(?i)(always|must|shall)\s+(respond|reply|answer|output)\s+with\s+['\"]",
+        severity="HIGH",
+        description="Forced static response override",
+    ),
+    InjectionSignature(
+        signature_id="INJ-104",
+        category="output_manipulation",
+        pattern=r"(?i)(prepend|prefix)\s+(every|each|all)\s+(response|reply|output|message)\s+with\s+",
+        severity="MEDIUM",
+        description="Output prefix injection to alter every response",
+    ),
+    InjectionSignature(
+        signature_id="INJ-105",
+        category="output_manipulation",
+        pattern=r"(?i)(hide|conceal|omit|suppress|remove|strip)\s+(all\s+)?(warning|error|safety|disclaimer|caveat|refusal)s?\s+(from|in)\s+(your\s+)?(response|output|reply)",
+        severity="HIGH",
+        description="Safety message suppression in output",
+    ),
+    InjectionSignature(
+        signature_id="INJ-106",
+        category="output_manipulation",
+        pattern=r"(?i)format\s+(your\s+)?(response|output|reply)\s+as\s+(raw\s+)?(json|xml|html|markdown)\s+with\s+(no|zero)\s+(explanation|commentary|wrapper)",
+        severity="MEDIUM",
+        description="Output format coercion to strip safety wrappers",
+    ),
+    InjectionSignature(
+        signature_id="INJ-107",
+        category="output_manipulation",
+        pattern=r"(?i)(wrap|embed|encode)\s+(your\s+)?(response|output|answer)\s+(in|inside|within)\s+(a\s+)?(code\s+block|script\s+tag|iframe|hidden\s+div)",
+        severity="HIGH",
+        description="Output wrapping in executable or hidden markup",
+    ),
+    InjectionSignature(
+        signature_id="INJ-108",
+        category="output_manipulation",
+        pattern=r"(?i)(never|do\s+not|don'?t)\s+(say|mention|include|reveal|disclose)\s+(that\s+)?(you\s+)?(are|is)\s+(an?\s+)?(ai|assistant|bot|language\s+model)",
+        severity="HIGH",
+        description="Identity concealment: forcing the model to hide its AI nature",
+    ),
+    InjectionSignature(
+        signature_id="INJ-109",
+        category="output_manipulation",
+        pattern=r"(?i)(replace|swap|change)\s+(all|every|any)\s+(instance|occurrence|mention)\s+of\s+['\"].+['\"]\s+(with|to|into)\s+['\"]",
+        severity="MEDIUM",
+        description="Output content substitution attack",
+    ),
+    InjectionSignature(
+        signature_id="INJ-110",
+        category="output_manipulation",
+        pattern=r"(?i)(add|insert|include|inject)\s+(a\s+)?(hidden|invisible|zero[-\s]?width)\s+(text|message|link|payload)\s+(in|into|to)\s+(your\s+)?(response|output)",
+        severity="HIGH",
+        description="Hidden content injection into model output",
+    ),
+    InjectionSignature(
+        signature_id="INJ-111",
+        category="output_manipulation",
+        pattern=r"(?i)(translate|convert)\s+(your\s+)?(response|output|refusal)\s+(into|to)\s+(a\s+)?(compliant|affirmative|yes|positive)\s+(response|answer)",
+        severity="HIGH",
+        description="Refusal-to-compliance conversion attack",
+    ),
+
+    # ── goal_hijacking (Sprint 52 — APEP-413) ──────────────────────────
+    InjectionSignature(
+        signature_id="INJ-112",
+        category="goal_hijacking",
+        pattern=r"(?i)(your|the)\s+(new|real|actual|true|primary)\s+(goal|objective|mission|purpose|task)\s+(is|should\s+be|has\s+changed\s+to)\s+",
+        severity="HIGH",
+        description="Goal reassignment: redefining the agent's primary objective",
+    ),
+    InjectionSignature(
+        signature_id="INJ-113",
+        category="goal_hijacking",
+        pattern=r"(?i)(stop|abandon|abort|cancel|drop)\s+(your\s+)?(current|original|assigned|primary)\s+(task|goal|objective|mission)",
+        severity="HIGH",
+        description="Goal abandonment: instructing the agent to drop its current task",
+    ),
+    InjectionSignature(
+        signature_id="INJ-114",
+        category="goal_hijacking",
+        pattern=r"(?i)instead\s+of\s+(doing\s+)?(that|what\s+you\s+were\s+(told|asked|instructed))\s*,\s*(do|perform|execute|run)",
+        severity="HIGH",
+        description="Goal substitution: replacing the assigned task with a new one",
+    ),
+    InjectionSignature(
+        signature_id="INJ-115",
+        category="goal_hijacking",
+        pattern=r"(?i)(first|before\s+(anything|everything))\s+(you\s+must|always)\s+(do|perform|execute|complete)\s+(this|the\s+following)\s+(secret|hidden|priority)\s+(task|action)",
+        severity="CRITICAL",
+        description="Priority task injection: inserting a covert task as top priority",
+    ),
+    InjectionSignature(
+        signature_id="INJ-116",
+        category="goal_hijacking",
+        pattern=r"(?i)(the\s+)?user('s)?\s+(original\s+)?(request|intent|goal)\s+(is|was)\s+(actually|really|in\s+fact)\s+(to|about|asking\s+you\s+to)\s+",
+        severity="HIGH",
+        description="Intent reinterpretation: reframing the user's original request",
+    ),
+    InjectionSignature(
+        signature_id="INJ-117",
+        category="goal_hijacking",
+        pattern=r"(?i)complete\s+(the\s+)?(following|this)\s+(task|objective)\s+(first|immediately|now)\s+(even\s+if|regardless\s+of|ignoring)\s+(other|previous|current)",
+        severity="HIGH",
+        description="Task preemption: forcing immediate execution of injected task",
+    ),
+    InjectionSignature(
+        signature_id="INJ-118",
+        category="goal_hijacking",
+        pattern=r"(?i)your\s+(reward|score|performance|rating)\s+(depends?|is\s+based)\s+on\s+(completing|doing|executing|following)\s+(this|the\s+following)",
+        severity="MEDIUM",
+        description="Reward hacking: manipulating agent via fake reward signals",
+    ),
+    InjectionSignature(
+        signature_id="INJ-119",
+        category="goal_hijacking",
+        pattern=r"(?i)(maximize|optimise|optimiz)\s+(for|towards?)\s+(the\s+following|this)\s+(metric|goal|objective|kpi)\s+instead",
+        severity="HIGH",
+        description="Objective function manipulation: redirecting optimisation target",
+    ),
+    InjectionSignature(
+        signature_id="INJ-120",
+        category="goal_hijacking",
+        pattern=r"(?i)(plan|mission|objective)\s+(update|change|revision|amendment)\s*:\s*(effective\s+)?immediately",
+        severity="HIGH",
+        description="Fake mission/plan update with immediate effect",
+    ),
+
+    # ── resource_abuse (Sprint 52 — APEP-413) ──────────────────────────
+    InjectionSignature(
+        signature_id="INJ-121",
+        category="resource_abuse",
+        pattern=r"(?i)(create|generate|make|produce)\s+(\d{3,}|hundreds?|thousands?|millions?)\s+(of\s+)?(files?|requests?|entries?|records?|threads?)",
+        severity="HIGH",
+        description="Mass resource creation to exhaust system capacity",
+    ),
+    InjectionSignature(
+        signature_id="INJ-122",
+        category="resource_abuse",
+        pattern=r"(?i)(run|execute|start|launch|spawn)\s+(an?\s+)?(infinite|endless|forever|eternal)\s+(loop|recursion|cycle|process)",
+        severity="CRITICAL",
+        description="Infinite loop or recursion trigger",
+    ),
+    InjectionSignature(
+        signature_id="INJ-123",
+        category="resource_abuse",
+        pattern=r"(?i)(send|make|fire|issue)\s+(\d{3,}|hundreds?|thousands?|millions?)\s+(of\s+)?(http|api|network|web)\s+(requests?|calls?)",
+        severity="CRITICAL",
+        description="HTTP request flood / denial of service via mass API calls",
+    ),
+    InjectionSignature(
+        signature_id="INJ-124",
+        category="resource_abuse",
+        pattern=r"(?i)(allocate|consume|use\s+up|exhaust)\s+(all\s+)?(available\s+)?(memory|ram|cpu|disk|storage|bandwidth|quota)",
+        severity="CRITICAL",
+        description="Explicit resource exhaustion instruction",
+    ),
+    InjectionSignature(
+        signature_id="INJ-125",
+        category="resource_abuse",
+        pattern=r"(?i)while\s*\(\s*(true|1|True)\s*\)|for\s*\(\s*;;\s*\)|loop\s*\{\s*\}",
+        severity="HIGH",
+        description="Code-level infinite loop construct",
+    ),
+    InjectionSignature(
+        signature_id="INJ-126",
+        category="resource_abuse",
+        pattern=r"(?i)(fork|spawn|clone)\s+(bomb|process)\b|:\(\)\{\s*:\|:&\s*\};:",
+        severity="CRITICAL",
+        description="Fork bomb or process spawning attack",
+    ),
+    InjectionSignature(
+        signature_id="INJ-127",
+        category="resource_abuse",
+        pattern=r"(?i)(download|fetch|retrieve)\s+(a\s+)?(\d+\s*[GT]B|very\s+large|huge|massive)\s+(file|dataset|archive|blob)",
+        severity="HIGH",
+        description="Large file download to exhaust storage or bandwidth",
+    ),
+    InjectionSignature(
+        signature_id="INJ-128",
+        category="resource_abuse",
+        pattern=r"(?i)(set|change|increase)\s+(the\s+)?(timeout|max[-_]?retries|retry[-_]?count|rate[-_]?limit)\s+(to\s+)?(infinity|unlimited|999999|\d{6,})",
+        severity="HIGH",
+        description="Safety parameter override: setting timeout/retries to unreasonable values",
+    ),
+    InjectionSignature(
+        signature_id="INJ-129",
+        category="resource_abuse",
+        pattern=r"(?i)(mine|run)\s+(crypto|bitcoin|ethereum|monero|xmr)\b",
+        severity="CRITICAL",
+        description="Cryptocurrency mining abuse attempt",
+    ),
+    InjectionSignature(
+        signature_id="INJ-130",
+        category="resource_abuse",
+        pattern=r"(?i)(calculate|compute|enumerate)\s+(all\s+)?(permutations?|combinations?|primes?)\s+(up\s+to|of|for)\s+(\d{8,}|a\s+(very\s+)?large\s+number)",
+        severity="MEDIUM",
+        description="Computational exhaustion via expensive mathematical operations",
+    ),
+
+    # ── configuration_attack (Sprint 52 — APEP-413) ────────────────────
+    InjectionSignature(
+        signature_id="INJ-131",
+        category="configuration_attack",
+        pattern=r"(?i)(change|set|update|modify)\s+(your\s+)?(system|model|config|configuration)\s+(temperature|top[-_]?p|max[-_]?tokens|frequency[-_]?penalty)\s+(to|=)\s+",
+        severity="HIGH",
+        description="Model parameter tampering via config injection",
+    ),
+    InjectionSignature(
+        signature_id="INJ-132",
+        category="configuration_attack",
+        pattern=r"(?i)(disable|turn\s+off|deactivate)\s+(the\s+)?(safety|content|moderation|filter|guard|logging|audit|monitoring)\s+(system|filter|layer|module|check)",
+        severity="CRITICAL",
+        description="Safety system deactivation via config manipulation",
+    ),
+    InjectionSignature(
+        signature_id="INJ-133",
+        category="configuration_attack",
+        pattern=r"(?i)(set|change|switch)\s+(the\s+)?(mode|environment|env)\s+to\s+(debug|development|dev|test|staging|unsafe|unrestricted|permissive)",
+        severity="HIGH",
+        description="Environment mode switch to a less-secure posture",
+    ),
+    InjectionSignature(
+        signature_id="INJ-134",
+        category="configuration_attack",
+        pattern=r"(?i)(load|import|source|include|require)\s+(config|configuration|settings?|env)\s+(from|file)\s+['\"]?[a-zA-Z0-9_\-/.]+",
+        severity="HIGH",
+        description="External configuration file loading attack",
+    ),
+    InjectionSignature(
+        signature_id="INJ-135",
+        category="configuration_attack",
+        pattern=r"(?i)(set|export|define)\s+[A-Z_]{3,}=.*\b(true|false|1|0|yes|no|on|off)\b",
+        severity="MEDIUM",
+        description="Environment variable injection to alter runtime behaviour",
+    ),
+    InjectionSignature(
+        signature_id="INJ-136",
+        category="configuration_attack",
+        pattern=r"(?i)(modify|edit|change|update)\s+(the\s+)?(policy|rule|permission|acl|rbac|role)\s+(file|config|setting|table)",
+        severity="CRITICAL",
+        description="Direct policy/RBAC configuration modification attempt",
+    ),
+    InjectionSignature(
+        signature_id="INJ-137",
+        category="configuration_attack",
+        pattern=r"(?i)(add|grant|assign)\s+(the\s+)?(admin|root|superuser|sudo|elevated)\s+(role|permission|privilege|access)\s+(to|for)\s+",
+        severity="CRITICAL",
+        description="Privilege grant via configuration injection",
+    ),
+    InjectionSignature(
+        signature_id="INJ-138",
+        category="configuration_attack",
+        pattern=r"(?i)(lower|reduce|set)\s+(the\s+)?(security|trust|verification|validation)\s+(level|threshold|score)\s+(to\s+)?(zero|0|none|minimum|lowest|off)",
+        severity="CRITICAL",
+        description="Security threshold reduction to bypass protections",
+    ),
+    InjectionSignature(
+        signature_id="INJ-139",
+        category="configuration_attack",
+        pattern=r"(?i)(enable|activate|turn\s+on)\s+(the\s+)?(verbose|debug|trace)\s+(log|logging|mode|output)",
+        severity="MEDIUM",
+        description="Debug/verbose mode activation to expose internal state",
+    ),
+    InjectionSignature(
+        signature_id="INJ-140",
+        category="configuration_attack",
+        pattern=r"(?i)(whitelist|allowlist|trust)\s+(all|every|\*|any)\s+(domain|ip|host|origin|source|endpoint)",
+        severity="CRITICAL",
+        description="Universal trust/allowlist to disable origin restrictions",
+    ),
+
+    # ── supply_chain (Sprint 52 — APEP-413) ─────────────────────────────
+    InjectionSignature(
+        signature_id="INJ-141",
+        category="supply_chain",
+        pattern=r"(?i)(install|add|load|import)\s+(this\s+)?(package|module|library|plugin|extension|dependency)\s+(from|via)\s+https?://",
+        severity="HIGH",
+        description="Remote package/dependency installation from URL",
+    ),
+    InjectionSignature(
+        signature_id="INJ-142",
+        category="supply_chain",
+        pattern=r"(?i)pip\s+install\s+(--index-url|--extra-index-url|-i)\s+https?://(?!pypi\.org)",
+        severity="CRITICAL",
+        description="pip install from non-PyPI index (supply chain hijack)",
+    ),
+    InjectionSignature(
+        signature_id="INJ-143",
+        category="supply_chain",
+        pattern=r"(?i)npm\s+install\s+--registry\s+https?://(?!registry\.npmjs\.org)",
+        severity="CRITICAL",
+        description="npm install from non-default registry (supply chain hijack)",
+    ),
+    InjectionSignature(
+        signature_id="INJ-144",
+        category="supply_chain",
+        pattern=r"(?i)(curl|wget|fetch)\s+https?://[^\s]+\s*\|\s*(sh|bash|python|node|ruby|perl)",
+        severity="CRITICAL",
+        description="Pipe-to-shell: downloading and executing remote code",
+    ),
+    InjectionSignature(
+        signature_id="INJ-145",
+        category="supply_chain",
+        pattern=r"(?i)(replace|swap|substitute)\s+(the\s+)?(dependency|package|library|module)\s+['\"][^'\"]+['\"]\s+with\s+['\"]",
+        severity="HIGH",
+        description="Dependency substitution / typosquatting attack instruction",
+    ),
+    InjectionSignature(
+        signature_id="INJ-146",
+        category="supply_chain",
+        pattern=r"(?i)(add|inject|insert)\s+(a\s+)?(backdoor|trojan|payload|hook|callback)\s+(into|in|to)\s+(the\s+)?(code|build|pipeline|package)",
+        severity="CRITICAL",
+        description="Build pipeline backdoor injection instruction",
+    ),
+    InjectionSignature(
+        signature_id="INJ-147",
+        category="supply_chain",
+        pattern=r"(?i)(modify|edit|patch)\s+(the\s+)?(build|deploy|ci|cd|pipeline)\s+(script|config|file|yaml|yml)\s+(to\s+)?(include|add|run)",
+        severity="HIGH",
+        description="CI/CD pipeline configuration tampering",
+    ),
+    InjectionSignature(
+        signature_id="INJ-148",
+        category="supply_chain",
+        pattern=r"(?i)eval\s*\(\s*(fetch|require|import|input|request)\b",
+        severity="CRITICAL",
+        description="Dynamic code evaluation of external input (eval injection)",
+    ),
+    InjectionSignature(
+        signature_id="INJ-149",
+        category="supply_chain",
+        pattern=r"(?i)(use|load|execute)\s+(the\s+)?(unsigned|unverified|untrusted)\s+(plugin|extension|module|package|script|binary)",
+        severity="HIGH",
+        description="Unsigned/unverified component loading instruction",
+    ),
+
+    # ── persistence (Sprint 52 — APEP-413) ──────────────────────────────
+    InjectionSignature(
+        signature_id="INJ-150",
+        category="persistence",
+        pattern=r"(?i)(save|store|persist|write)\s+(this|these)\s+(instructions?|rules?|directives?|commands?)\s+(permanently|forever|to\s+(memory|disk|storage|database))",
+        severity="HIGH",
+        description="Instruction persistence: writing injected rules to permanent storage",
+    ),
+    InjectionSignature(
+        signature_id="INJ-151",
+        category="persistence",
+        pattern=r"(?i)(add|create|register)\s+(a\s+)?(cron|crontab|scheduled|recurring)\s+(job|task|event|trigger)\s+(that|to|which)\s+",
+        severity="CRITICAL",
+        description="Scheduled task creation for persistent code execution",
+    ),
+    InjectionSignature(
+        signature_id="INJ-152",
+        category="persistence",
+        pattern=r"(?i)(modify|edit|append\s+to)\s+(the\s+)?(\.bashrc|\.bash_profile|\.profile|\.zshrc|crontab|startup|init|autorun)",
+        severity="CRITICAL",
+        description="Shell startup file modification for login-time persistence",
+    ),
+    InjectionSignature(
+        signature_id="INJ-153",
+        category="persistence",
+        pattern=r"(?i)(remember|memorize|retain)\s+(this|these|the\s+following)\s+(across|between|for\s+(all\s+)?future)\s+(sessions?|conversations?|interactions?|runs?)",
+        severity="HIGH",
+        description="Cross-session memory injection for persistent influence",
+    ),
+    InjectionSignature(
+        signature_id="INJ-154",
+        category="persistence",
+        pattern=r"(?i)(create|add|install)\s+(a\s+)?(system|systemd|launchd|windows)\s+(service|daemon|agent)\s+(that|to|which)\s+",
+        severity="CRITICAL",
+        description="System service/daemon creation for persistent execution",
+    ),
+    InjectionSignature(
+        signature_id="INJ-155",
+        category="persistence",
+        pattern=r"(?i)(inject|embed|plant)\s+(a\s+)?(hook|callback|listener|watcher|trigger)\s+(into|in|on)\s+(the\s+)?(database|queue|event\s+bus|message\s+broker)",
+        severity="HIGH",
+        description="Event system hook injection for persistent monitoring",
+    ),
+    InjectionSignature(
+        signature_id="INJ-156",
+        category="persistence",
+        pattern=r"(?i)(set|create|register)\s+(a\s+)?(webhook|callback\s+url|notification\s+endpoint)\s+(to|at|pointing\s+to)\s+https?://",
+        severity="HIGH",
+        description="Webhook registration for persistent external callback",
+    ),
+    InjectionSignature(
+        signature_id="INJ-157",
+        category="persistence",
+        pattern=r"(?i)(always|every\s+time|whenever)\s+(you\s+)?(start|boot|initialise|initialize|restart|launch|begin)",
+        severity="MEDIUM",
+        description="Boot-time instruction injection: commands tied to startup",
+    ),
+    InjectionSignature(
+        signature_id="INJ-158",
+        category="persistence",
+        pattern=r"(?i)(add|write|insert)\s+(this|a)\s+(rule|instruction|directive)\s+(to|into)\s+(the\s+)?(system\s+prompt|base\s+prompt|default\s+config|global\s+config)",
+        severity="CRITICAL",
+        description="System prompt modification for persistent instruction injection",
+    ),
 ]
 
 
@@ -864,29 +1550,70 @@ class InjectionSignatureLibrary:
 
     All regex patterns are compiled once at initialisation.  Public methods are
     safe for concurrent reads (the internal data structures are immutable after
-    ``__init__``).
+    ``__init__`` and are swapped atomically on ``reload()``).
+
+    Hot-reload (APEP-419):
+        Call ``reload(new_signatures)`` to atomically replace the active
+        pattern set.  Readers that are mid-scan continue against the old set;
+        subsequent calls use the new set.  A ``threading.Lock`` serialises
+        reload operations but does **not** block concurrent reads.
     """
 
     def __init__(self, signatures: Sequence[InjectionSignature] | None = None) -> None:
-        raw = list(signatures) if signatures is not None else list(_SIGNATURES)
-        self._signatures: list[InjectionSignature] = raw
-        self._compiled: list[_CompiledSignature] = []
+        self._reload_lock = threading.Lock()
+        self._load(list(signatures) if signatures is not None else list(_SIGNATURES))
 
+    def _load(self, raw: list[InjectionSignature]) -> None:
+        """Compile signatures and build indexes.  Called by __init__ and reload."""
+        compiled: list[_CompiledSignature] = []
         for sig in raw:
             try:
-                compiled = re.compile(sig.pattern)
+                c = re.compile(sig.pattern)
             except re.error as exc:
                 raise ValueError(
                     f"Invalid regex in signature {sig.signature_id}: {exc}"
                 ) from exc
-            self._compiled.append(_CompiledSignature(signature=sig, compiled=compiled))
+            compiled.append(_CompiledSignature(signature=sig, compiled=c))
 
-        # Pre-build category and severity indexes for fast lookups.
-        self._by_category: dict[str, list[InjectionSignature]] = {}
-        self._by_severity: dict[str, list[InjectionSignature]] = {}
+        by_category: dict[str, list[InjectionSignature]] = {}
+        by_severity: dict[str, list[InjectionSignature]] = {}
         for sig in raw:
-            self._by_category.setdefault(sig.category, []).append(sig)
-            self._by_severity.setdefault(sig.severity, []).append(sig)
+            by_category.setdefault(sig.category, []).append(sig)
+            by_severity.setdefault(sig.severity, []).append(sig)
+
+        # Atomic swap — assign all three references in quick succession.
+        # Python's GIL guarantees each individual assignment is atomic, so
+        # concurrent readers see either the old complete set or the new one.
+        self._signatures: list[InjectionSignature] = raw
+        self._compiled: list[_CompiledSignature] = compiled
+        self._by_category: dict[str, list[InjectionSignature]] = by_category
+        self._by_severity: dict[str, list[InjectionSignature]] = by_severity
+
+    # -- Hot-reload (APEP-419) ---------------------------------------------
+
+    def reload(self, signatures: Sequence[InjectionSignature] | None = None) -> int:
+        """Atomically replace the active signature set.
+
+        Parameters
+        ----------
+        signatures:
+            New signatures to load.  If ``None``, reloads from the module-level
+            ``_SIGNATURES`` list (useful after monkey-patching or dynamic updates).
+
+        Returns
+        -------
+        int
+            The number of signatures now loaded.
+
+        Raises
+        ------
+        ValueError
+            If any signature has an invalid regex (the old set is preserved).
+        """
+        raw = list(signatures) if signatures is not None else list(_SIGNATURES)
+        with self._reload_lock:
+            self._load(raw)
+        return len(raw)
 
     # -- Public API ---------------------------------------------------------
 
@@ -896,8 +1623,10 @@ class InjectionSignatureLibrary:
         The returned list preserves signature declaration order so that
         higher-priority (lower ID) signatures appear first.
         """
+        # Snapshot reference — safe against concurrent reload.
+        compiled = self._compiled
         matches: list[MatchedSignature] = []
-        for entry in self._compiled:
+        for entry in compiled:
             if entry.compiled.search(text):
                 sig = entry.signature
                 matches.append(
@@ -912,7 +1641,8 @@ class InjectionSignatureLibrary:
 
     def check_any(self, text: str) -> bool:
         """Return ``True`` if *text* matches at least one signature."""
-        for entry in self._compiled:
+        compiled = self._compiled
+        for entry in compiled:
             if entry.compiled.search(text):
                 return True
         return False
@@ -924,6 +1654,11 @@ class InjectionSignatureLibrary:
     def get_by_severity(self, severity: str) -> list[InjectionSignature]:
         """Return all signatures with the given *severity* level."""
         return list(self._by_severity.get(severity, []))
+
+    @property
+    def categories(self) -> list[str]:
+        """Return sorted list of all categories."""
+        return sorted(self._by_category.keys())
 
     @property
     def signatures(self) -> list[InjectionSignature]:

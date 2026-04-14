@@ -439,6 +439,74 @@ class PolicyEvaluator:
                         exc_info=True,
                     )
 
+        # --- Sprint 52 (APEP-412/414/415/416/417): CIS Injection Pre-Scan ---
+        # Scan tool arguments for injection patterns using the ScanModeRouter
+        # with trust cache, allowlist bypass, and YOLO auto-escalation.
+        with tracer.start_as_current_span(
+            "cis_injection_prescan",
+            attributes={"agentpep.tool_name": request.tool_name},
+        ):
+            try:
+                from app.services.cis_allowlist import cis_allowlist
+                from app.services.cis_trust_cache import cis_trust_cache
+                from app.services.scan_mode_router import CISScanMode, scan_mode_router
+                from app.services.yolo_mode_detector import yolo_detector
+
+                # Concatenate tool args into a scannable string.
+                arg_text = " ".join(
+                    str(v) for v in (request.tool_args or {}).values() if v
+                )
+                if arg_text:
+                    # Determine scan mode (default STRICT).
+                    cis_mode = CISScanMode.STRICT
+
+                    # YOLO detection on tool arg content.
+                    yolo_result = yolo_detector.check_all(
+                        text=arg_text,
+                        session_id=request.session_id,
+                    )
+                    if yolo_result.detected:
+                        cis_mode = CISScanMode.STRICT
+                        logger.warning(
+                            "cis_yolo_detected",
+                            session_id=request.session_id,
+                            signals=yolo_result.signals,
+                        )
+
+                    # Skip scan if allowlisted or trust-cached.
+                    if not cis_allowlist.is_allowed(
+                        arg_text, tenant_id=tenant_id or ""
+                    ) and not cis_trust_cache.is_trusted(arg_text):
+                        inj_matches = scan_mode_router.check(arg_text, mode=cis_mode)
+                        if inj_matches:
+                            # Check severity — CRITICAL/HIGH → ESCALATE.
+                            max_sev = max(
+                                inj_matches,
+                                key=lambda m: {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1}.get(m.severity, 0),
+                            ).severity
+                            if max_sev in ("CRITICAL", "HIGH"):
+                                elapsed_ms = int((time.monotonic() - start) * 1000)
+                                decision = Decision.DRY_RUN if request.dry_run else Decision.ESCALATE
+                                sig_ids = [m.signature_id for m in inj_matches[:5]]
+                                return PolicyDecisionResponse(
+                                    request_id=request.request_id,
+                                    decision=decision,
+                                    reason=f"CIS injection pre-scan: injection detected in tool args ({', '.join(sig_ids)})",
+                                    risk_score=0.9,
+                                    latency_ms=elapsed_ms,
+                                )
+                        else:
+                            # Clean — cache for future lookups.
+                            active = scan_mode_router.active_categories(cis_mode)
+                            cis_trust_cache.mark_trusted(
+                                arg_text, categories_checked=len(active)
+                            )
+            except Exception:
+                logger.warning(
+                    "CIS injection pre-scan failed; proceeding without",
+                    exc_info=True,
+                )
+
         # --- Confused-deputy check (APEP-060) ---
         with tracer.start_as_current_span(
             "confused_deputy_check",
