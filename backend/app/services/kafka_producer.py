@@ -223,6 +223,37 @@ class KafkaDecisionProducer:
             logger.exception("Failed to publish network event")
             return False
 
+    # ------------------------------------------------------------------
+    # Sprint 46 — APEP-364: Fetch proxy events
+    # ------------------------------------------------------------------
+
+    async def publish_fetch_event(self, event: dict) -> bool:
+        """Publish a fetch proxy event to the agentpep.fetch topic.
+
+        Used by FetchProxyService to emit FETCH_ALLOWED, FETCH_BLOCKED,
+        INJECTION_DETECTED, DLP_HIT, and QUARANTINE_APPLIED events.
+        """
+        if not self._started or self._producer is None:
+            return False
+
+        topic = getattr(
+            settings,
+            "kafka_fetch_topic",
+            "agentpep.fetch",
+        )
+
+        try:
+            key = event.get("session_id", event.get("event_id", ""))
+            await self._producer.send_and_wait(
+                topic=topic,
+                key=str(key),
+                value=event,
+            )
+            return True
+        except Exception:
+            logger.exception("Failed to publish fetch proxy event")
+            return False
+
     @property
     def is_running(self) -> bool:
         return self._started

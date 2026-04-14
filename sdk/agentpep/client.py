@@ -227,6 +227,121 @@ class AgentPEPClient:
         except httpx.TimeoutException as exc:
             raise AgentPEPTimeoutError(f"Health check timed out: {exc}") from exc
 
+    # --- Sprint 46 (APEP-370): Fetch safe ---
+
+    async def fetch_safe(
+        self,
+        *,
+        url: str,
+        session_id: str | None = None,
+        agent_id: str | None = None,
+        scan_response: bool = True,
+        max_bytes: int = 1_048_576,
+    ) -> "FetchSafeResponse":
+        """Fetch a URL through the AgentPEP security proxy (APEP-370).
+
+        The server validates the URL, fetches the content, and runs:
+        - 6-pass Unicode normalization
+        - Multi-pass injection scanning
+        - DLP scan on response body
+        - Auto-taint QUARANTINE on injection detection
+
+        Returns a FetchSafeResponse with the (possibly sanitized) body
+        and all scan results.
+
+        Raises AgentPEPConnectionError if the server is unreachable.
+        Raises AgentPEPTimeoutError on timeout.
+        """
+        from agentpep.models import FetchSafeResponse
+
+        params: dict[str, Any] = {"url": url, "scan_response": scan_response, "max_bytes": max_bytes}
+        if session_id is not None:
+            params["session_id"] = session_id
+        if agent_id is not None:
+            params["agent_id"] = agent_id
+
+        try:
+            client = await self._get_async_client()
+            resp = await client.get("/v1/fetch", params=params)
+            resp.raise_for_status()
+            data = resp.json()
+            # Map server response to SDK model
+            injection_scan = data.get("injection_scan") or {}
+            return FetchSafeResponse(
+                fetch_id=data.get("fetch_id"),
+                url=data.get("url", url),
+                status=data.get("status", "ALLOWED"),
+                http_status=data.get("http_status", 0),
+                content_type=data.get("content_type", ""),
+                body=data.get("body", ""),
+                body_length=data.get("body_length", 0),
+                truncated=data.get("truncated", False),
+                injection_detected=injection_scan.get("injection_detected", False),
+                injection_finding_count=injection_scan.get("total_findings", 0),
+                injection_highest_severity=injection_scan.get("highest_severity", "INFO"),
+                dlp_findings_count=data.get("dlp_findings_count", 0),
+                dlp_blocked=data.get("dlp_blocked", False),
+                taint_applied=data.get("taint_applied"),
+                taint_node_id=data.get("taint_node_id"),
+                action_taken=data.get("action_taken", "ALLOW"),
+                latency_ms=data.get("latency_ms", 0),
+            )
+        except httpx.ConnectError as exc:
+            raise AgentPEPConnectionError(f"Cannot connect to AgentPEP: {exc}") from exc
+        except httpx.TimeoutException as exc:
+            raise AgentPEPTimeoutError(f"fetch_safe timed out: {exc}") from exc
+
+    def fetch_safe_sync(
+        self,
+        *,
+        url: str,
+        session_id: str | None = None,
+        agent_id: str | None = None,
+        scan_response: bool = True,
+        max_bytes: int = 1_048_576,
+    ) -> "FetchSafeResponse":
+        """Fetch a URL through the AgentPEP security proxy (sync wrapper).
+
+        See ``fetch_safe`` for details.
+        """
+        from agentpep.models import FetchSafeResponse
+
+        params: dict[str, Any] = {"url": url, "scan_response": scan_response, "max_bytes": max_bytes}
+        if session_id is not None:
+            params["session_id"] = session_id
+        if agent_id is not None:
+            params["agent_id"] = agent_id
+
+        try:
+            client = self._get_sync_client()
+            resp = client.get("/v1/fetch", params=params)
+            resp.raise_for_status()
+            data = resp.json()
+            injection_scan = data.get("injection_scan") or {}
+            return FetchSafeResponse(
+                fetch_id=data.get("fetch_id"),
+                url=data.get("url", url),
+                status=data.get("status", "ALLOWED"),
+                http_status=data.get("http_status", 0),
+                content_type=data.get("content_type", ""),
+                body=data.get("body", ""),
+                body_length=data.get("body_length", 0),
+                truncated=data.get("truncated", False),
+                injection_detected=injection_scan.get("injection_detected", False),
+                injection_finding_count=injection_scan.get("total_findings", 0),
+                injection_highest_severity=injection_scan.get("highest_severity", "INFO"),
+                dlp_findings_count=data.get("dlp_findings_count", 0),
+                dlp_blocked=data.get("dlp_blocked", False),
+                taint_applied=data.get("taint_applied"),
+                taint_node_id=data.get("taint_node_id"),
+                action_taken=data.get("action_taken", "ALLOW"),
+                latency_ms=data.get("latency_ms", 0),
+            )
+        except httpx.ConnectError as exc:
+            raise AgentPEPConnectionError(f"Cannot connect to AgentPEP: {exc}") from exc
+        except httpx.TimeoutException as exc:
+            raise AgentPEPTimeoutError(f"fetch_safe timed out: {exc}") from exc
+
     async def aclose(self) -> None:
         """Close the underlying async HTTP client."""
         if self._async_client and not self._async_client.is_closed:
