@@ -79,6 +79,9 @@ STEP_UP_CHALLENGES = "step_up_challenges"
 POLICY_CONFLICTS = "policy_conflicts"
 TENANT_ISOLATION_CONFIGS = "tenant_isolation_configs"
 TENANT_ISOLATION_VIOLATIONS = "tenant_isolation_violations"
+# Sprint 37 — APEP-292..298: MissionPlan
+MISSION_PLANS = "mission_plans"
+PLAN_SESSION_BINDINGS = "plan_session_bindings"
 
 
 async def init_collections() -> None:
@@ -436,6 +439,37 @@ async def init_collections() -> None:
             IndexModel(
                 [("detected_at", ASCENDING)],
                 expireAfterSeconds=86400 * 90,
+            ),
+        ]
+    )
+
+    # Sprint 37 — APEP-292: Mission Plans
+    mission_plans = db[MISSION_PLANS]
+    await mission_plans.create_indexes(
+        [
+            IndexModel([("plan_id", ASCENDING)], unique=True),
+            IndexModel([("issuer", ASCENDING)]),
+            IndexModel([("status", ASCENDING)]),
+            IndexModel([("issued_at", DESCENDING)]),
+            IndexModel(
+                [("issued_at", ASCENDING)],
+                expireAfterSeconds=86400 * 90,  # 90-day TTL for plan documents
+            ),
+        ]
+    )
+
+    # Sprint 37 — APEP-297: Plan-Session Bindings
+    plan_session_bindings = db[PLAN_SESSION_BINDINGS]
+    await plan_session_bindings.create_indexes(
+        [
+            IndexModel([("binding_id", ASCENDING)], unique=True),
+            IndexModel([("plan_id", ASCENDING)]),
+            IndexModel(
+                [("session_id", ASCENDING), ("active", ASCENDING)],
+            ),
+            IndexModel(
+                [("bound_at", ASCENDING)],
+                expireAfterSeconds=86400 * 30,  # 30-day TTL for bindings
             ),
         ]
     )
