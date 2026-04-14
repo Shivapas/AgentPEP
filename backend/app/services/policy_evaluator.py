@@ -864,15 +864,34 @@ class PolicyEvaluator:
                     latency_ms=elapsed_ms,
                 )
 
-            # --- PlanCheckpointFilter (pre-RBAC stage) ---
-            if mission_plan_service.check_requires_checkpoint(
-                plan, request.tool_name
-            ):
+            # --- Sprint 38 (APEP-304): PlanScopeFilter (pre-RBAC stage) ---
+            from app.services.scope_pattern import plan_scope_filter
+
+            scope_result = plan_scope_filter.check(
+                request.tool_name, plan.scope
+            )
+            if not scope_result.allowed:
+                decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
+                return PolicyDecisionResponse(
+                    request_id=request.request_id,
+                    decision=decision,
+                    reason=f"Plan scope denied: {scope_result.detail}",
+                    latency_ms=elapsed_ms,
+                )
+
+            # --- Sprint 38 (APEP-303): PlanCheckpointFilter (pre-RBAC stage) ---
+            from app.services.scope_pattern import plan_checkpoint_filter
+
+            checkpoint_result = plan_checkpoint_filter.matches(
+                request.tool_name, plan.requires_checkpoint
+            )
+            if checkpoint_result.matches:
                 decision = Decision.DRY_RUN if request.dry_run else Decision.ESCALATE
                 return PolicyDecisionResponse(
                     request_id=request.request_id,
                     decision=decision,
-                    reason="Plan requires checkpoint approval for this tool",
+                    reason=f"Plan requires checkpoint approval: "
+                    f"{checkpoint_result.detail}",
                     latency_ms=elapsed_ms,
                 )
 

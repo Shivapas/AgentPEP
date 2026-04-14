@@ -10,6 +10,10 @@ Sprint 34 — APEP-267: Build ``agentpep-cli`` with subcommands:
   - ``agentpep receipt verify`` — batch-verify signed receipts (APEP-273)
   - ``agentpep health`` — check server connectivity and health (APEP-274)
 
+Sprint 38 — APEP-305/306: Scope pattern CLI:
+  - ``agentpep scope compile <pattern>`` — compile scope pattern to tool glob
+  - ``agentpep scope validate <plan.yaml>`` — validate scope patterns in a plan file
+
 Usage::
 
     agentpep policy validate policy.yaml
@@ -20,6 +24,8 @@ Usage::
     agentpep redteam run policy.yaml --suite adversarial.json
     agentpep receipt verify --receipts-file receipts.jsonl --key-file key.pem
     agentpep health --base-url http://localhost:8000
+    agentpep scope compile "read:public:*"
+    agentpep scope validate plan.yaml
 """
 
 from __future__ import annotations
@@ -561,6 +567,228 @@ def cmd_health(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
+# scope compile (Sprint 38 — APEP-305)
+# ---------------------------------------------------------------------------
+
+
+def cmd_scope_compile(args: argparse.Namespace) -> int:
+    """Compile scope patterns to fnmatch-compatible tool-name globs."""
+    # Import the scope pattern modules from the backend
+    # These are pure-Python with no async/DB dependencies
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "backend"))
+    try:
+        from app.models.scope_pattern import (
+            WILDCARD,
+            MAX_SCOPE_LENGTH,
+            MIN_SCOPE_PARTS,
+            RESOURCE_SEPARATOR,
+            SCOPE_SEPARATOR,
+            CompiledScope,
+            ScopeParseError,
+            ScopeToken,
+        )
+        from app.services.scope_pattern import scope_pattern_compiler
+    except ImportError:
+        # Fallback: inline implementation for standalone SDK usage
+        scope_pattern_compiler = _get_standalone_compiler()
+
+    patterns = args.patterns
+    has_errors = False
+
+    results: list[dict[str, Any]] = []
+    for pattern in patterns:
+        compiled = scope_pattern_compiler.compile(pattern)
+        if hasattr(compiled, "tool_glob"):
+            # CompiledScope
+            result = {
+                "pattern": compiled.source_pattern,
+                "tool_glob": compiled.tool_glob,
+                "verb": compiled.verb,
+                "namespace": compiled.namespace,
+                "resource": compiled.resource,
+                "valid": True,
+            }
+            results.append(result)
+        else:
+            # ScopeParseError
+            result = {
+                "pattern": compiled.pattern,
+                "error": compiled.error,
+                "valid": False,
+            }
+            results.append(result)
+            has_errors = True
+
+    if args.json:
+        print(json.dumps(results, indent=2, default=str))
+    else:
+        for r in results:
+            if r["valid"]:
+                print(f"  {r['pattern']}  =>  {r['tool_glob']}")
+            else:
+                print(f"  ERROR: {r['pattern']}: {r['error']}")
+
+    return 1 if has_errors else 0
+
+
+# ---------------------------------------------------------------------------
+# scope validate (Sprint 38 — APEP-306)
+# ---------------------------------------------------------------------------
+
+
+def cmd_scope_validate(args: argparse.Namespace) -> int:
+    """Validate scope patterns in a YAML plan file."""
+    import yaml
+
+    path = Path(args.file)
+    if not path.is_file():
+        print(f"ERROR: File not found: {args.file}", file=sys.stderr)
+        return 1
+
+    try:
+        data = yaml.safe_load(path.read_text())
+    except Exception as exc:
+        print(f"ERROR: Failed to parse YAML: {exc}", file=sys.stderr)
+        return 1
+
+    if not isinstance(data, dict):
+        print("ERROR: Plan file must be a YAML mapping", file=sys.stderr)
+        return 1
+
+    # Extract scope and requires_checkpoint patterns
+    scope_patterns: list[str] = data.get("scope", [])
+    checkpoint_patterns: list[str] = data.get("requires_checkpoint", [])
+    all_patterns: list[str] = scope_patterns + checkpoint_patterns
+
+    if not all_patterns:
+        print("No scope or requires_checkpoint patterns found in plan file.")
+        return 0
+
+    # Import or build inline compiler
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "backend"))
+    try:
+        from app.services.scope_pattern import scope_pattern_parser
+    except ImportError:
+        scope_pattern_parser = _get_standalone_parser()
+
+    result = scope_pattern_parser.parse_many(all_patterns)
+
+    if args.json:
+        output = {
+            "file": str(path),
+            "total_patterns": len(all_patterns),
+            "scope_patterns": len(scope_patterns),
+            "checkpoint_patterns": len(checkpoint_patterns),
+            "valid_count": len(result.tokens),
+            "error_count": len(result.errors),
+            "valid": result.valid,
+            "tokens": [t.model_dump() for t in result.tokens],
+            "errors": [e.model_dump() for e in result.errors],
+        }
+        print(json.dumps(output, indent=2, default=str))
+    else:
+        print(f"Plan file: {path}")
+        print(f"  Scope patterns: {len(scope_patterns)}")
+        print(f"  Checkpoint patterns: {len(checkpoint_patterns)}")
+        print(f"  Valid: {len(result.tokens)}")
+        print(f"  Errors: {len(result.errors)}")
+
+        if result.tokens:
+            print("\nValid patterns:")
+            for token in result.tokens:
+                print(f"  {token.raw}  (verb={token.verb}, "
+                      f"ns={token.namespace}, res={token.resource})")
+
+        if result.errors:
+            print("\nInvalid patterns:")
+            for error in result.errors:
+                print(f"  ERROR: {error.pattern}: {error.error}")
+
+    return 0 if result.valid else 1
+
+
+def _get_standalone_compiler():
+    """Build a standalone scope pattern compiler for SDK use without backend."""
+    import fnmatch as _fnmatch
+    import re as _re
+
+    _SEGMENT_RE = _re.compile(r"^[a-zA-Z0-9_\-.*]+$")
+
+    class _StandaloneParser:
+        def parse(self, pattern):
+            from types import SimpleNamespace
+
+            if not pattern or not pattern.strip():
+                return SimpleNamespace(pattern=pattern, error="Empty scope pattern")
+            pattern = pattern.strip()
+            if len(pattern) > 256:
+                return SimpleNamespace(pattern=pattern, error="Scope pattern exceeds maximum length of 256")
+            parts = pattern.split(":")
+            if len(parts) != 3:
+                return SimpleNamespace(
+                    pattern=pattern,
+                    error=f"Scope pattern must have exactly 3 colon-separated segments, got {len(parts)}",
+                )
+            verb, namespace, resource = parts
+            for seg, name in [(verb, "verb"), (namespace, "namespace"), (resource, "resource")]:
+                if not seg:
+                    return SimpleNamespace(pattern=pattern, error=f"Empty {name} segment")
+                if not _SEGMENT_RE.match(seg):
+                    return SimpleNamespace(pattern=pattern, error=f"Invalid characters in {name} segment: '{seg}'")
+            return SimpleNamespace(
+                raw=pattern, verb=verb, namespace=namespace, resource=resource,
+                verb_is_wildcard=verb == "*", namespace_is_wildcard=namespace == "*",
+                resource_is_wildcard=resource == "*",
+            )
+
+        def parse_many(self, patterns):
+            from types import SimpleNamespace
+            tokens = []
+            errors = []
+            for p in patterns:
+                r = self.parse(p)
+                if hasattr(r, "raw"):
+                    tokens.append(r)
+                else:
+                    errors.append(r)
+            return SimpleNamespace(tokens=tokens, errors=errors, valid=len(errors) == 0)
+
+    class _StandaloneCompiler:
+        def __init__(self):
+            self._parser = _StandaloneParser()
+
+        def compile(self, pattern):
+            from types import SimpleNamespace
+            result = self._parser.parse(pattern)
+            if hasattr(result, "error"):
+                return result
+            token = result
+            # All wildcards
+            if token.verb_is_wildcard and token.namespace_is_wildcard and token.resource_is_wildcard:
+                glob = "*"
+            else:
+                parts = []
+                if not token.namespace_is_wildcard:
+                    parts.append(token.namespace)
+                if not token.verb_is_wildcard:
+                    parts.append(token.verb)
+                parts.append(token.resource)
+                glob = ".".join(parts) if len(parts) > 1 else parts[0]
+            return SimpleNamespace(
+                source_pattern=token.raw, tool_glob=glob,
+                verb=token.verb, namespace=token.namespace, resource=token.resource,
+            )
+
+    return _StandaloneCompiler()
+
+
+def _get_standalone_parser():
+    """Build a standalone scope pattern parser for SDK use without backend."""
+    compiler = _get_standalone_compiler()
+    return compiler._parser
+
+
+# ---------------------------------------------------------------------------
 # Main parser
 # ---------------------------------------------------------------------------
 
@@ -655,6 +883,27 @@ def build_parser() -> argparse.ArgumentParser:
     health_p.add_argument("--timeout", type=float, default=5.0, help="Request timeout")
     health_p.add_argument("--verbose", action="store_true")
 
+    # --- scope (Sprint 38 — APEP-305/306) ---
+    scope_parser = subparsers.add_parser("scope", help="Scope pattern commands")
+    scope_sub = scope_parser.add_subparsers(dest="scope_command")
+
+    # scope compile
+    scope_compile_p = scope_sub.add_parser(
+        "compile", help="Compile scope patterns to tool-name globs"
+    )
+    scope_compile_p.add_argument(
+        "patterns", nargs="+",
+        help="Scope pattern(s) in verb:namespace:resource notation",
+    )
+    scope_compile_p.add_argument("--json", action="store_true", help="Output as JSON")
+
+    # scope validate
+    scope_validate_p = scope_sub.add_parser(
+        "validate", help="Validate scope patterns in a plan YAML file"
+    )
+    scope_validate_p.add_argument("file", help="Path to plan YAML file")
+    scope_validate_p.add_argument("--json", action="store_true", help="Output as JSON")
+
     return parser
 
 
@@ -699,6 +948,15 @@ def main(argv: list[str] | None = None) -> int:
 
     elif args.command == "health":
         return cmd_health(args)
+
+    elif args.command == "scope":
+        if not hasattr(args, "scope_command") or args.scope_command is None:
+            parser.parse_args(["scope", "--help"])
+            return 0
+        if args.scope_command == "compile":
+            return cmd_scope_compile(args)
+        elif args.scope_command == "validate":
+            return cmd_scope_validate(args)
 
     parser.print_help()
     return 0
