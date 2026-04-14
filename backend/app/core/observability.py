@@ -368,6 +368,67 @@ TFN_URL_SCAN_LATENCY = Histogram(
 )
 
 
+# --- Sprint 53 (APEP-427): ONNX Semantic Classifier Metrics ---
+
+ONNX_INFERENCE_TOTAL = Counter(
+    "agentpep_onnx_inference_total",
+    "Total ONNX semantic classifier inference calls by verdict",
+    ["verdict"],  # CLEAN, SUSPICIOUS, MALICIOUS
+)
+
+ONNX_INFERENCE_LATENCY = Histogram(
+    "agentpep_onnx_inference_latency_seconds",
+    "ONNX semantic classifier per-sample inference latency",
+    buckets=[0.001, 0.005, 0.01, 0.016, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0],
+)
+
+ONNX_FALLBACK_TOTAL = Counter(
+    "agentpep_onnx_fallback_total",
+    "Total ONNX fallback invocations (model unavailable)",
+)
+
+ONNX_MODEL_STATUS = Gauge(
+    "agentpep_onnx_model_status",
+    "ONNX model readiness (1=READY, 0=NOT_READY)",
+)
+
+ONNX_BATCH_TOTAL = Counter(
+    "agentpep_onnx_batch_total",
+    "Total ONNX batch inference jobs by status",
+    ["status"],  # COMPLETED, FAILED
+)
+
+ONNX_BATCH_LATENCY = Histogram(
+    "agentpep_onnx_batch_latency_seconds",
+    "ONNX batch inference total latency",
+    buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
+)
+
+ONNX_BATCH_SIZE = Histogram(
+    "agentpep_onnx_batch_size",
+    "Number of texts per batch inference request",
+    buckets=[1, 5, 10, 25, 50, 100, 250, 500],
+)
+
+ONNX_CHUNKS_PER_INPUT = Histogram(
+    "agentpep_onnx_chunks_per_input",
+    "Number of text chunks per classification input",
+    buckets=[1, 2, 3, 4, 5, 10, 20],
+)
+
+ONNX_SCORE_HISTOGRAM = Histogram(
+    "agentpep_onnx_score",
+    "ONNX injection probability score distribution",
+    buckets=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+)
+
+ONNX_BENCHMARK_F1 = Gauge(
+    "agentpep_onnx_benchmark_f1",
+    "Latest ONNX benchmark F1 score by dataset and scan mode",
+    ["dataset", "scan_mode"],
+)
+
+
 def get_metrics_app():  # type: ignore[no-untyped-def]
     """Return a Prometheus ASGI app to mount at /metrics."""
     return make_asgi_app()
