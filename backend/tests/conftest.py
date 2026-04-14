@@ -180,3 +180,18 @@ def mock_mongodb(monkeypatch):
         tenant_isolation_guard.invalidate_cache()
     except ImportError:
         pass
+
+    # Clear Sprint 37 singletons
+    try:
+        import app.services.plan_signer as ps_mod
+
+        ps_mod.plan_signer = None
+    except ImportError:
+        pass
+
+    try:
+        from app.services.mission_plan_service import plan_expiry_job
+
+        plan_expiry_job.stop()
+    except ImportError:
+        pass

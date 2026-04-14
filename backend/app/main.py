@@ -26,6 +26,7 @@ from app.api.v1.policy import router as policy_router
 from app.api.v1.simulate import router as simulate_router
 from app.api.v1.taint import router as taint_router
 from app.api.v1.memory import router as memory_router
+from app.api.v1.plans import router as plans_router
 from app.api.v1.sprint36 import router as sprint36_router
 from app.core.config import settings
 from app.core.observability import get_metrics_app, setup_tracing
@@ -220,6 +221,36 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     auth_registry.set_default_chain(settings.auth_provider_default_chain)
     auth_registry.configure_tenant_chains(settings.auth_provider_tenant_chains)
 
+    # Sprint 37 (APEP-293): Initialize plan signer
+    if settings.mission_plan_enabled:
+        import base64 as _plan_b64
+
+        import app.services.plan_signer as plan_signer_module
+
+        plan_key_bytes = (
+            _plan_b64.urlsafe_b64decode(settings.mission_plan_signing_key)
+            if settings.mission_plan_signing_key
+            else None
+        )
+        plan_signer_module.plan_signer = plan_signer_module.PlanSigner(
+            signing_method=settings.mission_plan_signing_method,
+            private_key=plan_key_bytes,
+            key_id=settings.mission_plan_key_id,
+        )
+        logger.info(
+            "plan_signer_initialized",
+            method=plan_signer_module.plan_signer.method,
+            key_id=settings.mission_plan_key_id,
+        )
+
+    # Sprint 37 (APEP-298): Start plan expiry background job
+    if settings.mission_plan_expiry_job_enabled:
+        from app.services.mission_plan_service import plan_expiry_job
+
+        plan_expiry_job._interval_s = settings.mission_plan_expiry_interval_s
+        plan_expiry_job.start()
+        logger.info("plan_expiry_job_started")
+
     # Sprint 23 (APEP-184): Start async audit log writer
     from app.services.policy_evaluator import audit_log_writer
 
@@ -239,6 +270,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             )
 
     yield
+
+    # Sprint 37: Stop plan expiry job
+    if settings.mission_plan_expiry_job_enabled:
+        from app.services.mission_plan_service import plan_expiry_job
+
+        plan_expiry_job.stop()
 
     # Shutdown Kafka producer
     await kafka_producer.stop()
@@ -335,6 +372,7 @@ app.include_router(policy_router)
 app.include_router(simulate_router)
 app.include_router(taint_router)
 app.include_router(memory_router)
+app.include_router(plans_router)
 app.include_router(sprint36_router)
 
 # Observability

@@ -199,6 +199,14 @@ class Settings(BaseSettings):
     receipt_signing_key: str = ""  # Base64-encoded private/secret key
     receipt_key_id: str = "default"
 
+    # Sprint 37 — APEP-292..298: MissionPlan
+    mission_plan_enabled: bool = False
+    mission_plan_signing_method: str = "ed25519"  # "ed25519" or "hmac-sha256"
+    mission_plan_signing_key: str = ""  # Base64-encoded private/secret key
+    mission_plan_key_id: str = "plan-default"
+    mission_plan_expiry_job_enabled: bool = False
+    mission_plan_expiry_interval_s: float = 60.0
+
     model_config = {"env_prefix": "AGENTPEP_"}
 
 

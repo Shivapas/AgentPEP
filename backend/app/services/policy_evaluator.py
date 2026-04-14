@@ -275,6 +275,27 @@ class PolicyEvaluator:
                 latency_ms=elapsed_ms,
             )
 
+        # Sprint 37: Record delegation against plan budget for ALLOW decisions
+        if (
+            settings.mission_plan_enabled
+            and decision_response.decision == Decision.ALLOW
+        ):
+            try:
+                from app.services.mission_plan_service import mission_plan_service
+
+                plan = await mission_plan_service.get_plan_for_session(
+                    request.session_id
+                )
+                if plan is not None:
+                    await mission_plan_service.record_delegation(
+                        plan.plan_id, decision_response.risk_score
+                    )
+            except Exception:
+                logger.warning(
+                    "Plan delegation recording failed; proceeding",
+                    exc_info=True,
+                )
+
         # APEP-184: Enqueue audit record (non-blocking)
         self._enqueue_audit(request, decision_response)
         # Track escalation backlog
@@ -312,6 +333,12 @@ class PolicyEvaluator:
         self, request: ToolCallRequest, start: float
     ) -> PolicyDecisionResponse:
         """Core evaluation logic: resolve roles, fetch cached rules, match, decide."""
+
+        # --- Sprint 37: Plan pipeline filters (pre-RBAC) ---
+        if settings.mission_plan_enabled:
+            plan_result = await self._check_plan_constraints(request, start)
+            if plan_result is not None:
+                return plan_result
 
         # --- Global per-tenant rate limit (APEP-092) ---
         # Prefer authenticated tenant_id from middleware to prevent tenant ID spoofing.
@@ -782,6 +809,80 @@ class PolicyEvaluator:
         )
 
         audit_log_writer.enqueue(audit.model_dump(mode="json"))
+
+    # ------------------------------------------------------------------
+    # Sprint 37: Plan pipeline filters (APEP-292..298)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def _check_plan_constraints(
+        request: ToolCallRequest, start: float
+    ) -> PolicyDecisionResponse | None:
+        """Run plan-level filters before RBAC evaluation.
+
+        Returns a PolicyDecisionResponse if the plan blocks the request,
+        or None if the request should proceed to normal RBAC evaluation.
+
+        Filters (in order):
+          1. PlanBudgetGate -- deny if plan expired or budget exhausted.
+          2. PlanDelegatesToFilter -- deny if agent not in delegates_to.
+          3. PlanCheckpointFilter -- escalate if action matches requires_checkpoint.
+        """
+        try:
+            from app.services.mission_plan_service import mission_plan_service
+
+            plan = await mission_plan_service.get_plan_for_session(
+                request.session_id
+            )
+            if plan is None:
+                # No plan bound -- proceed to normal RBAC evaluation
+                return None
+
+            elapsed_ms = int((time.monotonic() - start) * 1000)
+
+            # --- PlanBudgetGate (pre-evaluation stage) ---
+            denial = await mission_plan_service.check_plan_budget(plan)
+            if denial is not None:
+                decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
+                return PolicyDecisionResponse(
+                    request_id=request.request_id,
+                    decision=decision,
+                    reason=f"Plan denied: {denial.value}",
+                    latency_ms=elapsed_ms,
+                )
+
+            # --- PlanDelegatesToFilter (pre-confused-deputy stage) ---
+            if not mission_plan_service.check_agent_authorized(
+                plan, request.agent_id
+            ):
+                decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
+                return PolicyDecisionResponse(
+                    request_id=request.request_id,
+                    decision=decision,
+                    reason=f"Plan denied: {Decision.DENY} -- "
+                    f"agent '{request.agent_id}' not in plan delegates_to",
+                    latency_ms=elapsed_ms,
+                )
+
+            # --- PlanCheckpointFilter (pre-RBAC stage) ---
+            if mission_plan_service.check_requires_checkpoint(
+                plan, request.tool_name
+            ):
+                decision = Decision.DRY_RUN if request.dry_run else Decision.ESCALATE
+                return PolicyDecisionResponse(
+                    request_id=request.request_id,
+                    decision=decision,
+                    reason="Plan requires checkpoint approval for this tool",
+                    latency_ms=elapsed_ms,
+                )
+
+        except Exception:
+            logger.warning(
+                "Plan constraint check failed; proceeding without",
+                exc_info=True,
+            )
+
+        return None
 
     @staticmethod
     async def _write_audit_log(
