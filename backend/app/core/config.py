@@ -272,6 +272,15 @@ class Settings(BaseSettings):
     security_assessment_enabled: bool = True
     mitre_attack_mapping_enabled: bool = True
 
+    # Sprint 55 — APEP-436..443: CaMeL SEQ Rules, Layer 3 Bridge & Self-Protection
+    camel_seq_rules_enabled: bool = True
+    session_marker_enabled: bool = True
+    tooltrust_bridge_enabled: bool = True
+    cis_verdict_taint_enabled: bool = True
+    self_protection_enabled: bool = True
+    protected_path_guard_enabled: bool = True
+    seq_dry_run: bool = False  # When True, enforcing SEQ rules log only
+
     model_config = {"env_prefix": "AGENTPEP_"}
 
 

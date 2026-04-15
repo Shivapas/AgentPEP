@@ -38,6 +38,7 @@ from app.api.v1.chain_detection import router as chain_detection_router
 from app.api.v1.kill_switch import router as kill_switch_router
 from app.api.v1.network_assess import router as network_assess_router
 from app.api.v1.cis import router as cis_router
+from app.api.v1.sprint55 import router as sprint55_router
 from app.core.config import settings
 from app.core.observability import get_metrics_app, setup_tracing
 from app.core.structured_logging import configure_logging, get_logger
@@ -472,6 +473,7 @@ app.include_router(chain_detection_router)
 app.include_router(kill_switch_router)
 app.include_router(network_assess_router)
 app.include_router(cis_router)
+app.include_router(sprint55_router)
 
 # Observability
 if settings.metrics_enabled:
