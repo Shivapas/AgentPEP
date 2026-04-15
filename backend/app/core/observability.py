@@ -473,6 +473,56 @@ CIS_FINDINGS_TOTAL = Counter(
 )
 
 
+# --- Sprint 56 (APEP-444/445/448/449): YOLO Mode & Session Risk Metrics ---
+
+CIS_YOLO_DETECTIONS = Counter(
+    "agentpep_cis_yolo_detections_total",
+    "Total YOLO mode detections by source and signal type",
+    ["source", "signal_type"],
+)
+
+CIS_YOLO_ACTIVE_SESSIONS = Gauge(
+    "agentpep_cis_yolo_active_sessions",
+    "Number of sessions currently flagged as YOLO mode",
+)
+
+CIS_SESSION_CONFIG_CHANGES = Counter(
+    "agentpep_cis_session_config_changes_total",
+    "Total per-session scan mode configuration changes",
+    ["scan_mode", "set_by"],
+)
+
+CIS_SESSION_RISK_MULTIPLIER = Histogram(
+    "agentpep_cis_session_risk_multiplier",
+    "Distribution of session risk multipliers applied",
+    buckets=[1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 5.0, 10.0],
+)
+
+CIS_COMPLIANCE_EXPORTS = Counter(
+    "agentpep_cis_compliance_exports_total",
+    "Total CIS compliance export operations by template and format",
+    ["template", "format"],
+)
+
+CIS_SCAN_MODE_USAGE = Counter(
+    "agentpep_cis_scan_mode_usage_total",
+    "Total scans by effective scan mode",
+    ["scan_mode"],
+)
+
+CIS_YOLO_PROPAGATION_LATENCY = Histogram(
+    "agentpep_cis_yolo_propagation_latency_seconds",
+    "Latency of YOLO flag propagation operations",
+    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5],
+)
+
+CIS_DASHBOARD_QUERIES = Counter(
+    "agentpep_cis_dashboard_queries_total",
+    "Total CIS dashboard data queries",
+    ["widget"],
+)
+
+
 def get_metrics_app():  # type: ignore[no-untyped-def]
     """Return a Prometheus ASGI app to mount at /metrics."""
     return make_asgi_app()
