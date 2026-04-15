@@ -456,3 +456,32 @@ class ChainPatternLibrary:
 # ---------------------------------------------------------------------------
 
 chain_pattern_library = ChainPatternLibrary()
+
+# ---------------------------------------------------------------------------
+# Sprint 55 (APEP-436): Register CaMeL-lite SEQ patterns
+# ---------------------------------------------------------------------------
+
+
+def _register_camel_seq_patterns() -> None:
+    """Register the 5 CaMeL-lite SEQ rules as built-in chain patterns."""
+    try:
+        from app.services.camel_seq_rules import get_seq_patterns
+
+        for pattern in get_seq_patterns():
+            # Add as built-in (append to internal list and update hashes)
+            chain_pattern_library._builtin.append(pattern)
+            chain_pattern_library._builtin_hashes[
+                pattern.pattern_id
+            ] = compute_pattern_integrity_hash(pattern)
+        logger.info(
+            "Registered %d CaMeL-lite SEQ patterns in chain library",
+            len(get_seq_patterns()),
+        )
+    except Exception:
+        logger.warning(
+            "Failed to register CaMeL-lite SEQ patterns",
+            exc_info=True,
+        )
+
+
+_register_camel_seq_patterns()

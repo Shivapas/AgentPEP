@@ -1046,6 +1046,83 @@ class PolicyEvaluator:
                     exc_info=True,
                 )
 
+        # --- Sprint 55 (APEP-437): Session marker placement ---
+        # Auto-place typed markers for CaMeL-lite SEQ rule detection
+        if settings.session_marker_enabled:
+            try:
+                from app.services.session_marker_service import session_marker_service
+
+                await session_marker_service.place_markers_for_tool(
+                    session_id=request.session_id,
+                    tool_name=request.tool_name,
+                    agent_id=request.agent_id,
+                )
+            except Exception:
+                logger.warning(
+                    "Session marker placement failed; proceeding without",
+                    exc_info=True,
+                )
+
+        # --- Sprint 55 (APEP-436.d): CaMeL SEQ rule evaluation ---
+        if settings.camel_seq_rules_enabled and settings.session_marker_enabled:
+            try:
+                from app.services.camel_seq_rules import evaluate_seq_markers
+                from app.services.session_marker_service import session_marker_service
+
+                seq_markers = await session_marker_service.get_ordered_markers(
+                    request.session_id,
+                )
+                seq_result = await evaluate_seq_markers(
+                    request.session_id, seq_markers,
+                )
+                if seq_result.total_matches > 0:
+                    reason += f" | SEQ detection: {seq_result.detail}"
+                    if seq_result.has_enforcing_match and not settings.seq_dry_run:
+                        if decision == Decision.ALLOW:
+                            decision = Decision.DENY
+                            reason += " (ENFORCING SEQ rule match)"
+                    elif seq_result.total_matches > 0:
+                        if decision == Decision.ALLOW:
+                            risk_score = min(risk_score + 0.3, 1.0)
+            except Exception:
+                logger.warning(
+                    "CaMeL SEQ evaluation failed; proceeding without",
+                    exc_info=True,
+                )
+
+        # --- Sprint 55 (APEP-441): Protected path guard for PreToolUse ---
+        if settings.protected_path_guard_enabled:
+            try:
+                from app.services.protected_path_guard import protected_path_guard
+                from app.models.camel_seq import ProtectedPathAction
+
+                # Extract path from tool_args (common key names)
+                tool_path = (
+                    request.tool_args.get("path")
+                    or request.tool_args.get("file_path")
+                    or request.tool_args.get("filepath")
+                    or request.tool_args.get("filename")
+                    or ""
+                )
+                if tool_path:
+                    path_result = protected_path_guard.check(
+                        request.tool_name, str(tool_path),
+                    )
+                    if path_result.blocked:
+                        if path_result.action == ProtectedPathAction.DENY:
+                            if decision == Decision.ALLOW:
+                                decision = Decision.DENY
+                                reason += f" | Protected path: {path_result.detail}"
+                        elif path_result.action == ProtectedPathAction.ESCALATE:
+                            if decision == Decision.ALLOW:
+                                decision = Decision.ESCALATE
+                                reason += f" | Protected path: {path_result.detail}"
+            except Exception:
+                logger.warning(
+                    "Protected path guard failed; proceeding without",
+                    exc_info=True,
+                )
+
         # --- Adaptive hardening (Sprint 35 — APEP-280) ---
         hardening_texts: list[str] | None = None
         if settings.adaptive_hardening_enabled:
