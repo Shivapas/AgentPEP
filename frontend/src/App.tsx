@@ -28,6 +28,7 @@ import { PlanIssuanceForm } from "./components/plans/PlanIssuanceForm";
 import { PlanDetailPage } from "./components/plans/PlanDetailPage";
 import { PlanExplorer } from "./components/plans/PlanExplorer";
 import { NetworkEventsTab } from "./components/NetworkEventsTab";
+import { CISFindingsScreen } from "./components/CISFindingsScreen";
 
 export function App() {
   return (
@@ -67,6 +68,7 @@ export function App() {
                 <Route path="/plans/:planId" element={<PlanDetailPage />} />
                 <Route path="/plans/:planId/explorer" element={<PlanExplorer />} />
                 <Route path="/network-events" element={<NetworkEventsTab />} />
+                <Route path="/cis-findings" element={<CISFindingsScreen />} />
                 <Route path="/risk" element={<RiskDashboard />} />
                 <Route path="/ux-survey" element={<UXSurvey />} />
               </Route>
