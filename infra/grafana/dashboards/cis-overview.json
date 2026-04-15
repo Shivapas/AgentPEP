@@ -1,0 +1,150 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "YOLO Active Sessions",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "agentpep_cis_yolo_active_sessions",
+          "legendFormat": "Active YOLO Sessions"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "YOLO Detections (Rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(agentpep_cis_yolo_detections_total[5m])",
+          "legendFormat": "{{source}} / {{signal_type}}"
+        }
+      ]
+    },
+    {
+      "title": "Session Risk Multiplier Distribution",
+      "type": "histogram",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "expr": "agentpep_cis_session_risk_multiplier_bucket",
+          "legendFormat": "{{le}}"
+        }
+      ]
+    },
+    {
+      "title": "Findings by Severity",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "sum by (severity) (agentpep_cis_findings_total)",
+          "legendFormat": "{{severity}}"
+        }
+      ]
+    },
+    {
+      "title": "Scan Mode Usage",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum by (scan_mode) (agentpep_cis_scan_mode_usage_total)",
+          "legendFormat": "{{scan_mode}}"
+        }
+      ]
+    },
+    {
+      "title": "CIS Findings by Scanner Tier",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(agentpep_cis_findings_total[5m])",
+          "legendFormat": "{{scanner}} / {{severity}}"
+        }
+      ]
+    },
+    {
+      "title": "Session Config Changes",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "rate(agentpep_cis_session_config_changes_total[5m])",
+          "legendFormat": "{{scan_mode}} by {{set_by}}"
+        }
+      ]
+    },
+    {
+      "title": "Compliance Exports",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(agentpep_cis_compliance_exports_total)",
+          "legendFormat": "Total Exports"
+        }
+      ]
+    },
+    {
+      "title": "Compliance Exports by Template",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum by (template, format) (agentpep_cis_compliance_exports_total)",
+          "legendFormat": "{{template}} ({{format}})"
+        }
+      ]
+    },
+    {
+      "title": "YOLO Propagation Latency",
+      "type": "histogram",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "expr": "agentpep_cis_yolo_propagation_latency_seconds_bucket",
+          "legendFormat": "{{le}}"
+        }
+      ]
+    },
+    {
+      "title": "CIS Dashboard Query Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        {
+          "expr": "rate(agentpep_cis_dashboard_queries_total[5m])",
+          "legendFormat": "{{widget}}"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["agentpep", "cis", "sprint56", "yolo"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "AgentPEP — CIS Overview (Sprint 56)",
+  "uid": "agentpep-cis-sprint56",
+  "version": 1
+}
