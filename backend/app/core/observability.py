@@ -472,6 +472,56 @@ CIS_FINDINGS_TOTAL = Counter(
     ["severity", "scanner"],
 )
 
+# --- Sprint 55 (APEP-436..443): CaMeL SEQ Rules, Bridge & Self-Protection ---
+
+SEQ_RULES_TRIGGERED_TOTAL = Counter(
+    "agentpep_seq_rules_triggered_total",
+    "Total CaMeL-lite SEQ rules triggered by rule_id and severity",
+    ["rule_id", "severity"],
+)
+
+SEQ_DETECTION_LATENCY = Histogram(
+    "agentpep_seq_detection_latency_seconds",
+    "CaMeL SEQ rule evaluation latency",
+    buckets=[0.0005, 0.001, 0.005, 0.01, 0.025, 0.05, 0.1],
+)
+
+SEQ_MARKERS_PLACED_TOTAL = Counter(
+    "agentpep_seq_markers_placed_total",
+    "Total session markers placed by marker type",
+    ["marker_type"],
+)
+
+TOOLTRUST_BRIDGE_TOTAL = Counter(
+    "agentpep_tooltrust_bridge_total",
+    "Total ToolTrust bridge scans by decision",
+    ["decision"],
+)
+
+TOOLTRUST_BRIDGE_LATENCY = Histogram(
+    "agentpep_tooltrust_bridge_latency_seconds",
+    "ToolTrust bridge scan latency",
+    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25],
+)
+
+CIS_VERDICT_TAINT_TOTAL = Counter(
+    "agentpep_cis_verdict_taint_total",
+    "Total CIS verdicts applied as taint by verdict and taint_level",
+    ["verdict", "taint_level"],
+)
+
+SELF_PROTECTION_BLOCKED_TOTAL = Counter(
+    "agentpep_self_protection_blocked_total",
+    "Total agent-initiated policy modifications blocked by operation",
+    ["operation", "caller_type"],
+)
+
+PROTECTED_PATH_BLOCKED_TOTAL = Counter(
+    "agentpep_protected_path_blocked_total",
+    "Total protected path operations blocked by pattern and operation",
+    ["pattern_id", "operation"],
+)
+
 
 # --- Sprint 56 (APEP-444/445/448/449): YOLO Mode & Session Risk Metrics ---
 

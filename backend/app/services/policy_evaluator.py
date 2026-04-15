@@ -361,6 +361,89 @@ class PolicyEvaluator:
             except Exception:
                 logger.warning("Kill switch check failed; proceeding", exc_info=True)
 
+        # --- Sprint 55 (APEP-441): Protected path guard ---
+        # Block agent operations on security-critical file paths.
+        if settings.protected_path_guard_enabled:
+            try:
+                from app.models.camel_seq import CallerType, ProtectedPathCheckRequest
+                from app.services.protected_path_guard import protected_path_guard
+
+                # Extract file path from tool_args if present
+                _pp_path = None
+                if request.tool_args:
+                    _pp_path = (
+                        request.tool_args.get("path")
+                        or request.tool_args.get("file_path")
+                        or request.tool_args.get("file")
+                        or request.tool_args.get("target")
+                    )
+
+                if _pp_path and isinstance(_pp_path, str):
+                    # Determine operation from tool name
+                    _pp_op = "read"
+                    _tool_lower = request.tool_name.lower()
+                    if any(k in _tool_lower for k in ("write", "create", "put", "set")):
+                        _pp_op = "write"
+                    elif any(k in _tool_lower for k in ("delete", "remove", "rm")):
+                        _pp_op = "delete"
+                    elif any(k in _tool_lower for k in ("modify", "update", "patch", "edit")):
+                        _pp_op = "modify"
+
+                    _pp_result = protected_path_guard.check(
+                        ProtectedPathCheckRequest(
+                            path=_pp_path,
+                            operation=_pp_op,
+                            agent_id=request.agent_id,
+                            session_id=request.session_id,
+                            caller_type=CallerType.AGENT,
+                        )
+                    )
+
+                    if not _pp_result.allowed:
+                        from app.core.observability import PROTECTED_PATH_BLOCKED_TOTAL
+
+                        PROTECTED_PATH_BLOCKED_TOTAL.labels(
+                            pattern_id=_pp_result.matched_pattern or "unknown",
+                            operation=_pp_op,
+                        ).inc()
+
+                        elapsed_ms = int((time.monotonic() - start) * 1000)
+                        decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
+                        return PolicyDecisionResponse(
+                            request_id=request.request_id,
+                            decision=decision,
+                            reason=f"Protected path blocked: {_pp_result.reason}",
+                            risk_score=1.0,
+                            latency_ms=elapsed_ms,
+                        )
+            except Exception:
+                logger.warning("Protected path guard failed; proceeding", exc_info=True)
+
+        # --- Sprint 55 (APEP-437): Place session marker for SEQ detection ---
+        if settings.camel_seq_enabled:
+            try:
+                from app.services.session_marker_store import session_marker_manager
+
+                _marker_type = session_marker_manager.classify_tool_call(
+                    request.tool_name
+                )
+                if _marker_type is not None:
+                    session_marker_manager.place_marker(
+                        session_id=request.session_id,
+                        marker_type=_marker_type,
+                        tool_name=request.tool_name,
+                        agent_id=request.agent_id,
+                        metadata={"request_id": str(request.request_id)},
+                        ttl_seconds=settings.camel_seq_marker_ttl_s,
+                    )
+                    from app.core.observability import SEQ_MARKERS_PLACED_TOTAL
+
+                    SEQ_MARKERS_PLACED_TOTAL.labels(
+                        marker_type=_marker_type.value,
+                    ).inc()
+            except Exception:
+                logger.warning("Session marker placement failed; proceeding", exc_info=True)
+
         # --- Sprint 37: Plan pipeline filters (pre-RBAC) ---
         if settings.mission_plan_enabled:
             plan_result = await self._check_plan_constraints(request, start)
