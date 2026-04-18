@@ -4,6 +4,12 @@ APEP-098: Forwards MCP tool call messages to the target MCP server post-approval
 APEP-100: Integrates with the Intercept API so that DENY returns an MCP error
           response and ALLOW forwards the request to the upstream MCP server.
 
+Sprint 48 enhancements (APEP-380..385):
+  - Bidirectional DLP: scan outbound args AND inbound responses
+  - Tool poisoning detection on tools/list responses
+  - Rug-pull detection on mid-session tool description changes
+  - Session DLP budget enforcement
+
 The proxy sits between an MCP-compliant agent (client) and an MCP tool server:
 
     Agent  ──▶  AgentPEP MCP Proxy  ──▶  Target MCP Server
@@ -11,7 +17,11 @@ The proxy sits between an MCP-compliant agent (client) and an MCP tool server:
                  ├─ Parse JSON-RPC envelope (APEP-099)
                  ├─ Evaluate via Intercept API (APEP-100)
                  ├─ Track taint per session (APEP-101)
-                 └─ Forward or deny
+                 ├─ Bidirectional DLP scan (APEP-380)
+                 ├─ Response injection scan (APEP-381)
+                 ├─ Tool poisoning detection (APEP-382)
+                 ├─ Rug-pull detection (APEP-383)
+                 └─ Session DLP budget (APEP-385)
 """
 
 from __future__ import annotations
@@ -22,6 +32,10 @@ from uuid import uuid4
 
 import httpx
 
+from app.models.mcp_security import (
+    MCPSecurityEvent,
+    MCPSecurityEventType,
+)
 from app.models.policy import Decision, ToolCallRequest
 from app.services.mcp_message_parser import (
     MCPMessageType,
@@ -29,7 +43,12 @@ from app.services.mcp_message_parser import (
     ParsedMCPMessage,
     mcp_message_parser,
 )
+from app.services.mcp_outbound_scanner import mcp_outbound_scanner
+from app.services.mcp_response_scanner import mcp_response_scanner
+from app.services.mcp_rug_pull_detector import mcp_rug_pull_detector
+from app.services.mcp_session_dlp_budget import mcp_session_dlp_budget_tracker
 from app.services.mcp_session_tracker import mcp_session_tracker
+from app.services.mcp_tool_poisoning_detector import mcp_tool_poisoning_detector
 from app.services.policy_evaluator import policy_evaluator
 
 logger = logging.getLogger(__name__)
@@ -39,6 +58,11 @@ MCP_ERROR_POLICY_DENIED = -32001
 MCP_ERROR_POLICY_ESCALATED = -32002
 MCP_ERROR_UPSTREAM_FAILED = -32003
 MCP_ERROR_SESSION_UNKNOWN = -32004
+# Sprint 48 error codes
+MCP_ERROR_DLP_BLOCKED = -32005
+MCP_ERROR_TOOL_POISONING = -32006
+MCP_ERROR_RUG_PULL = -32007
+MCP_ERROR_DLP_BUDGET_EXCEEDED = -32008
 
 
 class MCPProxy:
@@ -59,18 +83,38 @@ class MCPProxy:
     # Allowed URL schemes for upstream MCP servers
     _ALLOWED_SCHEMES = {"http", "https"}
 
-    def __init__(self, upstream_url: str, agent_id: str, session_id: str | None = None):
+    def __init__(
+        self,
+        upstream_url: str,
+        agent_id: str,
+        session_id: str | None = None,
+        *,
+        dlp_scan_enabled: bool = True,
+        poisoning_detection_enabled: bool = True,
+        rug_pull_detection_enabled: bool = True,
+        dlp_budget_enabled: bool = True,
+    ):
         """
         Args:
             upstream_url: Base URL of the target MCP server (e.g. http://localhost:3000/mcp).
             agent_id: The agent ID for policy evaluation.
             session_id: Optional session ID; auto-generated if not provided.
+            dlp_scan_enabled: Enable bidirectional DLP scanning (Sprint 48).
+            poisoning_detection_enabled: Enable tool poisoning detection (Sprint 48).
+            rug_pull_detection_enabled: Enable rug-pull detection (Sprint 48).
+            dlp_budget_enabled: Enable session DLP budget tracking (Sprint 48).
         """
         self._validate_upstream_url(upstream_url)
         self.upstream_url = upstream_url.rstrip("/")
         self.agent_id = agent_id
         self.session_id = session_id or f"mcp-{uuid4().hex[:12]}"
         self._started = False
+        # Sprint 48 feature flags
+        self._dlp_scan_enabled = dlp_scan_enabled
+        self._poisoning_detection_enabled = poisoning_detection_enabled
+        self._rug_pull_detection_enabled = rug_pull_detection_enabled
+        self._dlp_budget_enabled = dlp_budget_enabled
+        self._security_events: list[MCPSecurityEvent] = []
 
     @classmethod
     def _validate_upstream_url(cls, url: str) -> None:
@@ -102,12 +146,20 @@ class MCPProxy:
         """Start the proxy session and initialise taint tracking."""
         if not self._started:
             mcp_session_tracker.start_session(self.session_id, self.agent_id)
+            # Sprint 48: initialise session DLP budget
+            if self._dlp_budget_enabled:
+                mcp_session_dlp_budget_tracker.create_budget(
+                    self.session_id, self.agent_id
+                )
             self._started = True
 
     async def stop(self) -> None:
         """End the proxy session and persist taint graph."""
         if self._started:
             await mcp_session_tracker.end_session(self.session_id)
+            # Sprint 48: clean up session state
+            mcp_rug_pull_detector.clear_session(self.session_id)
+            mcp_session_dlp_budget_tracker.remove_budget(self.session_id)
             self._started = False
 
     async def handle_message(self, message: dict[str, Any]) -> dict[str, Any]:
@@ -117,6 +169,16 @@ class MCPProxy:
         """
         if not self._started:
             await self.start()
+
+        # Sprint 48: check DLP budget before processing
+        if self._dlp_budget_enabled and mcp_session_dlp_budget_tracker.is_exceeded(self.session_id):
+            budget = mcp_session_dlp_budget_tracker.get_budget(self.session_id)
+            return mcp_message_parser.build_jsonrpc_error(
+                request_id=message.get("id"),
+                code=MCP_ERROR_DLP_BUDGET_EXCEEDED,
+                message=f"Session DLP budget exceeded: {budget.exceeded_reason if budget else 'unknown'}",
+                data={"decision": "BLOCK", "session_id": self.session_id},
+            )
 
         try:
             parsed = mcp_message_parser.parse(message)
@@ -133,6 +195,10 @@ class MCPProxy:
         is_tool_call = parsed.message_type == MCPMessageType.TOOL_CALL
         if is_tool_call and (parsed.is_request or parsed.is_notification):
             return await self._handle_tool_call(message, parsed)
+
+        # Sprint 48: intercept tools/list for poisoning + rug-pull detection
+        if parsed.message_type == MCPMessageType.TOOL_LIST:
+            return await self._handle_tools_list(message, parsed)
 
         # Forward non-tool-call messages transparently
         return await self._forward_to_upstream(message)
@@ -151,13 +217,47 @@ class MCPProxy:
         """Intercept a tools/call request: evaluate policy, then forward or deny."""
         assert parsed.tool_name is not None
 
+        # Sprint 48: outbound DLP scan before policy evaluation
+        if self._dlp_scan_enabled and parsed.tool_args:
+            outbound_scan = mcp_outbound_scanner.scan_outbound(
+                tool_name=parsed.tool_name,
+                tool_args=parsed.tool_args,
+                session_id=self.session_id,
+                agent_id=self.agent_id,
+            )
+            if outbound_scan.findings:
+                mcp_session_dlp_budget_tracker.record_findings(
+                    self.session_id, outbound_scan.findings
+                )
+                self._security_events.append(MCPSecurityEvent(
+                    event_type=MCPSecurityEventType.OUTBOUND_DLP_HIT,
+                    session_id=self.session_id,
+                    agent_id=self.agent_id,
+                    tool_name=parsed.tool_name,
+                    severity=outbound_scan.findings[0].severity,
+                    description=f"Outbound DLP: {len(outbound_scan.findings)} findings",
+                    findings_count=len(outbound_scan.findings),
+                    blocked=outbound_scan.blocked,
+                ))
+            if outbound_scan.blocked:
+                logger.warning(
+                    "MCP outbound DLP BLOCKED: session=%s tool=%s findings=%d",
+                    self.session_id,
+                    parsed.tool_name,
+                    len(outbound_scan.findings),
+                )
+                return mcp_message_parser.build_jsonrpc_error(
+                    request_id=parsed.request_id,
+                    code=MCP_ERROR_DLP_BLOCKED,
+                    message="Tool call blocked by outbound DLP scan",
+                    data={
+                        "decision": "BLOCK",
+                        "tool_name": parsed.tool_name,
+                        "findings_count": len(outbound_scan.findings),
+                    },
+                )
+
         # Build an Intercept API request
-        # TODO: taint_node_ids should be populated from the session context's
-        # taint graph (e.g. tracking which tool outputs fed into this call's
-        # arguments).  Currently get_taint_node_ids_for_args may return an
-        # empty list if the session taint graph hasn't been wired up, which
-        # means taint-based policy checks won't fire.  Wire up the MCP
-        # session tracker to propagate taint labels from prior tool outputs.
         intercept_request = ToolCallRequest(
             session_id=self.session_id,
             agent_id=self.agent_id,
@@ -244,7 +344,131 @@ class MCPProxy:
                 input_node_ids=input_nodes if input_nodes else None,
             )
 
+            # Sprint 48: scan inbound response for injection + DLP
+            if self._dlp_scan_enabled:
+                resp_scan = mcp_response_scanner.scan_response(
+                    tool_name=parsed.tool_name,
+                    response_data=upstream_response.get("result"),
+                    session_id=self.session_id,
+                    agent_id=self.agent_id,
+                )
+                if resp_scan.dlp_findings:
+                    mcp_session_dlp_budget_tracker.record_findings(
+                        self.session_id, resp_scan.dlp_findings
+                    )
+                    self._security_events.append(MCPSecurityEvent(
+                        event_type=MCPSecurityEventType.INBOUND_DLP_HIT,
+                        session_id=self.session_id,
+                        agent_id=self.agent_id,
+                        tool_name=parsed.tool_name,
+                        severity=resp_scan.dlp_findings[0].severity,
+                        description=f"Inbound DLP: {len(resp_scan.dlp_findings)} findings",
+                        findings_count=len(resp_scan.dlp_findings),
+                    ))
+                if resp_scan.injection_findings:
+                    self._security_events.append(MCPSecurityEvent(
+                        event_type=MCPSecurityEventType.RESPONSE_INJECTION,
+                        session_id=self.session_id,
+                        agent_id=self.agent_id,
+                        tool_name=parsed.tool_name,
+                        severity="CRITICAL",
+                        description=f"Response injection: {len(resp_scan.injection_findings)} findings",
+                        findings_count=len(resp_scan.injection_findings),
+                    ))
+
         return upstream_response
+
+    async def _handle_tools_list(
+        self, original_message: dict[str, Any], parsed: ParsedMCPMessage
+    ) -> dict[str, Any]:
+        """Handle tools/list: forward, then scan for poisoning and rug-pulls (Sprint 48)."""
+        upstream_response = await self._forward_to_upstream(original_message)
+
+        # Extract tools from the response
+        result = upstream_response.get("result", {})
+        tools_list = result.get("tools", []) if isinstance(result, dict) else []
+
+        if not tools_list:
+            return upstream_response
+
+        # Tool poisoning detection (APEP-382)
+        if self._poisoning_detection_enabled:
+            poisoning_result = mcp_tool_poisoning_detector.scan_tools_list(
+                tools=tools_list,
+                session_id=self.session_id,
+                agent_id=self.agent_id,
+            )
+            if poisoning_result.findings:
+                logger.warning(
+                    "Tool poisoning detected: session=%s findings=%d blocked=%s",
+                    self.session_id,
+                    len(poisoning_result.findings),
+                    poisoning_result.blocked,
+                )
+                self._security_events.append(MCPSecurityEvent(
+                    event_type=MCPSecurityEventType.TOOL_POISONING_DETECTED,
+                    session_id=self.session_id,
+                    agent_id=self.agent_id,
+                    severity="CRITICAL",
+                    description=f"Tool poisoning: {len(poisoning_result.findings)} findings",
+                    findings_count=len(poisoning_result.findings),
+                    blocked=poisoning_result.blocked,
+                ))
+                if poisoning_result.blocked:
+                    return mcp_message_parser.build_jsonrpc_error(
+                        request_id=parsed.request_id,
+                        code=MCP_ERROR_TOOL_POISONING,
+                        message="Tool poisoning detected in tools/list response",
+                        data={
+                            "findings_count": len(poisoning_result.findings),
+                            "tools_scanned": poisoning_result.tools_scanned,
+                        },
+                    )
+
+        # Rug-pull detection (APEP-383)
+        if self._rug_pull_detection_enabled:
+            rug_result = mcp_rug_pull_detector.detect(
+                session_id=self.session_id,
+                agent_id=self.agent_id,
+                tools=tools_list,
+            )
+            if rug_result.is_rug_pull:
+                logger.warning(
+                    "Rug-pull detected: session=%s changes=%d blocked=%s",
+                    self.session_id,
+                    len(rug_result.changes),
+                    rug_result.blocked,
+                )
+                self._security_events.append(MCPSecurityEvent(
+                    event_type=MCPSecurityEventType.RUG_PULL_DETECTED,
+                    session_id=self.session_id,
+                    agent_id=self.agent_id,
+                    severity="CRITICAL",
+                    description=f"Rug-pull: {len(rug_result.changes)} changes",
+                    findings_count=len(rug_result.changes),
+                    blocked=rug_result.blocked,
+                ))
+                if rug_result.blocked:
+                    return mcp_message_parser.build_jsonrpc_error(
+                        request_id=parsed.request_id,
+                        code=MCP_ERROR_RUG_PULL,
+                        message="Mid-session tool description change (rug-pull) detected",
+                        data={
+                            "changes_count": len(rug_result.changes),
+                            "changes": [
+                                {"tool": c.tool_name, "type": c.change_type}
+                                for c in rug_result.changes
+                            ],
+                        },
+                    )
+
+        return upstream_response
+
+    def get_security_events(self) -> list[MCPSecurityEvent]:
+        """Get and clear pending security events (for Kafka publishing)."""
+        events = list(self._security_events)
+        self._security_events.clear()
+        return events
 
     async def _forward_to_upstream(self, message: dict[str, Any]) -> dict[str, Any]:
         """Forward a JSON-RPC message to the upstream MCP server via HTTP POST."""
