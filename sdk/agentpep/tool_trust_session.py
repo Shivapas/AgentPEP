@@ -405,3 +405,45 @@ class ToolTrustSession:
         resp = await http.get(f"/v1/plans/{self._plan.plan_id}/budget")
         resp.raise_for_status()
         return resp.json()
+
+    # ------------------------------------------------------------------
+    # APEP-438: ToolTrust Bridge
+    # ------------------------------------------------------------------
+
+    async def bridge_scan(
+        self,
+        *,
+        tool_name: str,
+        tool_args: dict[str, Any] | None = None,
+        tooltrust_verdict: str = "",
+        tooltrust_scan_id: str = "",
+        tooltrust_findings: list[dict[str, Any]] | None = None,
+        scan_mode: str = "STANDARD",
+    ) -> dict[str, Any]:
+        """Scan a tool call through the ToolTrust->AgentPEP bridge.
+
+        Sends a PreToolUse scan request from ToolTrust Layer 3 to AgentPEP,
+        which evaluates it through the full pipeline including CaMeL SEQ
+        rules, CIS scanning, and chain detection.
+
+        Args:
+            tool_name: Tool about to be executed.
+            tool_args: Tool arguments.
+            tooltrust_verdict: ToolTrust Layer 3 verdict (allow/warn/block).
+            tooltrust_scan_id: ToolTrust scan trace ID for correlation.
+            tooltrust_findings: Findings from ToolTrust Layer 3 scan.
+            scan_mode: Scan mode (STRICT, STANDARD, LENIENT).
+
+        Returns:
+            Bridge scan result dict with decision, risk_score, seq_matches.
+        """
+        return await self._client.bridge_scan(
+            tool_name=tool_name,
+            tool_args=tool_args,
+            session_id=self.session_id,
+            agent_id=self.agent_id,
+            tooltrust_verdict=tooltrust_verdict,
+            tooltrust_scan_id=tooltrust_scan_id,
+            tooltrust_findings=tooltrust_findings,
+            scan_mode=scan_mode,
+        )

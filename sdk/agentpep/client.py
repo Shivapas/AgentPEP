@@ -626,6 +626,63 @@ class AgentPEPClient:
                 return {"allowed": True, "findings": [], "fail_open": True}
             raise AgentPEPTimeoutError(f"cis_scan_sync timed out: {exc}") from exc
 
+    # --- Sprint 55 (APEP-438): ToolTrust Bridge ---
+
+    async def bridge_scan(
+        self,
+        tool_name: str,
+        *,
+        tool_args: dict[str, Any] | None = None,
+        session_id: str = "",
+        agent_id: str = "",
+        tooltrust_verdict: str = "",
+        tooltrust_scan_id: str = "",
+        tooltrust_findings: list[dict[str, Any]] | None = None,
+        scan_mode: str = "STANDARD",
+    ) -> dict[str, Any]:
+        """Scan a tool call through the ToolTrust->AgentPEP bridge (async).
+
+        Args:
+            tool_name: Tool about to be executed.
+            tool_args: Tool arguments.
+            session_id: ToolTrust session ID.
+            agent_id: Agent ID from ToolTrust.
+            tooltrust_verdict: ToolTrust Layer 3 verdict (allow/warn/block).
+            tooltrust_scan_id: ToolTrust scan trace ID.
+            tooltrust_findings: Findings from ToolTrust Layer 3.
+            scan_mode: Scan mode (STRICT, STANDARD, LENIENT).
+
+        Returns:
+            The bridge scan result dict from the server.
+        """
+        payload: dict[str, Any] = {
+            "tool_name": tool_name,
+            "tool_args": tool_args or {},
+            "session_id": session_id,
+            "agent_id": agent_id,
+            "tooltrust_verdict": tooltrust_verdict,
+            "tooltrust_scan_id": tooltrust_scan_id,
+            "tooltrust_findings": tooltrust_findings or [],
+            "scan_mode": scan_mode,
+        }
+
+        try:
+            client = await self._get_async_client()
+            resp = await client.post("/v1/camel/bridge/scan", json=payload)
+            resp.raise_for_status()
+            return resp.json()  # type: ignore[no-any-return]
+
+        except httpx.ConnectError as exc:
+            if self.fail_open:
+                logger.warning("AgentPEP unreachable — bridge_scan fail_open")
+                return {"allowed": True, "decision": "ALLOW", "fail_open": True}
+            raise AgentPEPConnectionError(f"Cannot connect to AgentPEP: {exc}") from exc
+        except httpx.TimeoutException as exc:
+            if self.fail_open:
+                logger.warning("AgentPEP timeout — bridge_scan fail_open")
+                return {"allowed": True, "decision": "ALLOW", "fail_open": True}
+            raise AgentPEPTimeoutError(f"bridge_scan timed out: {exc}") from exc
+
     def close(self) -> None:
         """Close the underlying sync HTTP client."""
         if self._sync_client and not self._sync_client.is_closed:

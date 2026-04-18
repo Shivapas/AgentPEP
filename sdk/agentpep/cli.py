@@ -997,6 +997,71 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 
+def cmd_bridge_scan(args: argparse.Namespace) -> int:
+    """Scan a tool call through the ToolTrust->AgentPEP bridge (APEP-438)."""
+    import httpx
+
+    base_url = args.base_url.rstrip("/")
+    headers: dict[str, str] = {"Content-Type": "application/json"}
+    if args.api_key:
+        headers["X-API-Key"] = args.api_key
+
+    payload: dict[str, Any] = {
+        "tool_name": args.tool_name,
+        "session_id": args.session_id,
+        "agent_id": args.agent_id,
+        "tooltrust_verdict": args.tooltrust_verdict,
+        "tooltrust_scan_id": args.tooltrust_scan_id,
+        "scan_mode": args.scan_mode,
+    }
+
+    try:
+        with httpx.Client(timeout=args.timeout) as client:
+            resp = client.post(
+                f"{base_url}/v1/camel/bridge/scan",
+                json=payload,
+                headers=headers,
+            )
+            resp.raise_for_status()
+            result = resp.json()
+
+        if args.json:
+            print(json.dumps(result, indent=2, default=str))
+        else:
+            allowed = result.get("allowed", True)
+            decision = result.get("decision", "ALLOW")
+            risk = result.get("risk_score", 0.0)
+            latency = result.get("latency_ms", 0)
+            reason = result.get("reason", "")
+
+            status = "PASS" if allowed else "BLOCKED"
+            print(f"  Status: {status}")
+            print(f"  Decision: {decision}")
+            print(f"  Risk Score: {risk:.2f}")
+            print(f"  Latency: {latency}ms")
+            if reason:
+                print(f"  Reason: {reason}")
+
+            seq_matches = result.get("seq_matches", [])
+            if seq_matches:
+                print(f"\n  SEQ Matches ({len(seq_matches)}):")
+                for m in seq_matches:
+                    print(
+                        f"    - {m.get('rule_id', '?')}: "
+                        f"{m.get('rule_name', '?')} "
+                        f"[{m.get('severity', '?')}] → {m.get('action', '?')}"
+                    )
+
+            if result.get("taint_assigned"):
+                print(f"  Taint Assigned: {result['taint_assigned']}")
+
+        return 0 if result.get("allowed", True) else 1
+
+    except Exception as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+
 def cmd_cis_scan(args: argparse.Namespace) -> int:
     """Scan a file path or text through the CIS pipeline (APEP-434)."""
     from agentpep.client import AgentPEPClient
@@ -1232,6 +1297,33 @@ def build_parser() -> argparse.ArgumentParser:
     fetch_p.add_argument("--json", action="store_true", help="Output as JSON")
     fetch_p.add_argument("--timeout", type=float, default=30.0, help="Request timeout")
 
+    # --- bridge-scan (Sprint 55 — APEP-438) ---
+    bridge_p = subparsers.add_parser(
+        "bridge-scan",
+        help="Scan a tool call through ToolTrust->AgentPEP bridge",
+    )
+    bridge_p.add_argument("tool_name", help="Tool name to scan")
+    bridge_p.add_argument(
+        "--base-url", default="http://localhost:8000",
+        help="AgentPEP server URL",
+    )
+    bridge_p.add_argument("--api-key", help="API key for authentication")
+    bridge_p.add_argument("--session-id", default="", help="Session ID")
+    bridge_p.add_argument("--agent-id", default="", help="Agent ID")
+    bridge_p.add_argument(
+        "--tooltrust-verdict", default="",
+        choices=["", "allow", "warn", "block"],
+        help="ToolTrust Layer 3 verdict",
+    )
+    bridge_p.add_argument("--tooltrust-scan-id", default="", help="ToolTrust scan ID")
+    bridge_p.add_argument(
+        "--scan-mode", default="STANDARD",
+        choices=["STRICT", "STANDARD", "LENIENT"],
+        help="Scan mode (default: STANDARD)",
+    )
+    bridge_p.add_argument("--json", action="store_true", help="Output as JSON")
+    bridge_p.add_argument("--timeout", type=float, default=10.0, help="Request timeout")
+
     # --- cis-scan (Sprint 54 — APEP-434) ---
     cis_p = subparsers.add_parser("cis-scan", help="Scan file or text through CIS pipeline")
     cis_p.add_argument("target", help="File path or text content to scan")
@@ -1316,6 +1408,9 @@ def main(argv: list[str] | None = None) -> int:
 
     elif args.command == "fetch":
         return cmd_fetch(args)
+
+    elif args.command == "bridge-scan":
+        return cmd_bridge_scan(args)
 
     elif args.command == "cis-scan":
         return cmd_cis_scan(args)

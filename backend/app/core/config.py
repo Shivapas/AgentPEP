@@ -273,13 +273,17 @@ class Settings(BaseSettings):
     mitre_attack_mapping_enabled: bool = True
 
     # Sprint 55 — APEP-436..443: CaMeL SEQ Rules, Layer 3 Bridge & Self-Protection
+    camel_seq_enabled: bool = True
     camel_seq_rules_enabled: bool = True
+    camel_seq_marker_ttl_s: int = 600
+    camel_seq_max_markers_per_session: int = 500
     session_marker_enabled: bool = True
     tooltrust_bridge_enabled: bool = True
     cis_verdict_taint_enabled: bool = True
     self_protection_enabled: bool = True
     protected_path_guard_enabled: bool = True
     seq_dry_run: bool = False  # When True, enforcing SEQ rules log only
+    kafka_camel_seq_topic: str = "agentpep.camel_seq"
 
     model_config = {"env_prefix": "AGENTPEP_"}
 
