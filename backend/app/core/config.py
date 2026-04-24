@@ -323,6 +323,17 @@ class Settings(BaseSettings):
     # Maximum entries retained in the in-memory enforcement decision ring buffer
     pdp_log_max_entries: int = 10_000
 
+    # Sprint S-E07 — FEATURE-05: PostToolUse Hooks + TrustSOC Integration Contract
+    # Kafka topic for PostToolUse OCSF events (TrustSOC consumer reads from here)
+    kafka_posttooluse_topic: str = "agentpep.posttooluse.events"
+    # HMAC-SHA256 key for tamper-evident PostToolUse event signing.
+    # Set via AGENTPEP_POSTTOOLUSE_HMAC_KEY. If unset, events are unsigned
+    # (warning logged once). Minimum 32 characters recommended in production.
+    posttooluse_hmac_key: str = ""
+    # Maximum milliseconds allowed for PostToolUse hook invocation + Kafka publish.
+    # Exceeded latency is logged as a warning; the pipeline is never blocked.
+    posttooluse_kafka_sla_ms: int = 500
+
     # Sprint 55 — APEP-436..443: CaMeL SEQ Rules, Layer 3 Bridge & Self-Protection
     camel_seq_enabled: bool = True
     camel_seq_rules_enabled: bool = True

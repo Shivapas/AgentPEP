@@ -10,6 +10,8 @@ Checks three dimensions of complexity:
   - Nesting depth (max depth of dict/list structure)
 
 Sprint S-E02 (E02-T01, E02-T02, E02-T04)
+Sprint S-E07 (E07-T06): Upgraded COMPLEXITY_EXCEEDED from stub to full OCSF schema
+  with HMAC signing and sequence ID support.
 """
 
 from __future__ import annotations
@@ -186,7 +188,7 @@ class ComplexityBudgetChecker:
 
 
 # ---------------------------------------------------------------------------
-# COMPLEXITY_EXCEEDED event — stub OCSF schema (formalised in Sprint S-E07)
+# COMPLEXITY_EXCEEDED event — full OCSF schema (Sprint S-E07, E07-T06)
 # ---------------------------------------------------------------------------
 
 _OCSF_CLASS_UID_COMPLIANCE_FINDING = 4003
@@ -200,15 +202,20 @@ def emit_complexity_exceeded_event(
     agent_id: str = "",
     request_id: str = "",
 ) -> dict[str, Any]:
-    """Build and log a COMPLEXITY_EXCEEDED event (stub OCSF schema).
+    """Build, sign, and log a COMPLEXITY_EXCEEDED OCSF event.
 
-    The full OCSF schema formalisation and Kafka transport happen in S-E07.
-    This stub ensures the event is emitted synchronously and logged for
-    audit purposes.
+    Upgraded from a stub (S-E02) to the full TrustFabric OCSF Profile in
+    Sprint S-E07 (E07-T06): adds sequence_id, HMAC signing, and the
+    profile / bundle_version metadata fields.
 
-    Returns the event dict (useful for testing).
+    Returns the signed event dict (useful for testing).
     """
+    from app.events.event_signer import try_sign_event
+    from app.events.sequence_id import sequence_id_from_request
+
     now_ms = int(time.time() * 1000)
+    sequence_id = sequence_id_from_request(request_id) if request_id else ""
+
     event: dict[str, Any] = {
         # OCSF envelope
         "class_uid": _OCSF_CLASS_UID_COMPLIANCE_FINDING,
@@ -222,7 +229,7 @@ def emit_complexity_exceeded_event(
         "type_uid": 400302,
         "time": now_ms,
         "start_time": now_ms,
-        # Metadata
+        # Metadata (full profile)
         "metadata": {
             "version": "1.0.0",
             "product": {
@@ -230,6 +237,7 @@ def emit_complexity_exceeded_event(
                 "vendor_name": "TrustFabric",
             },
             "event_code": "COMPLEXITY_EXCEEDED",
+            "profile": "TrustFabric/AgentPEP/v1.0",
         },
         # Actor context
         "actor": {
@@ -241,12 +249,14 @@ def emit_complexity_exceeded_event(
             {
                 "type": "tool_call",
                 "name": tool_name,
+                "uid": sequence_id,
             }
         ],
-        # Finding details
+        # Finding details — includes sequence_id for Pre/PostToolUse correlation
         "finding_info": {
             "title": "Complexity budget exceeded — request denied",
-            "uid": request_id,
+            "uid": sequence_id,
+            "sequence_id": sequence_id,
             "violations": [
                 {
                     "dimension": v.dimension,
@@ -262,6 +272,9 @@ def emit_complexity_exceeded_event(
         "evaluation_guarantee_invariant": True,
     }
 
+    # HMAC sign for tamper-evident stream (S-E07)
+    event = try_sign_event(event)
+
     logger.info(
         "COMPLEXITY_EXCEEDED",
         event_class="COMPLEXITY_EXCEEDED",
@@ -270,6 +283,8 @@ def emit_complexity_exceeded_event(
         agent_id=agent_id,
         violation_count=len(violations),
         violations=[v.dimension for v in violations],
+        sequence_id=sequence_id,
+        signed=bool(event["metadata"].get("hmac_signature")),
     )
 
     return event

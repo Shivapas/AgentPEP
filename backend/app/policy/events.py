@@ -1,4 +1,4 @@
-"""SECURITY_VIOLATION event — stub OCSF schema (formalised in Sprint S-E07).
+"""SECURITY_VIOLATION event — full OCSF schema (Sprint S-E07, E07-T06).
 
 Emitted whenever the trusted policy loader detects a security-relevant
 failure:
@@ -6,7 +6,13 @@ failure:
   - Untrusted source path (URL not on the AAPM registry allowlist)
   - Attempt to override the policy source via environment variable
 
+Upgraded from stub (S-E03) to full TrustFabric OCSF Profile in Sprint S-E07:
+  - HMAC signing for tamper-evident stream
+  - sequence_id field for Pre/PostToolUse correlation
+  - profile and bundle_version metadata fields
+
 Sprint S-E03 (E03-T04)
+Sprint S-E07 (E07-T06)
 """
 
 from __future__ import annotations
@@ -42,15 +48,18 @@ def emit_security_violation_event(
     agent_id: str = "",
     request_id: str = "",
 ) -> dict[str, Any]:
-    """Build, log, and return a SECURITY_VIOLATION event.
+    """Build, sign, and return a SECURITY_VIOLATION OCSF event.
 
-    The full OCSF schema and Kafka transport are formalised in Sprint S-E07.
-    This stub ensures the event is synchronously logged for immediate audit
-    visibility.
+    Upgraded to full TrustFabric OCSF Profile in Sprint S-E07: adds HMAC
+    signing, sequence_id linking, and profile metadata.
 
-    Returns the event dict (useful in tests to inspect emitted events).
+    Returns the signed event dict (useful in tests to inspect emitted events).
     """
+    from app.events.event_signer import try_sign_event
+    from app.events.sequence_id import sequence_id_from_request
+
     now_ms = int(time.time() * 1000)
+    sequence_id = sequence_id_from_request(request_id) if request_id else ""
 
     event: dict[str, Any] = {
         # OCSF envelope
@@ -65,7 +74,7 @@ def emit_security_violation_event(
         "type_uid": 400202,
         "time": now_ms,
         "start_time": now_ms,
-        # Metadata
+        # Metadata (full profile)
         "metadata": {
             "version": "1.0.0",
             "product": {
@@ -73,6 +82,8 @@ def emit_security_violation_event(
                 "vendor_name": "TrustFabric",
             },
             "event_code": "SECURITY_VIOLATION",
+            "profile": "TrustFabric/AgentPEP/v1.0",
+            "bundle_version": bundle_version,
         },
         # Actor context
         "actor": {
@@ -85,12 +96,14 @@ def emit_security_violation_event(
                 "type": "policy_bundle",
                 "name": source_url or "unknown",
                 "version": bundle_version,
+                "uid": sequence_id,
             }
         ],
-        # Finding details
+        # Finding details — includes sequence_id for correlation
         "finding_info": {
             "title": f"Security violation in trusted policy loader: {reason.value}",
-            "uid": request_id,
+            "uid": sequence_id,
+            "sequence_id": sequence_id,
             "reason": reason.value,
             "detail": detail,
             "source_url": source_url,
@@ -101,6 +114,9 @@ def emit_security_violation_event(
         "policy_loader_fail_closed": True,
     }
 
+    # HMAC sign for tamper-evident stream (S-E07)
+    event = try_sign_event(event)
+
     logger.error(
         "SECURITY_VIOLATION",
         event_class="SECURITY_VIOLATION",
@@ -110,6 +126,8 @@ def emit_security_violation_event(
         bundle_version=bundle_version,
         session_id=session_id,
         agent_id=agent_id,
+        sequence_id=sequence_id,
+        signed=bool(event["metadata"].get("hmac_signature")),
     )
 
     return event
