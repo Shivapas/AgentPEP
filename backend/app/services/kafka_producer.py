@@ -399,6 +399,37 @@ class KafkaDecisionProducer:
         """
         return await self.publish_network_event(event)
 
+    # ------------------------------------------------------------------
+    # Sprint S-E07 — FEATURE-05: PostToolUse events
+    # ------------------------------------------------------------------
+
+    async def publish_posttooluse_event(self, event: dict) -> bool:
+        """Publish a PostToolUse OCSF event to the agentpep.posttooluse.events topic.
+
+        Called by the PostToolUseHookRegistry after every tool call (ALLOW and
+        DENY).  Failures are logged but never raised — the 500 ms SLA is a
+        best-effort target; the event stream must never block the decision pipeline.
+        """
+        if not self._started or self._producer is None:
+            return False
+
+        topic = getattr(
+            settings,
+            "kafka_posttooluse_topic",
+            "agentpep.posttooluse.events",
+        )
+
+        try:
+            key = event.get("finding_info", {}).get("sequence_id") or event.get("session_id", "")
+            await self._producer.send_and_wait(
+                topic=topic,
+                key=str(key),
+                value=event,
+            )
+            return True
+        except Exception:
+            logger.exception("Failed to publish PostToolUse event")
+            return False
 
     @property
     def is_running(self) -> bool:
