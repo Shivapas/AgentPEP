@@ -95,9 +95,14 @@ class StructuredLogger:
 
     def exception(self, event: str, *args: Any, **fields: Any) -> None:
         """Log at ERROR level with exception info."""
+        import sys
+
         if args:
             event = event % args
         if self._logger.isEnabledFor(logging.ERROR):
+            # Capture the actual exc_info tuple so the formatter receives a
+            # proper 3-tuple (type, value, traceback) rather than the bool True.
+            exc_info = sys.exc_info()
             record = self._logger.makeRecord(
                 name=self._logger.name,
                 level=logging.ERROR,
@@ -105,7 +110,7 @@ class StructuredLogger:
                 lno=0,
                 msg=event,
                 args=(),
-                exc_info=True,
+                exc_info=exc_info,
             )
             record._structured_fields = fields  # type: ignore[attr-defined]
             self._logger.handle(record)
