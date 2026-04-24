@@ -298,6 +298,22 @@ class Settings(BaseSettings):
     # Hard evaluation timeout; on expiry → unconditional DENY (no FAIL_OPEN override)
     complexity_budget_eval_timeout_s: float = 5.0
 
+    # Sprint S-E03 — FEATURE-02: Trusted Policy Loader + AAPM Consumer Interface
+    policy_loader_enabled: bool = True
+    # HTTP timeout for bundle and signature fetches from the AAPM registry
+    policy_loader_http_timeout_s: float = 30.0
+    # Bundle URL polled as fallback (overrides the default built from base URL)
+    policy_registry_bundle_url: str = (
+        "https://registry.trustfabric.internal/agentpep/policies/"
+        "global/core_enforcement/latest/bundle.tar.gz"
+    )
+    # Polling interval for the registry pull-polling fallback (seconds)
+    policy_poll_interval_s: float = 60.0
+    # Tenant identifier reported in enforcement decision events
+    policy_tenant_id: str = "global"
+    # Logical bundle name reported in enforcement decision events
+    policy_bundle_name: str = "core_enforcement"
+
     # Sprint 55 — APEP-436..443: CaMeL SEQ Rules, Layer 3 Bridge & Self-Protection
     camel_seq_enabled: bool = True
     camel_seq_rules_enabled: bool = True
