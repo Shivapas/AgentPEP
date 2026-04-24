@@ -100,7 +100,11 @@ def _generate_or_load_keypair() -> tuple[Ed25519PrivateKey, Any]:
 # Bundle builder
 # ---------------------------------------------------------------------------
 
-REGO_POLICY = """\
+# ---------------------------------------------------------------------------
+# Bundle type: dev-stub (original development bundle)
+# ---------------------------------------------------------------------------
+
+REGO_POLICY_DEV_STUB = """\
 package agentpep.core
 
 import rego.v1
@@ -114,6 +118,147 @@ allow if {
     input.deployment_tier == "HOMEGROWN"
 }
 """
+
+# ---------------------------------------------------------------------------
+# Bundle type: v1-parity
+#
+# First AAPM-compiled bundle (Sprint S-E05).  Rego compiled from APDL source
+# agentpep-core-v1.0.0.apdl.  Produces decisions identical to the Python
+# RegoNativeEvaluator stub that it supersedes.
+#
+# Rules (must match RegoNativeEvaluator exactly for parity test to pass):
+#   1. Default deny
+#   2. Deny tainted inputs  → reason TAINTED_INPUT
+#   3. Deny trust < 0.0     → reason INSUFFICIENT_TRUST  (effectively unreachable)
+#   4. Allow read-only tools on HOMEGROWN with CLEAN taint and trust >= 0.0
+# ---------------------------------------------------------------------------
+
+REGO_POLICY_V1_PARITY = """\
+package agentpep.core
+
+import rego.v1
+
+# ---------------------------------------------------------------------------
+# AgentPEP Core Enforcement Policy — v1.0.0
+# Source: AgentPEP rule inventory (docs/operations/rule_inventory.md §Class 9)
+# Compiled by AAPM from APDL: agentpep-core-v1.0.0.apdl
+# Do not edit directly; submit change requests through AAPM PCR workflow.
+# ---------------------------------------------------------------------------
+
+# Tools permitted under the v1 policy
+# Mirrors RegoNativeEvaluator._READ_ONLY_TOOLS
+_permitted_tools := {
+    "read_file",
+    "list_dir",
+    "search_code",
+    "get_file_contents",
+    "list_files",
+}
+
+# Default deny — Evaluation Guarantee Invariant
+default allow := false
+
+# Gate 1: Tainted inputs are unconditionally denied.
+# Mirrors: RegoNativeEvaluator taint check (taint_level != "CLEAN" → DENY)
+allow := false if {
+    input.taint_level != "CLEAN"
+}
+
+# Gate 2: Insufficient trust score.
+# Mirrors: RegoNativeEvaluator trust check (trust_score < 0.0 → DENY)
+# Note: 0.0 is the effective floor; this gate is preserved for defence-in-depth.
+allow := false if {
+    input.trust_score < 0.0
+}
+
+# Allow rule: read-only tools, HOMEGROWN tier, clean taint, sufficient trust.
+# Mirrors: RegoNativeEvaluator allow path.
+allow if {
+    input.tool_name in _permitted_tools
+    input.deployment_tier == "HOMEGROWN"
+    input.taint_level == "CLEAN"
+    input.trust_score >= 0.0
+}
+"""
+
+# ---------------------------------------------------------------------------
+# Bundle type: emergency-deny-all
+#
+# Emergency deny-all bundle published by AAPM when a critical security event
+# requires immediate halt of all agent tool calls.  AgentPEP must enforce this
+# within the 5-minute SLA defined in the AAPM–AgentPEP integration contract.
+#
+# All tool calls → DENY regardless of input.  No allow rules.
+# ---------------------------------------------------------------------------
+
+REGO_POLICY_EMERGENCY_DENY_ALL = """\
+package agentpep.core
+
+import rego.v1
+
+# ---------------------------------------------------------------------------
+# AgentPEP Emergency Deny-All Bundle
+# Published by AAPM in response to a critical security event.
+# All tool call evaluation returns DENY until a normal bundle is restored.
+# ---------------------------------------------------------------------------
+
+# Default deny — no allow rules present.
+default allow := false
+"""
+
+
+# ---------------------------------------------------------------------------
+# Bundle metadata templates
+# ---------------------------------------------------------------------------
+
+def _make_data_json(bundle_type: str, version: str) -> str:
+    descriptions = {
+        "dev-stub": "Mock AgentPEP development bundle — not for production",
+        "v1-parity": "AgentPEP Core Enforcement Policy v1.0.0 — first AAPM-compiled bundle",
+        "emergency-deny-all": "EMERGENCY DENY-ALL — all agent tool calls denied pending security review",
+    }
+    return json.dumps(
+        {
+            "version": version,
+            "bundle_type": bundle_type,
+            "description": descriptions.get(bundle_type, "AgentPEP policy bundle"),
+            "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "aapm_compiled": bundle_type != "dev-stub",
+        },
+        indent=2,
+    )
+
+
+def _make_manifest(bundle_type: str, version: str) -> str:
+    revisions = {
+        "dev-stub": "mock-dev",
+        "v1-parity": f"aapm-v1-parity-{version}",
+        "emergency-deny-all": f"aapm-emergency-deny-all-{version}",
+    }
+    return json.dumps(
+        {
+            "revision": revisions.get(bundle_type, version),
+            "roots": ["agentpep"],
+            "bundle_type": bundle_type,
+        },
+        indent=2,
+    )
+
+
+def _rego_for_bundle_type(bundle_type: str) -> str:
+    """Return the Rego policy source for the given bundle type."""
+    policies = {
+        "dev-stub": REGO_POLICY_DEV_STUB,
+        "v1-parity": REGO_POLICY_V1_PARITY,
+        "emergency-deny-all": REGO_POLICY_EMERGENCY_DENY_ALL,
+    }
+    if bundle_type not in policies:
+        raise ValueError(f"Unknown bundle type {bundle_type!r}. Valid types: {list(policies)}")
+    return policies[bundle_type]
+
+
+# Legacy alias kept for backwards compatibility
+REGO_POLICY = REGO_POLICY_DEV_STUB
 
 DATA_JSON = json.dumps(
     {
@@ -133,15 +278,17 @@ MANIFEST = json.dumps(
 )
 
 
-def _build_bundle(version: str = "0.0.1-dev") -> bytes:
-    """Build a minimal valid bundle.tar.gz in memory."""
-    data = DATA_JSON.replace('"generated_at": ""', f'"generated_at": "{time.strftime("%Y-%m-%dT%H:%M:%SZ")}"')
+def _build_bundle(version: str = "0.0.1-dev", bundle_type: str = "dev-stub") -> bytes:
+    """Build a bundle.tar.gz in memory for the given bundle type."""
+    rego_source = _rego_for_bundle_type(bundle_type)
+    data = _make_data_json(bundle_type, version)
+    manifest = _make_manifest(bundle_type, version)
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tf:
         for name, content in [
-            ("policies/core.rego", REGO_POLICY.encode()),
+            ("policies/core.rego", rego_source.encode()),
             ("data.json", data.encode()),
-            (".manifest", MANIFEST.encode()),
+            (".manifest", manifest.encode()),
         ]:
             info = tarfile.TarInfo(name=name)
             info.size = len(content)
@@ -161,6 +308,7 @@ def _sign_bundle(private_key: Ed25519PrivateKey, bundle_bytes: bytes) -> bytes:
 
 _state: dict[str, Any] = {
     "version": "0.0.1-dev",
+    "bundle_type": "dev-stub",
     "bundle_bytes": b"",
     "sig_bytes": b"",
     "private_key": None,
@@ -170,14 +318,15 @@ _state: dict[str, Any] = {
 
 
 def _rebuild_bundle() -> None:
-    """Regenerate bundle + signature with the current state version."""
-    bundle = _build_bundle(_state["version"])
+    """Regenerate bundle + signature with the current state version and bundle type."""
+    bundle = _build_bundle(_state["version"], _state["bundle_type"])
     sig = _sign_bundle(_state["private_key"], bundle)
     _state["bundle_bytes"] = bundle
     _state["sig_bytes"] = sig
     _state["etag"] = f'"{hashlib.sha256(bundle).hexdigest()[:16]}"'
     print(
         f"[mock-registry] Bundle rebuilt: version={_state['version']}  "
+        f"type={_state['bundle_type']}  "
         f"size={len(bundle)}B  etag={_state['etag']}"
     )
 
@@ -248,13 +397,16 @@ class MockRegistryHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             new_version = payload.get("version", _state["version"])
+            new_bundle_type = payload.get("bundle_type", _state["bundle_type"])
             _state["version"] = new_version
+            _state["bundle_type"] = new_bundle_type
             _rebuild_bundle()
             self._send_json(
                 200,
                 {
                     "status": "published",
                     "version": new_version,
+                    "bundle_type": new_bundle_type,
                     "etag": _state["etag"],
                 },
             )
@@ -286,6 +438,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Mock AAPM Policy Registry")
     parser.add_argument("--port", type=int, default=8099)
     parser.add_argument(
+        "--bundle-type",
+        choices=["dev-stub", "v1-parity", "emergency-deny-all"],
+        default="dev-stub",
+        help=(
+            "Bundle type to serve at startup. "
+            "'dev-stub': original development stub (default). "
+            "'v1-parity': first AAPM-compiled bundle, decision-identical to the Python stub. "
+            "'emergency-deny-all': deny-all bundle for emergency testing."
+        ),
+    )
+    parser.add_argument(
         "--dump-public-key",
         action="store_true",
         help="Print the development public key PEM and exit",
@@ -295,6 +458,12 @@ def main() -> None:
     private_key, public_key = _generate_or_load_keypair()
     _state["private_key"] = private_key
     _state["public_key"] = public_key
+    _state["bundle_type"] = args.bundle_type
+    _state["version"] = (
+        "0.0.1-dev" if args.bundle_type == "dev-stub"
+        else "1.0.0" if args.bundle_type == "v1-parity"
+        else "emergency-1.0.0"
+    )
 
     _rebuild_bundle()
 
@@ -308,6 +477,7 @@ def main() -> None:
     ).decode()
 
     print(f"\n[mock-registry] Starting on http://localhost:{args.port}/")
+    print(f"[mock-registry] Bundle type: {args.bundle_type}")
     print(f"[mock-registry] Bundle URL (for polling config):")
     print(
         f"  http://localhost:{args.port}/agentpep/policies/global/core_enforcement/latest/bundle.tar.gz"

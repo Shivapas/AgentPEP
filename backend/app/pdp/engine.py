@@ -1,18 +1,28 @@
 """OPA embedded library wrapper — ADR-001 Option A (embedded, not sidecar).
 
-Provides an in-process Rego evaluation engine.  Two implementations:
+Provides an in-process Rego evaluation engine.  Three implementations:
 
-1. RegoNativeEvaluator — zero-dependency Python evaluator for the dev/stub
-   bundle shipped by scripts/mock_aapm_registry.py.  Used when regopy is not
-   installed (CI, lightweight deployments).
+1. RegoNativeEvaluator — DECOMMISSIONED (Sprint S-E05).  Retained for parity
+   testing only; must not be used in production code paths.  Superseded by the
+   first AAPM-compiled Rego bundle (``agentpep-core-v1.0.0``).
 
-2. RegoPyEvaluator — wraps the ``regopy`` Python binding for full Rego
-   evaluation once the real AAPM bundle arrives in S-E05.
+2. FirstAAMPBundleEvaluator — Python reference implementation of the first
+   AAPM-compiled bundle (v1-parity).  Decision-identical to RegoNativeEvaluator.
+   Used in CI environments without regopy to validate the parity test.
 
-Both implement OPAEngineProtocol and are interchangeable.  The factory
-function ``get_engine()`` returns the best available implementation.
+3. RegoPyEvaluator — wraps the ``regopy`` Python binding for full Rego
+   evaluation against the real AAPM bundle.  This is the production evaluator.
+
+The factory function ``get_engine()`` returns the best available implementation:
+  regopy available → RegoPyEvaluator (production)
+  regopy not available → raises ImportError (no stub fallback in production)
+
+For testing:
+  Use ``OPAEngine(evaluator=FirstAAMPBundleEvaluator())`` directly.
 
 Sprint S-E04 (E04-T01)
+Sprint S-E05 (E05-T09): RegoNativeEvaluator decommissioned from production path;
+                         FirstAAMPBundleEvaluator added for CI parity tests.
 """
 
 from __future__ import annotations
@@ -61,26 +71,34 @@ class OPAEngineProtocol(Protocol):
 # Implementation 1: Python-native stub evaluator (no dependencies)
 # ---------------------------------------------------------------------------
 
+# Shared set of read-only tools recognised by both evaluators
 _READ_ONLY_TOOLS: frozenset[str] = frozenset(
     {"read_file", "list_dir", "search_code", "get_file_contents", "list_files"}
 )
 
+# ---------------------------------------------------------------------------
+# Sprint S-E05 decommission flag
+# ---------------------------------------------------------------------------
+
+#: True after Sprint S-E05 ships.  When set, ``_select_evaluator()`` does NOT
+#: fall back to ``RegoNativeEvaluator`` if regopy is unavailable.  Production
+#: deployments must provide regopy; CI tests must use FirstAAMPBundleEvaluator.
+_NATIVE_EVALUATOR_DECOMMISSIONED: bool = True
+
 
 class RegoNativeEvaluator:
-    """Pure-Python evaluator for the stub Rego bundle from the mock AAPM registry.
+    """DECOMMISSIONED — Sprint S-E05 (E05-T09).
 
-    Implements the subset of rules present in the dev bundle:
+    Pure-Python evaluator for the dev/stub Rego bundle.  Retained for use in
+    the S-E05 parity test (as the "old" side of the comparison) but removed
+    from the production code path.  Do not instantiate this class outside of
+    ``tests/parity/``.
 
-        default allow := false
-
-        allow if {
-            input.tool_name in {"read_file", "list_dir", "search_code"}
-            input.deployment_tier == "HOMEGROWN"
-        }
-
-    This is intentionally narrow.  The native evaluator exists only to keep
-    tests green in environments without OPA binaries.  Production deployments
-    use RegoPyEvaluator once the real AAPM bundle is active (Sprint S-E05).
+    Original stub rules:
+      - Default deny
+      - Deny tainted inputs (taint_level != "CLEAN")
+      - Deny trust_score < 0.0  (effectively unreachable)
+      - Allow read-only tools on HOMEGROWN tier
     """
 
     def evaluate(
@@ -94,7 +112,6 @@ class RegoNativeEvaluator:
         taint = input_document.get("taint_level", "CLEAN")
         trust = float(input_document.get("trust_score", 1.0))
 
-        # Tainted requests are always denied
         if taint != "CLEAN":
             return self._decision(
                 allow=False,
@@ -102,7 +119,6 @@ class RegoNativeEvaluator:
                 details=f"Input taint_level={taint!r}; only CLEAN inputs are permitted",
             )
 
-        # Insufficient trust score
         if trust < 0.0:
             return self._decision(
                 allow=False,
@@ -110,7 +126,6 @@ class RegoNativeEvaluator:
                 details=f"trust_score={trust} is below minimum (0.0)",
             )
 
-        # Stub bundle rule: read-only tools on HOMEGROWN tier
         if tool in _READ_ONLY_TOOLS and tier == "HOMEGROWN":
             return self._decision(allow=True, reason_code="TOOL_ALLOWED")
 
@@ -133,6 +148,90 @@ class RegoNativeEvaluator:
             "reason_code": reason_code,
             "details": details,
             "evaluator": "native_stub",
+        }
+
+
+# ---------------------------------------------------------------------------
+# Sprint S-E05: First AAPM-compiled bundle — Python reference implementation
+# ---------------------------------------------------------------------------
+
+
+class FirstAAMPBundleEvaluator:
+    """Python reference implementation of the first AAPM-compiled Rego bundle.
+
+    Sprint S-E05 (E05-T03, E05-T04).
+
+    This evaluator implements the same rules as the v1-parity bundle served
+    by ``scripts/mock_aapm_registry.py --bundle-type v1-parity``.  It exists
+    so CI environments without regopy can run the parity test against a
+    trustworthy Python reference rather than against the
+    RegoNativeEvaluator stub.
+
+    Expected outcome of the parity test: decisions produced by this evaluator
+    must be 100% identical to RegoNativeEvaluator across all test cases.
+    Once 100% parity is confirmed, RegoNativeEvaluator is considered
+    superseded.
+
+    Rules (compiled from APDL agentpep-core-v1.0.0.apdl):
+      1. Default deny (Evaluation Guarantee Invariant)
+      2. Gate: taint_level != "CLEAN"  → DENY / TAINTED_INPUT
+      3. Gate: trust_score < 0.0       → DENY / INSUFFICIENT_TRUST
+      4. Allow: tool in READ_ONLY_TOOLS
+                AND deployment_tier == "HOMEGROWN"
+                AND taint_level == "CLEAN"
+                AND trust_score >= 0.0
+    """
+
+    def evaluate(
+        self,
+        rego_modules: dict[str, bytes],
+        query: str,
+        input_document: dict[str, Any],
+    ) -> dict[str, Any]:
+        tool = input_document.get("tool_name", "")
+        tier = input_document.get("deployment_tier", "HOMEGROWN")
+        taint = input_document.get("taint_level", "CLEAN")
+        trust = float(input_document.get("trust_score", 1.0))
+
+        # Gate 1: taint — mirrors Rego gate 1 in REGO_POLICY_V1_PARITY
+        if taint != "CLEAN":
+            return self._decision(
+                allow=False,
+                reason_code="TAINTED_INPUT",
+                details=f"Input taint_level={taint!r}; only CLEAN inputs are permitted",
+            )
+
+        # Gate 2: trust floor — mirrors Rego gate 2 in REGO_POLICY_V1_PARITY
+        if trust < 0.0:
+            return self._decision(
+                allow=False,
+                reason_code="INSUFFICIENT_TRUST",
+                details=f"trust_score={trust} is below minimum (0.0)",
+            )
+
+        # Allow rule — mirrors Rego allow rule in REGO_POLICY_V1_PARITY
+        if tool in _READ_ONLY_TOOLS and tier == "HOMEGROWN":
+            return self._decision(allow=True, reason_code="TOOL_ALLOWED")
+
+        return self._decision(
+            allow=False,
+            reason_code="TOOL_NOT_PERMITTED",
+            details=f"Tool {tool!r} not permitted under tier {tier!r} by v1-parity bundle",
+        )
+
+    @staticmethod
+    def _decision(
+        allow: bool,
+        reason_code: str,
+        details: str = "",
+    ) -> dict[str, Any]:
+        return {
+            "allow": allow,
+            "deny": not allow,
+            "modify": False,
+            "reason_code": reason_code,
+            "details": details,
+            "evaluator": "first_aapm_bundle_v1",
         }
 
 
@@ -304,18 +403,35 @@ class OPAEngine:
 
 
 def _select_evaluator() -> OPAEngineProtocol:
-    """Return the best available OPA evaluator implementation."""
+    """Return the production OPA evaluator.
+
+    Sprint S-E05 (E05-T09): ``RegoNativeEvaluator`` fallback removed.
+    Production deployments must provide the ``regopy`` package.
+    CI tests that cannot install regopy should use ``FirstAAMPBundleEvaluator``
+    by constructing ``OPAEngine(evaluator=FirstAAMPBundleEvaluator())``
+    directly.
+    """
     try:
         ev = RegoPyEvaluator()
         logger.info("opa_evaluator_selected", evaluator="RegoPyEvaluator")
         return ev
     except ImportError:
+        if _NATIVE_EVALUATOR_DECOMMISSIONED:
+            raise ImportError(
+                "regopy is required for AgentPEP v2.1+ OPA evaluation. "
+                "Install it with: pip install 'agentpep[opa]'. "
+                "The RegoNativeEvaluator stub was decommissioned in Sprint S-E05 "
+                "and is no longer a valid production fallback. "
+                "For CI without regopy, inject FirstAAMPBundleEvaluator directly."
+            )
+        # Unreachable when _NATIVE_EVALUATOR_DECOMMISSIONED is True, but kept
+        # for the hypothetical rollback path.
         logger.warning(
             "opa_evaluator_fallback",
-            reason="regopy not installed; using RegoNativeEvaluator stub",
+            reason="regopy not installed; native stub fallback is DECOMMISSIONED",
             action="install regopy for full Rego evaluation",
         )
-        return RegoNativeEvaluator()
+        return RegoNativeEvaluator()  # type: ignore[unreachable]
 
 
 def get_engine() -> OPAEngine:

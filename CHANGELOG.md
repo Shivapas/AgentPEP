@@ -7,6 +7,70 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ---
 
+## [Unreleased] — Sprint S-E05: First AAPM Bundle Integration + Parity Validation
+
+### Added
+
+- **`FirstAAMPBundleEvaluator`** (`app/pdp/engine.py`): Python reference
+  implementation of the first AAPM-compiled Rego bundle (`agentpep-core-v1.0.0`).
+  Produces decisions identical to `RegoNativeEvaluator` for the defined parity
+  test matrix.  Used in CI environments without regopy for parity validation.
+
+- **`REGO_POLICY_V1_PARITY`** (`scripts/mock_aapm_registry.py`): Rego source
+  for the v1-parity bundle — the first AAPM-compiled bundle, decision-identical
+  to the Python stub it supersedes.  Served via `--bundle-type v1-parity`.
+
+- **`REGO_POLICY_EMERGENCY_DENY_ALL`** (`scripts/mock_aapm_registry.py`):
+  Emergency deny-all Rego bundle for S-E05-T08 testing.  Served via
+  `--bundle-type emergency-deny-all`.
+
+- **`--bundle-type`** CLI flag for `scripts/mock_aapm_registry.py`:
+  Selects `dev-stub` (original), `v1-parity` (first AAPM bundle), or
+  `emergency-deny-all` at registry startup.  `POST /agentpep/policies/publish`
+  also accepts `bundle_type` in the payload for runtime switching.
+
+- **`tests/parity/test_aapm_bundle_parity.py`**: Parity test suite (E05-T04).
+  Compares `RegoNativeEvaluator` vs `FirstAAMPBundleEvaluator` across 23 test
+  cases.  `test_full_parity_divergence_report` is the formal parity gate;
+  zero divergences required before imperative rules are decommissioned (E05-T09).
+  Includes `DivergenceReport` class for E05-T05 root-cause reporting.
+
+- **`tests/integration/test_aapm_e2e_integration.py`**: E2E integration tests
+  (E05-T06).  Validates the complete bundle load flow: TrustedPolicyLoader
+  fetch + verify → PDPClient enforce → version tracker updated.
+
+- **`tests/integration/test_aapm_polling_fallback.py`**: Polling fallback tests
+  (E05-T07).  Validates ETag-based conditional GET, 304 no-op, FAIL_CLOSED
+  on load error, and ETag advancement after successful reload.
+
+- **`tests/integration/test_aapm_emergency_bundle.py`**: Emergency deny-all
+  bundle tests (E05-T08).  Validates emergency bundle enforcement, manifest
+  detection, and recovery to normal bundle.
+
+- **`docs/operations/rule_inventory.md`**: Full audit of all imperative
+  enforcement rules delivered to the AAPM team for APDL authoring (E05-T01).
+
+- **`docs/operations/aapm_policy_source.md`**: Operator runbook for AAPM as
+  policy source.  Covers configuration, bundle verification, emergency
+  deny-all procedure, and recovery (E05-T10).
+
+### Changed
+
+- **`scripts/mock_aapm_registry.py`**: Extended with `_build_bundle` accepting
+  a `bundle_type` parameter; `POST /agentpep/policies/publish` accepts
+  `bundle_type` in payload; `--bundle-type` CLI flag added.
+
+### Removed / Decommissioned
+
+- **`RegoNativeEvaluator`** removed from `_select_evaluator()` production
+  fallback (E05-T09).  The class is retained in `engine.py` for parity
+  testing (`tests/parity/`) but raises `ImportError` if regopy is unavailable
+  in production.  Production deployments must install
+  `pip install 'agentpep[opa]'`.  `_NATIVE_EVALUATOR_DECOMMISSIONED = True`
+  guards the fallback path.
+
+---
+
 ## [1.0.0] — 2026-04-03
 
 ### General Availability Release
