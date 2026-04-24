@@ -41,6 +41,7 @@ from app.api.v1.cis import router as cis_router
 from app.api.v1.camel_seq import router as camel_seq_router
 from app.api.v1.sprint55 import router as sprint55_router
 from app.api.v1.sprint56 import router as sprint56_router
+from app.policy.registry_webhook import router as policy_webhook_router
 from app.core.config import settings
 from app.core.observability import get_metrics_app, setup_tracing
 from app.core.structured_logging import configure_logging, get_logger
@@ -329,6 +330,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await adaptive_threat_score.start()
         logger.info("adaptive_threat_score_started")
 
+    # Sprint S-E03: Check for env var override attempts (SECURITY_VIOLATION events)
+    from app.policy.loader import check_and_report_env_var_overrides
+
+    check_and_report_env_var_overrides()
+
+    # Sprint S-E03: Start registry pull-polling fallback
+    if settings.policy_loader_enabled:
+        from app.policy.registry_poll import registry_poller
+
+        await registry_poller.start()
+        logger.info(
+            "policy_registry_poller_started",
+            poll_interval_s=settings.policy_poll_interval_s,
+        )
+
     # Start gRPC server if enabled
     if settings.grpc_enabled:
         try:
@@ -343,6 +359,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             )
 
     yield
+
+    # Sprint S-E03: Stop registry poller
+    if settings.policy_loader_enabled:
+        from app.policy.registry_poll import registry_poller
+
+        await registry_poller.stop()
 
     # Sprint 50: Stop adaptive threat score engine
     if settings.adaptive_threat_score_enabled:
@@ -478,6 +500,7 @@ app.include_router(cis_router)
 app.include_router(camel_seq_router)
 app.include_router(sprint55_router)
 app.include_router(sprint56_router)
+app.include_router(policy_webhook_router)
 
 # Observability
 if settings.metrics_enabled:
