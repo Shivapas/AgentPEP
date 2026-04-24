@@ -30,6 +30,9 @@ dependencies = [
 kafka = [
     "aiokafka>=0.11.0",
 ]
+opa = [
+    "regopy>=0.3.0",
+]
 cloudwatch = [
     "boto3>=1.35.0",
 ]

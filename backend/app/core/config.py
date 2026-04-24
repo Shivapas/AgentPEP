@@ -314,6 +314,15 @@ class Settings(BaseSettings):
     # Logical bundle name reported in enforcement decision events
     policy_bundle_name: str = "core_enforcement"
 
+    # Sprint S-E04 — FEATURE-01: OPA Runtime Engine — Core (PDP)
+    pdp_enabled: bool = True
+    # Per-evaluation OPA timeout; expiry → unconditional DENY (Evaluation Guarantee Invariant)
+    pdp_eval_timeout_s: float = 5.0
+    # OPA query entrypoint matching the bundle's package path
+    pdp_query: str = "data.agentpep.core.allow"
+    # Maximum entries retained in the in-memory enforcement decision ring buffer
+    pdp_log_max_entries: int = 10_000
+
     # Sprint 55 — APEP-436..443: CaMeL SEQ Rules, Layer 3 Bridge & Self-Protection
     camel_seq_enabled: bool = True
     camel_seq_rules_enabled: bool = True
