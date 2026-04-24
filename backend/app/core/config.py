@@ -334,6 +334,22 @@ class Settings(BaseSettings):
     # Exceeded latency is logged as a warning; the pipeline is never blocked.
     posttooluse_kafka_sla_ms: int = 500
 
+    # Sprint S-E08 — FEATURE-06: Enforcement Posture Matrix + Blast Radius Integration
+    # AAPM Blast Radius Calculator API base URL.
+    # When empty the blast radius client returns the FAIL_CLOSED default (score = 1.0).
+    aapm_blast_radius_api_url: str = ""
+    # HTTP timeout for the blast radius API call at session initialisation.
+    aapm_blast_radius_timeout_s: float = 5.0
+    # Enable enforcement posture matrix evaluation at PreToolUse.
+    posture_matrix_enabled: bool = True
+    # Explicit deployment tier override (operator-set).
+    # When empty, tier_detection fingerprints the runtime environment.
+    # Valid values: ENTERPRISE | MANAGED | HOMEGROWN
+    deployment_tier: str = ""
+    # Blast radius elevation threshold: scores at or above this value
+    # elevate the base posture one tier (FAIL_CLOSED principle).
+    blast_radius_elevation_threshold: float = 0.75
+
     # Sprint 55 — APEP-436..443: CaMeL SEQ Rules, Layer 3 Bridge & Self-Protection
     camel_seq_enabled: bool = True
     camel_seq_rules_enabled: bool = True

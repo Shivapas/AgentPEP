@@ -4,11 +4,15 @@ Maps the PreToolUse interceptor context to the structured OPA input document
 defined in PRD v2.1.  Every field required by the Rego policy evaluation is
 present in the output.  Missing caller fields are filled with safe defaults.
 
-The ``blast_radius_score`` field is included as a placeholder (value 0.0)
-until Sprint S-E08 wires in the AAPM Blast Radius API.
+The ``blast_radius_score`` field is populated from the AAPM Blast Radius API
+fetched at session initialisation (Sprint S-E08).  When the API is unavailable
+or the caller does not supply an explicit score the FAIL_CLOSED default of 1.0
+is applied — maximum blast radius so posture elevation is never suppressed.
 
 Sprint S-E04 (E04-T02)
 Sprint S-E06 (E06-T04) — delegation_hop_count added; DelegationContext support
+Sprint S-E08 (E08-T08) — blast_radius_score default updated to 1.0 (FAIL_CLOSED);
+                          deployment_tier sourced from TierDetector at session init
 """
 
 from __future__ import annotations
@@ -97,7 +101,10 @@ class AuthorizationRequestBuilder:
     _DEFAULT_TAINT_LEVEL: str = "CLEAN"
     _DEFAULT_TRUST_SCORE: float = 1.0
     _DEFAULT_DEPLOYMENT_TIER: str = "HOMEGROWN"
-    _DEFAULT_BLAST_RADIUS_SCORE: float = 0.0   # placeholder until S-E08
+    # FAIL_CLOSED default: 1.0 = maximum blast radius (S-E08, E08-T02).
+    # Callers supply the actual score from BlastRadiusClient.fetch() at
+    # session init; this default applies when no session context is present.
+    _DEFAULT_BLAST_RADIUS_SCORE: float = 1.0
 
     # Valid taint levels — unknown values are normalised to CLEAN (fail-safe)
     _VALID_TAINT_LEVELS: frozenset[str] = frozenset(
@@ -153,8 +160,9 @@ class AuthorizationRequestBuilder:
             deployment_tier:     Operator-configured deployment tier.
                                  Defaults to ``"HOMEGROWN"``; unknown values are
                                  normalised to ``"HOMEGROWN"``.
-            blast_radius_score:  Risk score from AAPM Blast Radius API.
-                                 Defaults to 0.0 (placeholder until S-E08).
+            blast_radius_score:  Risk score from AAPM Blast Radius API (S-E08).
+                                 Defaults to 1.0 (FAIL_CLOSED) when not supplied
+                                 by the session context.
 
         Returns:
             Fully-populated AuthorizationRequest ready for OPA evaluation.
