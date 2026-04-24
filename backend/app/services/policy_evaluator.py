@@ -361,6 +361,45 @@ class PolicyEvaluator:
             except Exception:
                 logger.warning("Kill switch check failed; proceeding", exc_info=True)
 
+        # --- Sprint S-E02 (FEATURE-03): Complexity budget gate ---
+        # Must run before any other evaluation to eliminate complexity-based bypass.
+        # DENY is unconditional on budget exceeded — no permissive fallback.
+        if settings.complexity_budget_enabled:
+            try:
+                from app.enforcement.complexity_budget import complexity_checker
+
+                complexity_result = complexity_checker.check(
+                    request.tool_name, request.tool_args or {}
+                )
+                if not complexity_result.allowed:
+                    elapsed_ms = int((time.monotonic() - start) * 1000)
+                    decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
+                    return PolicyDecisionResponse(
+                        request_id=request.request_id,
+                        decision=decision,
+                        reason=f"Complexity budget exceeded: {complexity_result.reason}",
+                        risk_score=1.0,
+                        latency_ms=elapsed_ms,
+                    )
+            except Exception:
+                # Budget checker failure → DENY (Evaluation Guarantee Invariant)
+                elapsed_ms = int((time.monotonic() - start) * 1000)
+                logger.warning(
+                    "complexity_budget_check_failed",
+                    session_id=request.session_id,
+                    agent_id=request.agent_id,
+                    tool_name=request.tool_name,
+                    exc_info=True,
+                )
+                decision = Decision.DRY_RUN if request.dry_run else Decision.DENY
+                return PolicyDecisionResponse(
+                    request_id=request.request_id,
+                    decision=decision,
+                    reason="Complexity budget check failed — DENY (Evaluation Guarantee Invariant)",
+                    risk_score=1.0,
+                    latency_ms=elapsed_ms,
+                )
+
         # --- Sprint 55 (APEP-441): Protected path guard ---
         # Block agent operations on security-critical file paths.
         if settings.protected_path_guard_enabled:

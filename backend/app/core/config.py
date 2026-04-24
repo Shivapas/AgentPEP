@@ -287,6 +287,17 @@ class Settings(BaseSettings):
     security_assessment_enabled: bool = True
     mitre_attack_mapping_enabled: bool = True
 
+    # Sprint S-E02 — FEATURE-03: Complexity Budget (Evaluation Guarantee Invariant)
+    complexity_budget_enabled: bool = True
+    # Maximum serialised byte size of tool_args JSON (default 64 KB)
+    complexity_budget_max_arg_bytes: int = 65536
+    # Maximum shell metacharacter count across all string values
+    complexity_budget_max_subcommand_count: int = 10
+    # Maximum dict/list nesting depth
+    complexity_budget_max_nesting_depth: int = 10
+    # Hard evaluation timeout; on expiry → unconditional DENY (no FAIL_OPEN override)
+    complexity_budget_eval_timeout_s: float = 5.0
+
     # Sprint 55 — APEP-436..443: CaMeL SEQ Rules, Layer 3 Bridge & Self-Protection
     camel_seq_enabled: bool = True
     camel_seq_rules_enabled: bool = True
