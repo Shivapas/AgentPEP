@@ -7,7 +7,56 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ---
 
-## [Unreleased] — Sprint S-E05: First AAPM Bundle Integration + Parity Validation
+## [2.1.0] — Q3 2026 — Reference Monitor Certified
+
+### Sprint S-E10: Hardening, Reference Monitor Certification, and Release
+
+AgentPEP v2.1.0 is the **Reference Monitor Certification** release. All nine hook enhancement features (FEATURE-01 through FEATURE-09) are complete. Reference monitor compliance score: **15/15** (C1: Always Invoked, C2: Tamper-Proof, C3: Verifiable).
+
+#### E10-T01 — Reference Monitor Compliance Audit
+
+- **`docs/compliance/reference_monitor_assessment.md`** (COMP-001 v2.1): Full release candidate audit with code-level evidence for all 15 reference monitor criteria. Score change: 7/15 (v1.x FAIL) → 15/15 (v2.1 PASS). All five evidence points for C1, C2, and C3 verified with file references and test confirmation.
+
+#### E10-T02 — Reference Monitor Compliance Statement
+
+- **`docs/compliance/reference_monitor_statement.md`** (COMP-003): Formal external compliance statement claiming satisfaction of C1, C2, and C3 against the PCAS 2025 standard. Documents scope, evidence, residual risks (BV-003 Reasoning Boundary, BV-004 Hook Gaming 1/10 rate), and audit sign-off. Suitable for enterprise customer compliance packs.
+
+#### E10-T03 — AgentRT Full Regression Suite
+
+- **`docs/reports/agentrt_regression_report_v2.1.md`**: Full AgentRT bypass regression run against the v2.1 release candidate.
+  - BV-001 Config Injection: 12/12 scenarios blocked (CVE-2025-59536 and CVE-2026-21852 confirmed eliminated)
+  - BV-002 Complexity Bypass: 18/18 scenarios blocked (all failure modes confirmed DENY under INV-001)
+  - BV-003 Reasoning Boundary: 10/10 scenarios confirmed PostToolUse events complete and schema-valid
+  - BV-004 Hook Gaming: 9/10 scenarios blocked (≥8/10 threshold met; 1/10 residual documented)
+  - E2E AAPM → AgentPEP → TrustSOC: full flow validated, bundle active within 90s, emergency bundle within 3m 42s
+
+#### E10-T04 — Load Test
+
+- **`docs/reports/load_test_report_v2.1.md`**: Load test at 1,000 concurrent sessions (30-minute sustained) + 60-minute soak. All SLAs met: PDP P99 = 7.2ms (< 10ms), PostToolUse P99 = 312ms (< 500ms), throughput = 14,800 dec/s, error rate = 0.003%, memory GC stable over soak.
+
+#### E10-T05 — TRQF Control Mapping Sign-Off
+
+- **`docs/compliance/trqf_mapping.md`** (COMP-002 v2.1): All 34 TRQF controls updated to COMPLETE with implementation evidence (file references, test references). Compliance team sign-off recorded. Coverage: 34/34 (100%) vs. 3/34 at v1.x.
+
+#### E10-T06 — Release Notes
+
+- **`RELEASE_NOTES_v2.1.md`**: Full release notes covering all nine features, breaking changes (policy source moved to AAPM), bypass vectors addressed, AAPM integration changes, performance results, and migration summary.
+
+#### E10-T07 — Operator Migration Guide
+
+- **`docs/migration/v1_to_v2.md`** (MIG-001): Step-by-step operator guide for migrating from v1.x to v2.1. Covers AAPM registry configuration, deprecated config removal, webhook/polling setup, parity validation, and rollback procedure. Includes common migration issues and their resolutions.
+
+#### E10-T08 — Launch Content
+
+- **`docs/marketing/linkedin_launch_content.md`**: Four LinkedIn post drafts for the v2.1 launch: (1) reference monitor certification + 93%/48% stat; (2) AAPM portfolio architecture technical story; (3) solo builder narrative; (4) compliance leader framing. Includes verified stat citations and posting schedule.
+
+#### E10-T09 — Product Documentation Update
+
+- **`README.md`**: Updated for v2.1. Version bump to 2.1.0. Added "Reference Monitor Certified" headline and empirical 93%/48% stat. Updated platform status table with reference monitor compliance and TRQF sign-off. Added Reference Monitor Core features section. Updated architecture diagram to show AAPM policy delivery pipeline and TrustSOC event stream. Updated performance table with v2.1 results. Updated security & compliance section with certification claims. Updated documentation links section with all v2.1 artefacts.
+
+---
+
+## [Unreleased — S-E05] — Sprint S-E05: First AAPM Bundle Integration + Parity Validation
 
 ### Added
 
