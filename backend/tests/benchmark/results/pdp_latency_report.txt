@@ -1,0 +1,11 @@
+concurrency=100 p50=29.398ms p90=33.478ms p95=33.947ms p99=34.424ms min=21.974ms max=34.424ms mean=28.527ms
+concurrency=500 p50=82.289ms p90=98.027ms p95=100.206ms p99=101.742ms min=61.537ms max=101.943ms mean=82.287ms
+concurrency=1000 p50=168.501ms p90=196.187ms p95=200.29ms p99=203.9ms min=119.454ms max=204.676ms mean=166.094ms
+concurrency=100 p50=26.747ms p90=29.392ms p95=29.581ms p99=29.751ms min=23.615ms max=29.751ms mean=26.69ms
+concurrency=1000 p50=185.311ms p90=218.589ms p95=221.921ms p99=224.17ms min=139.439ms max=224.97ms mean=184.289ms
+concurrency=100 p50=26.93ms p90=29.459ms p95=29.691ms p99=30.147ms min=23.203ms max=30.147ms mean=26.793ms
+concurrency=500 p50=76.692ms p90=95.31ms p95=98.349ms p99=100.757ms min=53.884ms max=101.28ms mean=76.748ms
+concurrency=1000 p50=169.196ms p90=202.051ms p95=206.344ms p99=209.14ms min=121.192ms max=209.575ms mean=167.95ms
+concurrency=100 p50=23.568ms p90=27.776ms p95=28.245ms p99=28.548ms min=18.113ms max=28.548ms mean=23.424ms
+concurrency=500 p50=83.187ms p90=99.814ms p95=101.728ms p99=103.795ms min=62.058ms max=104.281ms mean=83.64ms
+concurrency=1000 p50=212.11ms p90=257.512ms p95=263.41ms p99=267.574ms min=151.236ms max=268.067ms mean=210.307ms

@@ -41,6 +41,7 @@ from app.api.v1.cis import router as cis_router
 from app.api.v1.camel_seq import router as camel_seq_router
 from app.api.v1.sprint55 import router as sprint55_router
 from app.api.v1.sprint56 import router as sprint56_router
+from app.api.v1.pdp import router as pdp_router
 from app.policy.registry_webhook import router as policy_webhook_router
 from app.core.config import settings
 from app.core.observability import get_metrics_app, setup_tracing
@@ -345,6 +346,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             poll_interval_s=settings.policy_poll_interval_s,
         )
 
+    # Sprint S-E04: Initialise OPA PDP engine
+    if settings.pdp_enabled:
+        from app.pdp.engine import _engine as _pdp_engine
+        from app.pdp.enforcement_log import enforcement_log as _enforcement_log
+
+        # Touch the lazy singleton to trigger evaluator selection on startup
+        _ = _pdp_engine.evaluator_name
+        logger.info(
+            "pdp_engine_initialized",
+            evaluator=_pdp_engine.evaluator_name,
+            pdp_query=settings.pdp_query,
+        )
+
     # Start gRPC server if enabled
     if settings.grpc_enabled:
         try:
@@ -500,6 +514,7 @@ app.include_router(cis_router)
 app.include_router(camel_seq_router)
 app.include_router(sprint55_router)
 app.include_router(sprint56_router)
+app.include_router(pdp_router)
 app.include_router(policy_webhook_router)
 
 # Observability
